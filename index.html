@@ -8,108 +8,112 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      background: #0f172a;
       color: white;
+    }
+
+    .header {
+      background: #111827;
+      padding: 15px;
       text-align: center;
-    }
-
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
-      border-radius: 50%;
-      background: white;
-      color: #ff4b2b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
+      font-size: 20px;
       font-weight: bold;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    }
-
-    h1 {
-      margin-top: 10px;
+      border-bottom: 1px solid #333;
     }
 
     #auth {
-      margin-top: 80px;
+      text-align: center;
+      margin-top: 100px;
     }
 
     input {
       width: 80%;
       padding: 12px;
       margin: 10px 0;
-      border-radius: 20px;
+      border-radius: 10px;
       border: none;
+      background: #1f2937;
+      color: white;
     }
 
     button {
       padding: 12px 18px;
-      border-radius: 20px;
+      border-radius: 10px;
       border: none;
-      background: white;
-      color: #ff4b2b;
+      background: #ff4b2b;
+      color: white;
       font-weight: bold;
       cursor: pointer;
+      margin: 5px;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
     #chatBox {
-      height: 300px;
+      flex: 1;
       overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
       padding: 10px;
-      margin: 20px;
+      display: flex;
+      flex-direction: column;
     }
 
     .message {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 20px;
+      padding: 10px 14px;
+      margin: 5px;
+      border-radius: 15px;
       max-width: 70%;
-      display: inline-block;
-      clear: both;
+      font-size: 14px;
     }
 
     .me {
-      background: white;
-      color: #ff4b2b;
-      float: right;
+      background: #ff4b2b;
+      align-self: flex-end;
     }
 
     .other {
-      background: rgba(255,255,255,0.6);
-      color: black;
-      float: left;
+      background: #1f2937;
+      align-self: flex-start;
     }
 
     .input-area {
       display: flex;
-      gap: 10px;
-      margin: 10px;
+      padding: 10px;
+      background: #111827;
     }
 
     .input-area input {
       flex: 1;
+      margin: 0;
+    }
+
+    .input-area button {
+      margin-left: 10px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: #111827;
+      border-bottom: 1px solid #333;
+      font-size: 14px;
     }
 
     #logout {
-      width: 90%;
-      margin: 10px;
-      background: rgba(255,255,255,0.3);
-      color: white;
+      background: transparent;
+      color: #ff4b2b;
     }
   </style>
 </head>
 
 <body>
 
-<div class="logo">TG</div>
-
-<h1>TeamUp Global</h1>
-
 <div id="auth">
+  <h2>TeamUp Global</h2>
   <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
@@ -117,7 +121,10 @@
 </div>
 
 <div id="app" style="display:none;">
-  <p id="welcome"></p>
+  <div class="top-bar">
+    <span id="welcome"></span>
+    <button id="logout" onclick="logout()">Logout</button>
+  </div>
 
   <div id="chatBox"></div>
 
@@ -125,8 +132,6 @@
     <input id="message" placeholder="Type message">
     <button onclick="sendMessage()">Send</button>
   </div>
-
-  <button id="logout" onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
@@ -173,7 +178,6 @@ const appDiv = document.getElementById("app");
 
 let currentUser;
 
-// SIGN UP (fixed)
 window.signup = function () {
   if (!email.value || !password.value) {
     alert("Enter email and password");
@@ -181,13 +185,10 @@ window.signup = function () {
   }
 
   createUserWithEmailAndPassword(auth, email.value, password.value)
-    .then(() => {
-      alert("Account created successfully!");
-    })
+    .then(() => alert("Account created successfully!"))
     .catch(e => alert(e.message));
 };
 
-// LOGIN (fixed)
 window.login = function () {
   if (!email.value || !password.value) {
     alert("Enter email and password");
@@ -198,13 +199,12 @@ window.login = function () {
     .catch(e => alert(e.message));
 };
 
-// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
     authDiv.style.display = "none";
-    appDiv.style.display = "block";
-    welcome.innerText = "Welcome " + user.email;
+    appDiv.style.display = "flex";
+    welcome.innerText = user.email;
     loadMessages();
   } else {
     authDiv.style.display = "block";
@@ -212,7 +212,6 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// SEND MESSAGE (fixed)
 window.sendMessage = async function () {
   const text = message.value.trim();
   if (!text) return;
@@ -226,7 +225,6 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// LOAD MESSAGES
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
@@ -247,7 +245,6 @@ function loadMessages() {
   });
 }
 
-// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
