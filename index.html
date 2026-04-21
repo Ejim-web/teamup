@@ -28,9 +28,6 @@
     }
 
     .btn {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       background: white;
       color: black;
       padding: 15px;
@@ -88,7 +85,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
-  getRedirectResult,
+  onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -99,7 +96,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ✅ YOUR ORIGINAL CONFIG (UNCHANGED)
+// ✅ YOUR CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -115,33 +112,28 @@ window.showEmail = function () {
   document.getElementById("emailBox").style.display = "block";
 };
 
-// ✅ GOOGLE LOGIN (FIXED FOR MOBILE)
+// GOOGLE LOGIN (FIXED)
 const provider = new GoogleAuthProvider();
 
 window.googleLogin = function () {
   signInWithRedirect(auth, provider);
 };
 
-// HANDLE REDIRECT RESULT
-getRedirectResult(auth)
-  .then(async (result) => {
-    if (result && result.user) {
-      await setDoc(doc(db, "users", result.user.uid), {
-        name: result.user.displayName || "User",
-        email: result.user.email,
-        uid: result.user.uid
-      });
-      alert("Google login successful");
-    }
-  })
-  .catch((error) => {
-    console.log(error);
-  });
+// 🔥 MAIN FIX (handles redirect properly)
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    await setDoc(doc(db, "users", user.uid), {
+      name: user.displayName || "User",
+      email: user.email,
+      uid: user.uid
+    }, { merge: true });
 
-// PHONE LOGIN (LATER)
-window.phoneLogin = function () {
-  alert("Phone login coming soon");
-};
+    alert("Login successful");
+
+    // reload page (safe if no chat page yet)
+    window.location.reload();
+  }
+});
 
 // EMAIL LOGIN / SIGNUP
 window.emailAuth = async function () {
@@ -171,6 +163,11 @@ window.emailAuth = async function () {
 
     alert("Login successful");
   }
+};
+
+// PHONE LOGIN (placeholder)
+window.phoneLogin = function () {
+  alert("Phone login coming soon");
 };
 </script>
 
