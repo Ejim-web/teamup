@@ -9,147 +9,59 @@
       margin: 0;
       font-family: Arial;
       background: linear-gradient(135deg, #ff416c, #ff4b2b);
-      color: white;
-      text-align: center;
-    }
-
-    .center {
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      color: white;
     }
 
-    .logo {
-      font-size: 50px;
-      font-weight: bold;
+    .container {
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h1 {
       margin-bottom: 40px;
     }
 
-    .google-btn {
-      width: 80%;
+    button {
+      width: 100%;
       padding: 15px;
       border-radius: 30px;
       border: none;
-      background: white;
-      color: #ff4b2b;
       font-size: 16px;
-      font-weight: bold;
+      margin-bottom: 15px;
       cursor: pointer;
     }
 
-    #app {
-      display: none;
-    }
-
-    #chatBox {
-      height: 300px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      padding: 10px;
-      margin: 20px;
-    }
-
-    .message {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 20px;
-      max-width: 70%;
-      display: inline-block;
-      clear: both;
-    }
-
-    .me {
+    .google {
       background: white;
-      color: #ff4b2b;
-      float: right;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.6);
       color: black;
-      float: left;
-    }
-
-    .input-area {
-      display: flex;
-      gap: 10px;
-      margin: 10px;
-    }
-
-    .input-area input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
-    }
-
-    button.send {
-      padding: 10px 15px;
-      border-radius: 20px;
-      border: none;
-      background: white;
-      color: #ff4b2b;
-      font-weight: bold;
-    }
-
-    #logout {
-      width: 90%;
-      margin: 10px;
-      background: rgba(255,255,255,0.3);
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 20px;
     }
   </style>
 </head>
 
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen" class="center">
-  <div class="logo">TeamUp</div>
-  <button class="google-btn" onclick="googleLogin()">
+<div class="container">
+  <h1>TeamUp</h1>
+
+  <button class="google" onclick="googleLogin()">
     Continue with Google
   </button>
 </div>
 
-<!-- APP SCREEN -->
-<div id="app">
-  <h2 id="welcome"></h2>
-
-  <div id="chatBox"></div>
-
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button class="send" onclick="sendMessage()">Send</button>
-  </div>
-
-  <button id="logout" onclick="logout()">Logout</button>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
@@ -162,84 +74,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-const loginScreen = document.getElementById("loginScreen");
-const appScreen = document.getElementById("app");
-const welcome = document.getElementById("welcome");
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
-
-let currentUser;
-
-// ✅ FIXED GOOGLE LOGIN (POPUP)
-window.googleLogin = async function () {
+// 🔥 GOOGLE LOGIN (MOBILE FIX)
+window.googleLogin = function () {
   const provider = new GoogleAuthProvider();
+  signInWithRedirect(auth, provider);
+};
 
-  try {
-    const result = await signInWithPopup(auth, provider);
-    alert("Welcome " + result.user.email);
-  } catch (error) {
+// 🔥 HANDLE REDIRECT RESULT
+getRedirectResult(auth)
+  .then((result) => {
+    if (result && result.user) {
+      alert("Welcome " + result.user.email);
+    }
+  })
+  .catch((error) => {
     alert(error.message);
-  }
-};
-
-// AUTH STATE
-onAuthStateChanged(auth, user => {
-  if (user) {
-    currentUser = user;
-
-    loginScreen.style.display = "none";
-    appScreen.style.display = "block";
-
-    welcome.innerText = "Welcome " + user.email;
-
-    loadMessages();
-  } else {
-    loginScreen.style.display = "flex";
-    appScreen.style.display = "none";
-  }
-});
-
-// SEND MESSAGE
-window.sendMessage = async function () {
-  const text = message.value;
-  if (!text) return;
-
-  await addDoc(collection(db, "messages"), {
-    text,
-    user: currentUser.email,
-    createdAt: serverTimestamp()
   });
 
-  message.value = "";
-};
-
-// LOAD MESSAGES
-function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
-
-  onSnapshot(q, snapshot => {
-    chatBox.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
-
-      chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-
-// LOGOUT
-window.logout = function () {
-  signOut(auth);
-};
 </script>
 
 </body>
