@@ -14,7 +14,7 @@
 
     #auth {
       text-align: center;
-      margin-top: 100px;
+      margin-top: 80px;
     }
 
     input {
@@ -105,7 +105,7 @@
 <div id="auth">
   <h2>TeamUp Global</h2>
 
-  <input type="text" id="username" placeholder="Username"><br>
+  <input type="text" id="fullname" placeholder="Full Name"><br>
   <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Password"><br>
 
@@ -161,7 +161,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const username = document.getElementById("username");
+const fullname = document.getElementById("fullname");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const message = document.getElementById("message");
@@ -172,11 +172,11 @@ const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let currentUsername = "";
+let currentName = "";
 
 // SIGNUP
 window.signup = async function () {
-  if (!email.value || !password.value || !username.value) {
+  if (!email.value || !password.value || !fullname.value) {
     alert("Fill all fields");
     return;
   }
@@ -190,10 +190,10 @@ window.signup = async function () {
 
     await addDoc(collection(db, "users"), {
       uid: userCred.user.uid,
-      username: username.value
+      fullname: fullname.value
     });
 
-    alert("Account created successfully!");
+    alert("Account created! Now login.");
   } catch (e) {
     alert(e.message);
   }
@@ -201,11 +201,6 @@ window.signup = async function () {
 
 // LOGIN
 window.login = function () {
-  if (!email.value || !password.value) {
-    alert("Enter email and password");
-    return;
-  }
-
   signInWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
@@ -215,22 +210,22 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
-    // GET USERNAME
-    const users = await getDocs(collection(db, "users"));
-    users.forEach(doc => {
-      if (doc.data().uid === user.uid) {
-        currentUsername = doc.data().username;
+    const snapshot = await getDocs(collection(db, "users"));
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.uid === user.uid) {
+        currentName = data.fullname;
       }
     });
 
-    // fallback if username not found
-    if (!currentUsername) {
-      currentUsername = user.email;
+    // fallback
+    if (!currentName) {
+      currentName = user.email;
     }
 
     authDiv.style.display = "none";
     appDiv.style.display = "flex";
-    welcome.innerText = currentUsername;
+    welcome.innerText = currentName;
 
     loadMessages();
   } else {
@@ -246,15 +241,15 @@ window.sendMessage = async function () {
 
   await addDoc(collection(db, "messages"), {
     text,
-    username: currentUsername,
-    user: currentUser.email, // keep old support
+    fullname: currentName,
+    user: currentUser.email,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// LOAD MESSAGES (FIXED HERE)
+// LOAD MESSAGES
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
@@ -264,10 +259,10 @@ function loadMessages() {
     snapshot.forEach(doc => {
       const data = doc.data();
 
-      const name = data.username || data.user || "User";
+      const name = data.fullname || data.user || "User";
 
       const div = document.createElement("div");
-      div.className = "message " + (name === currentUsername ? "me" : "other");
+      div.className = "message " + (name === currentName ? "me" : "other");
 
       div.innerText = name + ": " + data.text;
 
