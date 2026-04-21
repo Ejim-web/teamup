@@ -13,7 +13,6 @@
       text-align: center;
     }
 
-    /* Tinder-style center layout */
     .center {
       display: flex;
       flex-direction: column;
@@ -40,7 +39,6 @@
       cursor: pointer;
     }
 
-    /* App (chat) */
     #app {
       display: none;
     }
@@ -111,7 +109,7 @@
 
 <body>
 
-<!-- ✅ LOGIN SCREEN (Tinder Style) -->
+<!-- LOGIN SCREEN -->
 <div id="loginScreen" class="center">
   <div class="logo">TeamUp</div>
   <button class="google-btn" onclick="googleLogin()">
@@ -119,7 +117,7 @@
   </button>
 </div>
 
-<!-- ✅ APP SCREEN -->
+<!-- APP SCREEN -->
 <div id="app">
   <h2 id="welcome"></h2>
 
@@ -140,8 +138,7 @@ import {
   onAuthStateChanged,
   signOut,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -154,7 +151,6 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ✅ YOUR CONFIG (already correct)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -176,16 +172,19 @@ const message = document.getElementById("message");
 
 let currentUser;
 
-// ✅ Google login
-window.googleLogin = function () {
+// ✅ FIXED GOOGLE LOGIN (POPUP)
+window.googleLogin = async function () {
   const provider = new GoogleAuthProvider();
-  signInWithRedirect(auth, provider);
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    alert("Welcome " + result.user.email);
+  } catch (error) {
+    alert(error.message);
+  }
 };
 
-// Handle redirect
-getRedirectResult(auth).catch(() => {});
-
-// Auth state
+// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -202,7 +201,7 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// Send message
+// SEND MESSAGE
 window.sendMessage = async function () {
   const text = message.value;
   if (!text) return;
@@ -216,7 +215,7 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// Load messages
+// LOAD MESSAGES
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
@@ -237,7 +236,7 @@ function loadMessages() {
   });
 }
 
-// Logout
+// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
