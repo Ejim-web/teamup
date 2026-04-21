@@ -8,23 +8,25 @@
     body {
       margin: 0;
       font-family: Arial;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       background: linear-gradient(135deg, #ff416c, #ff4b2b);
       color: white;
     }
 
-    .container {
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
+    .screen {
+      display: none;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .active {
+      display: flex;
     }
 
     h1 {
-      font-size: 40px;
-      margin-bottom: 30px;
+      font-size: 35px;
     }
 
     .btn {
@@ -33,12 +35,16 @@
       padding: 15px;
       margin: 10px 0;
       border-radius: 30px;
+      width: 90%;
+      max-width: 300px;
+      text-align: center;
       font-weight: bold;
       cursor: pointer;
     }
 
     input {
-      width: 100%;
+      width: 90%;
+      max-width: 300px;
       padding: 12px;
       margin: 5px 0;
       border-radius: 20px;
@@ -46,7 +52,8 @@
     }
 
     button {
-      width: 100%;
+      width: 90%;
+      max-width: 300px;
       padding: 12px;
       border-radius: 20px;
       border: none;
@@ -54,28 +61,30 @@
       color: white;
       margin-top: 10px;
     }
-
-    #emailBox {
-      display: none;
-    }
   </style>
 </head>
 
 <body>
 
-<div class="container">
+<!-- LOGIN SCREEN -->
+<div id="login" class="screen active">
   <h1>TeamUp Global</h1>
 
   <div class="btn" onclick="googleLogin()">Continue with Google</div>
-  <div class="btn" onclick="phoneLogin()">Continue with Phone Number</div>
   <div class="btn" onclick="showEmail()">Continue with Email</div>
 
-  <div id="emailBox">
+  <div id="emailBox" style="display:none;">
     <input id="name" placeholder="Full Name">
     <input id="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
     <button onclick="emailAuth()">Continue</button>
   </div>
+</div>
+
+<!-- HOME / CHAT SCREEN -->
+<div id="home" class="screen">
+  <h1 id="welcome">Welcome</h1>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
@@ -87,7 +96,8 @@ import {
   signInWithRedirect,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
@@ -96,7 +106,6 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ✅ YOUR CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -107,19 +116,21 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-// SHOW EMAIL FORM
-window.showEmail = function () {
-  document.getElementById("emailBox").style.display = "block";
-};
+// SWITCH SCREENS
+function showHome(name) {
+  document.getElementById("login").classList.remove("active");
+  document.getElementById("home").classList.add("active");
+  document.getElementById("welcome").innerText = "Hi, " + name;
+}
 
-// GOOGLE LOGIN (FIXED)
+// GOOGLE LOGIN
 const provider = new GoogleAuthProvider();
 
 window.googleLogin = function () {
   signInWithRedirect(auth, provider);
 };
 
-// 🔥 MAIN FIX (handles redirect properly)
+// AUTH STATE (MAIN FIX)
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     await setDoc(doc(db, "users", user.uid), {
@@ -128,14 +139,16 @@ onAuthStateChanged(auth, async (user) => {
       uid: user.uid
     }, { merge: true });
 
-    alert("Login successful");
-
-    // reload page (safe if no chat page yet)
-    window.location.reload();
+    showHome(user.displayName || "User");
   }
 });
 
-// EMAIL LOGIN / SIGNUP
+// EMAIL BOX
+window.showEmail = function () {
+  document.getElementById("emailBox").style.display = "block";
+};
+
+// EMAIL LOGIN
 window.emailAuth = async function () {
   const name = document.getElementById("name").value || "User";
   const email = document.getElementById("email").value;
@@ -150,24 +163,16 @@ window.emailAuth = async function () {
       uid: userCred.user.uid
     });
 
-    alert("Signup successful");
-
   } catch {
     const userCred = await signInWithEmailAndPassword(auth, email, password);
-
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      name: name,
-      email: email,
-      uid: userCred.user.uid
-    }, { merge: true });
-
-    alert("Login successful");
+    showHome(name);
   }
 };
 
-// PHONE LOGIN (placeholder)
-window.phoneLogin = function () {
-  alert("Phone login coming soon");
+// LOGOUT
+window.logout = function () {
+  signOut(auth);
+  location.reload();
 };
 </script>
 
