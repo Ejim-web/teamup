@@ -29,16 +29,15 @@
 
     .btn {
       display: flex;
-      align-items: center;
       justify-content: center;
-      gap: 10px;
+      align-items: center;
       background: white;
       color: black;
       padding: 15px;
       margin: 10px 0;
       border-radius: 30px;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
     }
 
     input {
@@ -61,7 +60,6 @@
 
     #emailBox {
       display: none;
-      margin-top: 15px;
     }
   </style>
 </head>
@@ -71,17 +69,9 @@
 <div class="container">
   <h1>TeamUp Global</h1>
 
-  <div class="btn" onclick="googleLogin()">
-    Continue with Google
-  </div>
-
-  <div class="btn" onclick="phoneLogin()">
-    Continue with Phone Number
-  </div>
-
-  <div class="btn" onclick="showEmail()">
-    Continue with Email
-  </div>
+  <div class="btn" onclick="googleLogin()">Continue with Google</div>
+  <div class="btn" onclick="phoneLogin()">Continue with Phone Number</div>
+  <div class="btn" onclick="showEmail()">Continue with Email</div>
 
   <div id="emailBox">
     <input id="name" placeholder="Full Name">
@@ -93,10 +83,12 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -107,7 +99,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ✅ YOUR ORIGINAL CONFIG (NOT CHANGED)
+// ✅ YOUR ORIGINAL CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -123,27 +115,32 @@ window.showEmail = function () {
   document.getElementById("emailBox").style.display = "block";
 };
 
-// GOOGLE LOGIN
-window.googleLogin = async function () {
-  try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+// ✅ GOOGLE LOGIN (FIXED FOR MOBILE)
+const provider = new GoogleAuthProvider();
 
-    await setDoc(doc(db, "users", result.user.uid), {
-      name: result.user.displayName || "User",
-      email: result.user.email,
-      uid: result.user.uid
-    });
-
-    alert("Google login successful");
-  } catch (error) {
-    alert("Enable Google sign-in in Firebase");
-  }
+window.googleLogin = function () {
+  signInWithRedirect(auth, provider);
 };
+
+// HANDLE REDIRECT RESULT
+getRedirectResult(auth)
+  .then(async (result) => {
+    if (result && result.user) {
+      await setDoc(doc(db, "users", result.user.uid), {
+        name: result.user.displayName || "User",
+        email: result.user.email,
+        uid: result.user.uid
+      });
+      alert("Google login successful");
+    }
+  })
+  .catch((error) => {
+    console.log(error);
+  });
 
 // PHONE LOGIN (LATER)
 window.phoneLogin = function () {
-  alert("Phone login not ready yet");
+  alert("Phone login coming soon");
 };
 
 // EMAIL LOGIN / SIGNUP
@@ -162,6 +159,7 @@ window.emailAuth = async function () {
     });
 
     alert("Signup successful");
+
   } catch {
     const userCred = await signInWithEmailAndPassword(auth, email, password);
 
