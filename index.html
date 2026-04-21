@@ -107,13 +107,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-let currentUserName = "User";
+let currentUserName = "";
 
-// SIGNUP (SAVE NAME)
+// SIGNUP
 window.signup = async function () {
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
   if (!name || !email || !password) {
     alert("Fill all fields");
@@ -142,21 +142,25 @@ window.logout = function () {
   signOut(auth);
 };
 
-// LOAD USER
+// 🔥 FIXED USER LOAD (WAITS PROPERLY)
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth").style.display = "none";
     document.getElementById("chat").style.display = "block";
 
-    const userDoc = await getDoc(doc(db, "users", user.uid));
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
 
-    if (userDoc.exists()) {
-      currentUserName = userDoc.data().name || "User";
+    if (userSnap.exists()) {
+      currentUserName = userSnap.data().name;
+    } else {
+      currentUserName = "User";
     }
 
     document.getElementById("welcome").innerText =
       "Hi, " + currentUserName;
 
+    // 🔥 load messages ONLY AFTER name is ready
     loadMessages();
   } else {
     document.getElementById("auth").style.display = "block";
@@ -166,8 +170,7 @@ onAuthStateChanged(auth, async (user) => {
 
 // SEND MESSAGE
 window.sendMessage = async function () {
-  const text = document.getElementById("messageInput").value;
-
+  const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
 
   await addDoc(collection(db, "messages"), {
@@ -199,7 +202,7 @@ function loadMessages() {
         div.classList.add("other");
       }
 
-      div.innerText = (msg.name || "User") + ": " + msg.text;
+      div.innerText = msg.name + ": " + msg.text;
 
       messagesDiv.appendChild(div);
     });
