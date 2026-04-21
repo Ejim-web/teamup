@@ -12,15 +12,6 @@
       color: white;
     }
 
-    .header {
-      background: #111827;
-      padding: 15px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: bold;
-      border-bottom: 1px solid #333;
-    }
-
     #auth {
       text-align: center;
       margin-top: 100px;
@@ -51,6 +42,15 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: #111827;
+      border-bottom: 1px solid #333;
+      font-size: 14px;
     }
 
     #chatBox {
@@ -94,15 +94,6 @@
       margin-left: 10px;
     }
 
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      background: #111827;
-      border-bottom: 1px solid #333;
-      font-size: 14px;
-    }
-
     #logout {
       background: transparent;
       color: #ff4b2b;
@@ -114,8 +105,13 @@
 
 <div id="auth">
   <h2>TeamUp Global</h2>
+
+  <!-- ✅ Username added -->
+  <input type="text" id="username" placeholder="Username"><br>
+
   <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Password"><br>
+
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
 </div>
@@ -151,7 +147,8 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -167,6 +164,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const username = document.getElementById("username");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const message = document.getElementById("message");
@@ -177,18 +175,34 @@ const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
+let currentUsername = "";
 
-window.signup = function () {
-  if (!email.value || !password.value) {
-    alert("Enter email and password");
+// SIGNUP (with username)
+window.signup = async function () {
+  if (!email.value || !password.value || !username.value) {
+    alert("Fill all fields");
     return;
   }
 
-  createUserWithEmailAndPassword(auth, email.value, password.value)
-    .then(() => alert("Account created successfully!"))
-    .catch(e => alert(e.message));
+  try {
+    const userCred = await createUserWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+
+    await addDoc(collection(db, "users"), {
+      uid: userCred.user.uid,
+      username: username.value
+    });
+
+    alert("Account created successfully!");
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
+// LOGIN
 window.login = function () {
   if (!email.value || !password.value) {
     alert("Enter email and password");
@@ -199,12 +213,23 @@ window.login = function () {
     .catch(e => alert(e.message));
 };
 
-onAuthStateChanged(auth, user => {
+// AUTH STATE
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
+
+    // get username from DB
+    const users = await getDocs(collection(db, "users"));
+    users.forEach(doc => {
+      if (doc.data().uid === user.uid) {
+        currentUsername = doc.data().username;
+      }
+    });
+
     authDiv.style.display = "none";
     appDiv.style.display = "flex";
-    welcome.innerText = user.email;
+    welcome.innerText = currentUsername;
+
     loadMessages();
   } else {
     authDiv.style.display = "block";
@@ -212,19 +237,21 @@ onAuthStateChanged(auth, user => {
   }
 });
 
+// SEND MESSAGE
 window.sendMessage = async function () {
   const text = message.value.trim();
   if (!text) return;
 
   await addDoc(collection(db, "messages"), {
     text,
-    user: currentUser.email,
+    username: currentUsername,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
+// LOAD MESSAGES
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
@@ -235,8 +262,9 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
+      div.className = "message " + (data.username === currentUsername ? "me" : "other");
+
+      div.innerText = data.username + ": " + data.text;
 
       chatBox.appendChild(div);
     });
@@ -245,6 +273,7 @@ function loadMessages() {
   });
 }
 
+// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
