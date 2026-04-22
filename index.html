@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Global Dating</title>
+  <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -13,89 +13,106 @@
       text-align: center;
     }
 
-    .card {
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 30px auto 10px;
+      border-radius: 50%;
       background: white;
-      color: black;
-      border-radius: 20px;
-      padding: 20px;
-      margin: 20px;
+      color: #ff4b2b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:28px;
+      font-weight:bold;
     }
 
-    img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
+    button, input {
+      padding:12px;
+      border-radius:20px;
+      border:none;
+      margin:5px;
     }
 
     button {
-      padding: 12px;
-      border-radius: 20px;
-      border: none;
-      margin: 5px;
-      font-weight: bold;
+      background:white;
+      color:#ff4b2b;
+      font-weight:bold;
     }
 
     #chatBox {
-      height: 200px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      margin: 10px;
-      padding: 10px;
+      height:300px;
+      overflow-y:auto;
+      background:rgba(255,255,255,0.2);
+      border-radius:20px;
+      margin:20px;
+      padding:10px;
+    }
+
+    .message {
+      padding:10px;
+      margin:5px;
+      border-radius:20px;
+      max-width:70%;
+    }
+
+    .me {
+      background:white;
+      color:#ff4b2b;
+      margin-left:auto;
+    }
+
+    .other {
+      background:rgba(255,255,255,0.6);
+      color:black;
+      margin-right:auto;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🔥 TeamUp Global</h1>
+<div class="logo">TG</div>
+<h2>TeamUp Global</h2>
 
+<!-- LOGIN -->
 <div id="auth">
-  <button onclick="login()">Login with Google</button>
+  <button onclick="login()">Continue with Google</button>
 </div>
 
-<div id="setup" style="display:none;">
-  <h3>Complete Profile</h3>
-  <input id="name" placeholder="Full name"><br><br>
-  <input id="age" placeholder="Age"><br><br>
-  <input id="location" placeholder="Location"><br><br>
-  <button onclick="saveProfile()">Continue</button>
-</div>
-
+<!-- APP -->
 <div id="app" style="display:none;">
+  <p id="welcome"></p>
 
-  <h3 id="welcome"></h3>
-
-  <!-- MATCH AREA -->
-  <div id="matchCard" class="card"></div>
-
-  <button onclick="like()">❤️ Like</button>
-  <button onclick="skip()">❌ Skip</button>
-
-  <!-- CHAT -->
   <div id="chatBox"></div>
 
-  <input id="msg" placeholder="Message">
-  <button onclick="send()">Send</button>
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
 
   <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-  getAuth, GoogleAuthProvider,
-  signInWithRedirect, getRedirectResult,
-  onAuthStateChanged, signOut
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, doc, setDoc, getDoc,
-  collection, getDocs, addDoc,
-  query, orderBy, onSnapshot
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -111,113 +128,77 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser;
-let users = [];
-let currentIndex = 0;
-let currentMatch = null;
+
+const authDiv = document.getElementById("auth");
+const appDiv = document.getElementById("app");
+const welcome = document.getElementById("welcome");
+const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
 
 /* LOGIN */
-window.login = () => signInWithRedirect(auth, provider);
-getRedirectResult(auth);
+window.login = async () => {
+  await signInWithRedirect(auth, provider);
+};
 
-/* AUTH */
-onAuthStateChanged(auth, async user => {
+getRedirectResult(auth).catch(()=>{});
+
+/* 🔥 FIXED AUTH (NO MORE COMING BACK) */
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
 
-    const docRef = doc(db, "users", user.uid);
-    const snap = await getDoc(docRef);
+    // wait to stop Firebase refresh bug
+    setTimeout(() => {
+      authDiv.style.display = "none";
+      appDiv.style.display = "block";
 
-    if (!snap.exists()) {
-      document.getElementById("setup").style.display = "block";
-      document.getElementById("auth").style.display = "none";
-    } else {
-      startApp(snap.data());
-    }
+      welcome.innerText = "Welcome " + (user.displayName || user.email);
+
+      loadMessages();
+    }, 800);
 
   } else {
-    document.getElementById("auth").style.display = "block";
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
   }
 });
 
-/* SAVE PROFILE */
-window.saveProfile = async () => {
-  const data = {
-    name: name.value,
-    age: age.value,
-    location: location.value,
-    photo: currentUser.photoURL
-  };
+/* SEND MESSAGE */
+window.sendMessage = async () => {
+  if (!message.value) return;
 
-  await setDoc(doc(db,"users",currentUser.uid), data);
-  startApp(data);
+  await addDoc(collection(db, "messages"), {
+    text: message.value,
+    user: currentUser.email,
+    createdAt: serverTimestamp()
+  });
+
+  message.value = "";
 };
 
-/* START APP */
-async function startApp(data) {
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  welcome.innerText = "Welcome " + data.name;
-
-  const snapshot = await getDocs(collection(db,"users"));
-  users = snapshot.docs.map(d => ({id:d.id,...d.data()}))
-    .filter(u => u.id !== currentUser.uid);
-
-  showUser();
-}
-
-/* SHOW USER */
-function showUser() {
-  if (!users[currentIndex]) return;
-
-  const u = users[currentIndex];
-
-  matchCard.innerHTML = `
-    <img src="${u.photo}">
-    <h3>${u.name}</h3>
-    <p>${u.age} - ${u.location}</p>
-  `;
-}
-
-/* LIKE */
-window.like = () => {
-  currentMatch = users[currentIndex];
-  startChat();
-};
-
-/* SKIP */
-window.skip = () => {
-  currentIndex++;
-  showUser();
-};
-
-/* CHAT */
-function startChat() {
-  const chatId = [currentUser.uid, currentMatch.id].sort().join("_");
-
-  const q = query(collection(db,"chats",chatId,"messages"), orderBy("time"));
+/* LOAD CHAT */
+function loadMessages() {
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snap.forEach(d => {
-      const m = d.data();
-      chatBox.innerHTML += `<div>${m.text}</div>`;
-    });
-  });
+    snap.forEach(doc => {
+      const data = doc.data();
 
-  window.send = async () => {
-    await addDoc(collection(db,"chats",chatId,"messages"), {
-      text: msg.value,
-      time: Date.now()
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+      div.innerText = data.text;
+
+      chatBox.appendChild(div);
     });
-    msg.value="";
-  };
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 }
 
 /* LOGOUT */
 window.logout = () => signOut(auth);
-
 </script>
 
 </body>
