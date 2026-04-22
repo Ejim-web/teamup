@@ -267,7 +267,13 @@ function loadMessages() {
 }
 
 // 🚪 Logout
-window.logout = () => signOut(auth);
+window.logout = async () => {
+  await setDoc(doc(db, "users", currentUser.uid), {
+    online: false
+  }, { merge: true });
+
+  signOut(auth);
+};
 </script>
 
 </body>
