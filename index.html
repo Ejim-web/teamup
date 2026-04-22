@@ -8,94 +8,78 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: linear-gradient(135deg,#ff416c,#ff4b2b);
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
       color: white;
       text-align: center;
     }
 
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
-      border-radius: 50%;
-      background: white;
-      color: #ff4b2b;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:28px;
-      font-weight:bold;
-    }
-
-    button, input {
-      padding:12px;
-      border-radius:20px;
-      border:none;
-      margin:5px;
+    .container {
+      padding: 20px;
     }
 
     button {
-      background:white;
-      color:#ff4b2b;
-      font-weight:bold;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      background: white;
+      color: #ff416c;
+      font-weight: bold;
+      margin: 5px;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 20px;
+      border: none;
+      width: 60%;
     }
 
     #chatBox {
-      height:300px;
-      overflow-y:auto;
-      background:rgba(255,255,255,0.2);
-      border-radius:20px;
-      margin:20px;
-      padding:10px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
     }
 
     .message {
-      padding:10px;
-      margin:5px;
-      border-radius:20px;
-      max-width:70%;
-    }
-
-    .me {
-      background:white;
-      color:#ff4b2b;
-      margin-left:auto;
-    }
-
-    .other {
-      background:rgba(255,255,255,0.6);
-      color:black;
-      margin-right:auto;
+      background: white;
+      color: black;
+      margin: 5px;
+      padding: 10px;
+      border-radius: 15px;
     }
   </style>
 </head>
 
 <body>
-<h2>NEW VERSION</h2>
-<div class="logo">TG</div>
-<h2>TeamUp Global</h2>
 
-<!-- LOGIN -->
-<div id="auth">
-  <button onclick="login()">Continue with Google</button>
+<div class="container">
+
+  <h2>TeamUp Global</h2>
+
+  <!-- LOGIN -->
+  <div id="auth">
+    <button onclick="login()">Continue with Google</button>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="display:none;">
+    <p id="welcome"></p>
+
+    <div id="chatBox"></div>
+
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+
+    <br><br>
+    <button onclick="logout()">Logout</button>
+  </div>
+
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none;">
-  <p id="welcome"></p>
-
-  <div id="chatBox"></div>
-
-  <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
-
-  <br><br>
-  <button onclick="logout()">Logout</button>
-</div>
 <script type="module">
-alert("JS is running");
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
   getAuth,
   GoogleAuthProvider,
@@ -103,7 +87,7 @@ import {
   getRedirectResult,
   onAuthStateChanged,
   signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getFirestore,
@@ -113,11 +97,11 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestor
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  apiKey: "AIzaSyCk_rTdccHGer49Zec_eGSJwf00JPeH",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
 };
@@ -125,79 +109,83 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
 const provider = new GoogleAuthProvider();
 
-let currentUser;
+let currentUser = null;
 
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-const welcome = document.getElementById("welcome");
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
 
-/* LOGIN */
-window.login = async () => {
-  await signInWithRedirect(auth, provider);
+// LOGIN (redirect for mobile)
+window.login = () => {
+  signInWithRedirect(auth, provider);
 };
+
+
+// HANDLE REDIRECT RESULT
 getRedirectResult(auth).catch(() => {});
-/* 🔥 FIXED AUTH (NO MORE COMING BACK) */
-onAuthStateChanged(auth, user => {
+
+
+// AUTH STATE
+onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
 
-    // wait to stop Firebase refresh bug
-    setTimeout(() => {
-      authDiv.style.display = "none";
-      appDiv.style.display = "block";
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
 
-      welcome.innerText = "Welcome " + (user.displayName || user.email);
+    document.getElementById("welcome").innerText =
+      "Welcome " + (user.displayName || user.email);
 
-      loadMessages();
-    }, 800);
-
+    loadMessages();
   } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
+    document.getElementById("auth").style.display = "block";
+    document.getElementById("app").style.display = "none";
   }
 });
 
-/* SEND MESSAGE */
+
+// SEND MESSAGE
 window.sendMessage = async () => {
+  const message = document.getElementById("message");
+
   if (!message.value) return;
 
   await addDoc(collection(db, "messages"), {
     text: message.value,
-    user: currentUser.displayName,
+    user: currentUser.displayName || currentUser.email,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-/* LOAD CHAT */
+
+// LOAD MESSAGES
 function loadMessages() {
+  const chatBox = document.getElementById("chatBox");
+
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  onSnapshot(q, snap => {
+  onSnapshot(q, (snap) => {
     chatBox.innerHTML = "";
 
-    snap.forEach(doc => {
+    snap.forEach((doc) => {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user == currentUser.displayName? "me" : "other");
+      div.className = "message";
       div.innerText = data.user + ": " + data.text;
 
       chatBox.appendChild(div);
     });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-/* LOGOUT */
-window.logout = () => signOut(auth);
+
+// LOGOUT
+window.logout = () => {
+  signOut(auth);
+};
+
 </script>
 
 </body>
