@@ -139,7 +139,12 @@
     
     <img id="profilePic" src="" 
     style="width:100px; height:100px; border-radius:50%;">
-<input type="file" id="uploadPic" accept="image/*" onchange="uploadProfilePic(event)">
+<button onclick="document.getElementById('uploadPic').click()">
+  Upload Picture
+</button>
+
+<input type="file" id="uploadPic" accept="image/*" style="display:none"
+       onchange="uploadProfilePic(event)">
     <h2 id="profileName">Name</h2>
     <p>ID: <span id="profileId"></span></p>
 
