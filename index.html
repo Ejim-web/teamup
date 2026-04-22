@@ -218,9 +218,10 @@ async function loadUsers() {
     div.innerText = data.name;
 
     div.onclick = () => {
-      selectedUserId = data.uid;
-      loadMessages();
-    };
+  selectedUserId = data.uid;
+  welcome.innerText = "Chatting with " + data.name;
+  loadMessages();
+};
 
     usersDiv.appendChild(div);
   });
@@ -228,7 +229,12 @@ async function loadUsers() {
 
 // 💬 Send message
 window.sendMessage = async function () {
-  if (!selectedUserId) return alert("Select a user");
+  if (!selectedUserId) {
+    alert("Select a user first");
+    return;
+  }
+
+  if (!message.value.trim()) return;
 
   const chatId = [currentUser.uid, selectedUserId].sort().join("_");
 
@@ -251,19 +257,21 @@ function loadMessages() {
   );
 
   onSnapshot(q, snap => {
-    chatBox.innerHTML = "";
+  chatBox.innerHTML = "";
 
-    snap.forEach(d => {
-      const data = d.data();
-      const div = document.createElement("div");
+  snap.forEach(d => {
+    const data = d.data();
+    const div = document.createElement("div");
 
-      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
-      div.innerText = data.text;
+    div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
+    div.innerText = data.text;
 
-      chatBox.appendChild(div);
-    });
+    chatBox.appendChild(div);
   });
-}
+
+  // 👇 ALWAYS put it here (AFTER the loop)
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
 
 // 🚪 Logout
 window.logout = () => signOut(auth);
