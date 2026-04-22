@@ -191,9 +191,10 @@ onAuthStateChanged(auth, async user => {
 
     // Save user
     await setDoc(doc(db, "users", user.uid), {
-      name: user.displayName || user.email,
-      uid: user.uid
-    });
+  name: user.displayName || user.email,
+  uid: user.uid,
+  online: true
+});
 
     loadUsers();
 
