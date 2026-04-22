@@ -305,7 +305,8 @@ function loadMessages() {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
-function openProfile() {
+// 👤 Open Profile
+window.openProfile = function () {
   document.getElementById("app").style.display = "none";
   document.getElementById("profilePage").style.display = "block";
 
@@ -317,16 +318,16 @@ function openProfile() {
 
   document.getElementById("profilePic").src =
     currentUser.photoURL || "https://via.placeholder.com/100";
-}
+};
 
-function closeProfile() {
+// 🔙 Close Profile
+window.closeProfile = function () {
   document.getElementById("profilePage").style.display = "none";
   document.getElementById("app").style.display = "block";
-}8
+};
 
-// 🚪 Logout (PUT IT BACK)
+// 🚪 Logout (PUT BACK CORRECTLY)
 window.logout = () => signOut(auth);
 </script>
-
 </body>
 </html>
