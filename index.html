@@ -14,40 +14,29 @@
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
+      width: 90px;
+      height: 90px;
+      margin: 60px auto 20px;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 30px;
       font-weight: bold;
     }
 
-    #auth {
-      margin-top: 60px;
-    }
-
-    input {
-      width: 80%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 20px;
-      border: none;
-    }
-
     button {
-      padding: 12px 18px;
-      border-radius: 20px;
+      padding: 14px;
+      border-radius: 30px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-      cursor: pointer;
-      margin: 5px;
+      width: 80%;
+      margin: 10px;
+      font-size: 16px;
     }
 
     #chatBox {
@@ -61,7 +50,7 @@
 
     .message {
       padding: 10px;
-      margin: 5px 0;
+      margin: 5px;
       border-radius: 20px;
       max-width: 70%;
       display: inline-block;
@@ -88,6 +77,9 @@
 
     .input-area input {
       flex: 1;
+      padding: 12px;
+      border-radius: 20px;
+      border: none;
     }
 
     #logout {
@@ -104,16 +96,12 @@
 <div class="logo">TG</div>
 <h1>TeamUp Global</h1>
 
+<!-- AUTH -->
 <div id="auth">
-  <button onclick="googleLogin()">Continue with Google</button><br>
-
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Password"><br>
-
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+  <button onclick="googleLogin()">Continue with Google</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
@@ -132,12 +120,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 import {
   getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -150,7 +136,6 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ✅ YOUR REAL CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -164,67 +149,57 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const provider = new GoogleAuthProvider();
+
+const authDiv = document.getElementById("auth");
+const appDiv = document.getElementById("app");
+const welcome = document.getElementById("welcome");
+const message = document.getElementById("message");
+const chatBox = document.getElementById("chatBox");
+
 let currentUser;
 
-// 🔥 GOOGLE LOGIN
-window.googleLogin = function () {
-  const provider = new GoogleAuthProvider();
-
-  signInWithPopup(auth, provider)
-    .then((result) => {
-      alert("Welcome " + result.user.email);
-    })
-    .catch((error) => {
-      alert(error.message);
-    });
-};
-
-// EMAIL SIGNUP
-window.signup = function () {
-  createUserWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
-};
-
-// EMAIL LOGIN
-window.login = function () {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+// ✅ GOOGLE LOGIN
+window.googleLogin = async function () {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
 // AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("welcome").innerText = "Welcome " + user.email;
+    authDiv.style.display = "none";
+    appDiv.style.display = "block";
+    welcome.innerText = "Welcome " + user.displayName;
     loadMessages();
   } else {
-    document.getElementById("auth").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
   }
 });
 
 // SEND MESSAGE
 window.sendMessage = async function () {
-  const text = document.getElementById("message").value;
-  if (!text) return;
+  if (!message.value) return;
 
   await addDoc(collection(db, "messages"), {
-    text,
+    text: message.value,
     user: currentUser.email,
     createdAt: serverTimestamp()
   });
 
-  document.getElementById("message").value = "";
+  message.value = "";
 };
 
-// LOAD MESSAGES
+// LOAD CHAT
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snapshot => {
-    const chatBox = document.getElementById("chatBox");
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
