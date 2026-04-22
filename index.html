@@ -269,10 +269,6 @@ function loadMessages() {
     chatBox.appendChild(div);
   });
 
-  // 👇 ALWAYS put it here (AFTER the loop)
-  chatBox.scrollTop = chatBox.scrollHeight;
-});
-
 // 🚪 Logout
 window.logout = () => signOut(auth);
 </script>
