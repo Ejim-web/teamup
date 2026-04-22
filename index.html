@@ -184,7 +184,7 @@ onAuthStateChanged(auth, user => {
 
 // SEND MESSAGE
 window.sendMessage = async function () {
-  if (!message.value) return;
+  if (!message.value.trim()) return;
 
   await addDoc(collection(db, "messages"), {
     text: message.value,
@@ -196,18 +196,25 @@ window.sendMessage = async function () {
 };
 
 // LOAD MESSAGES
+
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snapshot => {
+    const chatBox = document.getElementById("chatBox");
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
-      const data = doc.data();
+      const d = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
+      div.style.background = "#fff";
+      div.style.color = "#000";
+      div.style.padding = "10px";
+      div.style.margin = "5px";
+      div.style.borderRadius = "10px";
+
+      div.innerText = d.user + ": " + d.text;
 
       chatBox.appendChild(div);
     });
@@ -215,7 +222,6 @@ function loadMessages() {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
-
 // LOGOUT
 window.logout = function () {
   signOut(auth);
