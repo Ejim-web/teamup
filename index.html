@@ -28,14 +28,26 @@
     }
 
     button {
-      padding: 14px 20px;
-      border-radius: 25px;
+      padding: 12px;
+      border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
+      margin: 5px;
+    }
+
+    #users {
+      margin: 10px;
+    }
+
+    .user {
+      background: rgba(255,255,255,0.3);
+      padding: 10px;
+      border-radius: 20px;
+      margin: 5px;
+      cursor: pointer;
     }
 
     #chatBox {
@@ -44,26 +56,27 @@
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
       padding: 10px;
-      margin: 20px;
+      margin: 10px;
     }
 
-    .message {
+    .row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 5px 0;
+      margin: 5px;
     }
+
+    .me { justify-content: flex-end; }
+    .other { justify-content: flex-start; }
 
     .bubble {
       padding: 10px;
       border-radius: 20px;
-      max-width: 70%;
+      max-width: 60%;
     }
 
     .me .bubble {
       background: white;
       color: #ff4b2b;
-      margin-left: auto;
     }
 
     .other .bubble {
@@ -71,10 +84,11 @@
       color: black;
     }
 
-    img.avatar {
+    .avatar {
       width: 30px;
       height: 30px;
       border-radius: 50%;
+      margin: 5px;
     }
 
     .input-area {
@@ -85,7 +99,7 @@
 
     .input-area input {
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       border-radius: 20px;
       border: none;
     }
@@ -104,10 +118,10 @@
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
-  <!-- ✅ Upload Profile -->
-  <input type="file" id="uploadPic">
-  <button onclick="uploadProfile()">Upload Profile Picture</button>
+  <!-- USERS -->
+  <div id="users"></div>
 
+  <!-- CHAT -->
   <div id="chatBox"></div>
 
   <div class="input-area">
@@ -140,15 +154,8 @@ import {
   serverTimestamp,
   setDoc,
   doc,
-  getDoc
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
@@ -162,15 +169,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 const provider = new GoogleAuthProvider();
 
 let currentUser;
+let selectedUser = null;
 
+/* LOGIN */
 window.googleLogin = () => signInWithRedirect(auth, provider);
 getRedirectResult(auth).catch(() => {});
 
+/* AUTH */
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -181,77 +190,107 @@ onAuthStateChanged(auth, async user => {
     document.getElementById("welcome").innerText =
       "Welcome " + (user.displayName || user.email);
 
+    /* SAVE USER */
     await setDoc(doc(db, "users", user.uid), {
       name: user.displayName || user.email,
       uid: user.uid,
       photo: user.photoURL || ""
-    }, { merge: true });
+    });
 
-    loadMessages();
+    loadUsers();
   }
 });
 
-/* ✅ UPLOAD PROFILE */
-window.uploadProfile = async function () {
-  const file = document.getElementById("uploadPic").files[0];
-  if (!file) return alert("Select image");
+/* LOAD USERS */
+async function loadUsers() {
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
 
-  const storageRef = ref(storage, "profiles/" + currentUser.uid);
-  await uploadBytes(storageRef, file);
+  const snapshot = await getDocs(collection(db, "users"));
 
-  const url = await getDownloadURL(storageRef);
+  snapshot.forEach(docSnap => {
+    const user = docSnap.data();
 
-  await setDoc(doc(db, "users", currentUser.uid), {
-    photo: url
-  }, { merge: true });
+    if (user.uid === currentUser.uid) return;
 
-  alert("Profile updated!");
-};
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerText = user.name;
 
-/* SEND */
+    div.onclick = () => {
+      selectedUser = user;
+      loadMessages();
+    };
+
+    usersDiv.appendChild(div);
+  });
+}
+
+/* SEND MESSAGE */
 window.sendMessage = async function () {
+  if (!selectedUser) return alert("Select a user first");
+
   const text = document.getElementById("message").value;
   if (!text) return;
 
-  await addDoc(collection(db, "messages"), {
+  const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text,
-    uid: currentUser.uid,
+    sender: currentUser.uid,
+    photo: currentUser.photoURL || "",
     createdAt: serverTimestamp()
   });
 
   document.getElementById("message").value = "";
 };
 
-/* LOAD */
+/* LOAD MESSAGES */
 function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  const chatBox = document.getElementById("chatBox");
 
-  onSnapshot(q, async snapshot => {
-    const chatBox = document.getElementById("chatBox");
+  const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
+
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
+
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
+    snapshot.forEach(doc => {
+      const data = doc.data();
 
-      let photo = "";
-      const userDoc = await getDoc(doc(db, "users", data.uid));
-      photo = userDoc.data()?.photo || "";
+      const row = document.createElement("div");
+      row.className = "row " + (data.sender === currentUser.uid ? "me" : "other");
 
-      const div = document.createElement("div");
-      div.className = "message " + (data.uid === currentUser.uid ? "me" : "other");
+      const img = document.createElement("img");
+      img.className = "avatar";
+      img.src = data.photo || "https://via.placeholder.com/30";
 
-      div.innerHTML = `
-        <img class="avatar" src="${photo}">
-        <div class="bubble">${data.text}</div>
-      `;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerText = data.text;
 
-      chatBox.appendChild(div);
-    }
+      if (data.sender === currentUser.uid) {
+        row.appendChild(bubble);
+        row.appendChild(img);
+      } else {
+        row.appendChild(img);
+        row.appendChild(bubble);
+      }
+
+      chatBox.appendChild(row);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
+/* LOGOUT */
 window.logout = () => signOut(auth);
 </script>
 
 </body>
-</html>
+      </html>
