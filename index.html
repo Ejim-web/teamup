@@ -99,10 +99,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   onAuthStateChanged,
-  signOut
+  signOut,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -138,34 +139,43 @@ const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
+let unsubscribe = null;
 
-// ✅ LOGIN (REDIRECT)
-window.googleLogin = function () {
-  signInWithRedirect(auth, provider);
+// ✅ KEEP SESSION
+setPersistence(auth, browserLocalPersistence);
+
+// ✅ GOOGLE LOGIN
+window.googleLogin = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
-// ✅ HANDLE REDIRECT RESULT
-getRedirectResult(auth).catch(() => {});
-
-// ✅ AUTH STATE
+// ✅ FIX LOOP (delay UI change)
 onAuthStateChanged(auth, user => {
-  if (user) {
-    currentUser = user;
+  setTimeout(() => {
+    if (user) {
+      currentUser = user;
 
-    authDiv.style.display = "none";
-    appDiv.style.display = "block";
+      authDiv.style.display = "none";
+      appDiv.style.display = "block";
 
-    welcome.innerText = "Welcome " + (user.displayName || user.email);
+      welcome.innerText = "Welcome " + (user.displayName || user.email);
 
-    loadMessages();
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
-  }
+      loadMessages();
+    } else {
+      authDiv.style.display = "block";
+      appDiv.style.display = "none";
+
+      if (unsubscribe) unsubscribe();
+    }
+  }, 300); // 🔥 small delay fixes mobile issue
 });
 
-// ✅ SEND MESSAGE
-window.sendMessage = async function () {
+// SEND MESSAGE
+window.sendMessage = async () => {
   const text = message.value;
   if (!text) return;
 
@@ -178,11 +188,13 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// ✅ LOAD MESSAGES
+// LOAD MESSAGES
 function loadMessages() {
+  if (unsubscribe) unsubscribe();
+
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  onSnapshot(q, snapshot => {
+  unsubscribe = onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
@@ -199,9 +211,7 @@ function loadMessages() {
   });
 }
 
-// ✅ LOGOUT
-window.logout = function () {
-  signOut(auth);
-};
+// LOGOUT
+window.logout = () => signOut(auth);
 </script></body>
 </html>
