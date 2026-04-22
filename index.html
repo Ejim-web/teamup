@@ -27,34 +27,38 @@
       font-weight: bold;
     }
 
+    input {
+      padding: 12px;
+      border-radius: 20px;
+      border: none;
+      width: 80%;
+      margin: 5px;
+    }
+
     button {
-      padding: 14px 20px;
+      padding: 12px 20px;
       border-radius: 25px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-      cursor: pointer;
       margin-top: 10px;
     }
 
     #chatBox {
-      height: 250px;
+      height: 300px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
       padding: 10px;
-      margin: 10px;
+      margin: 20px;
     }
 
     .message {
       padding: 10px;
-      margin: 5px 0;
+      margin: 5px;
       border-radius: 20px;
       max-width: 70%;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .me {
@@ -68,41 +72,6 @@
       color: black;
       margin-right: auto;
     }
-
-    .avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-    }
-
-    .input-area {
-      display: flex;
-      gap: 10px;
-      margin: 10px;
-    }
-
-    .input-area input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 20px;
-      border: none;
-    }
-
-    #usersList div {
-      background: rgba(255,255,255,0.3);
-      margin: 5px;
-      padding: 10px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    #setup input {
-      width: 80%;
-      padding: 10px;
-      margin: 5px;
-      border-radius: 10px;
-      border: none;
-    }
   </style>
 </head>
 
@@ -113,7 +82,7 @@
 
 <!-- LOGIN -->
 <div id="auth">
-  <button onclick="googleLogin()">Continue with Google</button>
+  <button onclick="login()">Continue with Google</button>
 </div>
 
 <!-- PROFILE SETUP -->
@@ -125,25 +94,21 @@
   <button onclick="saveProfile()">Continue</button>
 </div>
 
-<!-- APP -->
+<!-- MAIN APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
-  <div id="usersList"></div>
-
   <div id="chatBox"></div>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-  </div>
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
 
+  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
   GoogleAuthProvider,
@@ -155,16 +120,15 @@ import {
 
 import {
   getFirestore,
+  doc,
+  getDoc,
+  setDoc,
   collection,
   addDoc,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
-  setDoc,
-  doc,
-  getDoc,
-  getDocs
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -177,19 +141,18 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const auth = getAuth();
+const db = getFirestore();
 
 const provider = new GoogleAuthProvider();
 
 let currentUser;
-let selectedUserId = null;
 
-window.googleLogin = async () => {
+window.login = async () => {
   await signInWithRedirect(auth, provider);
 };
 
-getRedirectResult(auth).catch(() => {});
+getRedirectResult(auth).catch(()=>{});
 
 onAuthStateChanged(auth, async user => {
   if (user) {
@@ -198,107 +161,77 @@ onAuthStateChanged(auth, async user => {
     const userRef = doc(db, "users", user.uid);
     const snap = await getDoc(userRef);
 
-    if (!snap.exists() || !snap.data().name) {
-      auth.style.display = "none";
-      setup.style.display = "block";
-    } else {
-      startApp(snap.data());
+    if (!snap.exists()) {
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("setup").style.display = "block";
+      return;
     }
+
+    startApp(snap.data());
+
   } else {
-    auth.style.display = "block";
-    setup.style.display = "none";
-    app.style.display = "none";
+    document.getElementById("auth").style.display = "block";
+    document.getElementById("setup").style.display = "none";
+    document.getElementById("app").style.display = "none";
   }
 });
 
 window.saveProfile = async () => {
-  const data = {
-    name: name.value,
-    dob: dob.value,
-    location: location.value,
-    photo: currentUser.photoURL
-  };
+  const name = document.getElementById("name").value;
+  const dob = document.getElementById("dob").value;
+  const location = document.getElementById("location").value;
 
-  await setDoc(doc(db, "users", currentUser.uid), data, { merge: true });
+  if (!name || !dob || !location) {
+    alert("Fill everything");
+    return;
+  }
 
-  startApp(data);
+  await setDoc(doc(db, "users", currentUser.uid), {
+    name,
+    dob,
+    location,
+    email: currentUser.email
+  });
+
+  startApp({ name });
 };
 
-function startApp(data) {
-  setup.style.display = "none";
-  app.style.display = "block";
+function startApp(userData) {
+  document.getElementById("auth").style.display = "none";
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("app").style.display = "block";
 
-  welcome.innerText = "Welcome " + data.name;
+  document.getElementById("welcome").innerText = "Welcome " + userData.name;
 
-  loadUsers();
-}
-
-async function loadUsers() {
-  const snapshot = await getDocs(collection(db, "users"));
-
-  usersList.innerHTML = "";
-
-  snapshot.forEach(docSnap => {
-    const user = docSnap.data();
-
-    if (docSnap.id !== currentUser.uid) {
-      const div = document.createElement("div");
-      div.innerText = user.name;
-      div.onclick = () => selectUser(docSnap.id, user.name);
-      usersList.appendChild(div);
-    }
-  });
-}
-
-function selectUser(uid, name) {
-  selectedUserId = uid;
   loadMessages();
 }
 
 window.sendMessage = async () => {
-  if (!selectedUserId) {
-    alert("Select a user first");
-    return;
-  }
+  const text = document.getElementById("message").value;
+  if (!text) return;
 
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text: message.value,
-    sender: currentUser.uid,
-    photo: currentUser.photoURL,
+  await addDoc(collection(db, "messages"), {
+    text,
+    user: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
-  message.value = "";
+  document.getElementById("message").value = "";
 };
 
 function loadMessages() {
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snap => {
+    const chatBox = document.getElementById("chatBox");
     chatBox.innerHTML = "";
 
-    snap.forEach(d => {
-      const data = d.data();
-
+    snap.forEach(doc => {
+      const data = doc.data();
       const div = document.createElement("div");
-      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
 
-      const img = document.createElement("img");
-      img.src = data.photo || "";
-      img.className = "avatar";
-
-      const text = document.createElement("span");
-      text.innerText = data.text;
-
-      div.appendChild(img);
-      div.appendChild(text);
+      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
+      div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
