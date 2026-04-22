@@ -13,6 +13,7 @@
       text-align: center;
     }
 
+    /* ✅ LOGO STYLE */
     .logo {
       width: 80px;
       height: 80px;
@@ -25,9 +26,16 @@
       justify-content: center;
       font-size: 28px;
       font-weight: bold;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
     }
 
-    #auth { margin-top: 60px; }
+    h1 {
+      margin-top: 10px;
+    }
+
+    #auth {
+      margin-top: 80px;
+    }
 
     input {
       width: 80%;
@@ -45,7 +53,6 @@
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-      margin: 5px;
     }
 
     #chatBox {
@@ -59,27 +66,49 @@
 
     .message {
       padding: 10px;
-      margin: 5px;
+      margin: 5px 0;
       border-radius: 20px;
+      max-width: 70%;
+      display: inline-block;
+      clear: both;
     }
 
     .me {
       background: white;
       color: #ff4b2b;
-      text-align: right;
+      float: right;
     }
 
     .other {
-      background: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.6);
       color: black;
-      text-align: left;
+      float: left;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+    }
+
+    #logout {
+      width: 90%;
+      margin: 10px;
+      background: rgba(255,255,255,0.3);
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
+<!-- ✅ LOGO ADDED HERE -->
 <div class="logo">TG</div>
+
 <h1>TeamUp Global</h1>
 
 <div id="auth">
@@ -94,19 +123,16 @@
 
   <div id="chatBox"></div>
 
-  <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
+  <div class="input-area">
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
-  <br><br>
-  <button onclick="logout()">Logout</button>
+  <button id="logout" onclick="logout()">Logout</button>
 </div>
 
-<!-- ✅ FIXED SCRIPT -->
 <script type="module">
-alert("JS is working now");
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -141,27 +167,24 @@ const db = getFirestore(app);
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const message = document.getElementById("message");
-const chatBox = document.getElementById("chatBox");
 const welcome = document.getElementById("welcome");
+const chatBox = document.getElementById("chatBox");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
 
-// SIGN UP
 window.signup = function () {
   createUserWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
 
-// LOGIN
 window.login = function () {
   signInWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
 
-// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -175,12 +198,12 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// SEND MESSAGE
 window.sendMessage = async function () {
-  if (!message.value) return;
+  const text = message.value;
+  if (!text) return;
 
   await addDoc(collection(db, "messages"), {
-    text: message.value,
+    text,
     user: currentUser.email,
     createdAt: serverTimestamp()
   });
@@ -188,7 +211,6 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// LOAD MESSAGES
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
@@ -209,7 +231,6 @@ function loadMessages() {
   });
 }
 
-// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
