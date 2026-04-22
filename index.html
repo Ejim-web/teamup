@@ -27,27 +27,23 @@
       font-weight: bold;
     }
 
-    button {
+    input {
       padding: 12px;
       border-radius: 20px;
+      border: none;
+      margin: 5px;
+      width: 80%;
+    }
+
+    button {
+      padding: 14px 20px;
+      border-radius: 25px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-      margin: 5px;
-    }
-
-    #users {
-      margin: 10px;
-    }
-
-    .user {
-      background: rgba(255,255,255,0.3);
-      padding: 10px;
-      border-radius: 20px;
-      margin: 5px;
-      cursor: pointer;
+      margin-top: 10px;
     }
 
     #chatBox {
@@ -56,52 +52,42 @@
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
       padding: 10px;
-      margin: 10px;
+      margin: 20px;
     }
 
-    .row {
+    .message {
       display: flex;
       align-items: center;
-      margin: 5px;
+      margin: 5px 0;
     }
 
-    .me { justify-content: flex-end; }
-    .other { justify-content: flex-start; }
-
-    .bubble {
+    .msgText {
       padding: 10px;
       border-radius: 20px;
       max-width: 60%;
     }
 
-    .me .bubble {
+    .me .msgText {
       background: white;
       color: #ff4b2b;
+      margin-left: auto;
     }
 
-    .other .bubble {
+    .other .msgText {
       background: rgba(255,255,255,0.6);
       color: black;
+      margin-right: auto;
     }
 
     .avatar {
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      margin: 5px;
+      margin: 0 5px;
     }
 
-    .input-area {
-      display: flex;
-      gap: 10px;
-      margin: 10px;
-    }
-
-    .input-area input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -111,23 +97,28 @@
 <div class="logo">TG</div>
 <h1>TeamUp Global</h1>
 
+<!-- LOGIN -->
 <div id="auth">
   <button onclick="googleLogin()">Continue with Google</button>
 </div>
 
-<div id="app" style="display:none;">
+<!-- PROFILE SETUP -->
+<div id="setup" class="hidden">
+  <h3>Complete Your Profile</h3>
+  <input id="fullname" placeholder="Full Name"><br>
+  <input id="dob" type="date"><br>
+  <input id="location" placeholder="Location"><br>
+  <button onclick="saveProfile()">Continue</button>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
   <p id="welcome"></p>
 
-  <!-- USERS -->
-  <div id="users"></div>
-
-  <!-- CHAT -->
   <div id="chatBox"></div>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-  </div>
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
 
   <button onclick="logout()">Logout</button>
 </div>
@@ -146,15 +137,15 @@ import {
 
 import {
   getFirestore,
+  doc,
+  setDoc,
+  getDoc,
   collection,
   addDoc,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
-  setDoc,
-  doc,
-  getDocs
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -172,119 +163,107 @@ const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 
+const authDiv = document.getElementById("auth");
+const setupDiv = document.getElementById("setup");
+const appDiv = document.getElementById("app");
+
+const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
+const welcome = document.getElementById("welcome");
+
 let currentUser;
-let selectedUser = null;
 
 /* LOGIN */
-window.googleLogin = () => signInWithRedirect(auth, provider);
-getRedirectResult(auth).catch(() => {});
+window.googleLogin = async () => {
+  await signInWithRedirect(auth, provider);
+};
 
-/* AUTH */
+getRedirectResult(auth).catch(()=>{});
+
+/* AUTH CHECK */
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
 
-    document.getElementById("welcome").innerText =
-      "Welcome " + (user.displayName || user.email);
-
-    /* SAVE USER */
-    await setDoc(doc(db, "users", user.uid), {
-      name: user.displayName || user.email,
-      uid: user.uid,
-      photo: user.photoURL || ""
-    });
-
-    loadUsers();
+    if (!snap.exists()) {
+      authDiv.style.display = "none";
+      setupDiv.style.display = "block";
+    } else {
+      startApp(snap.data());
+    }
   }
 });
 
-/* LOAD USERS */
-async function loadUsers() {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "";
+/* SAVE PROFILE */
+window.saveProfile = async () => {
+  const name = document.getElementById("fullname").value;
+  const dob = document.getElementById("dob").value;
+  const location = document.getElementById("location").value;
 
-  const snapshot = await getDocs(collection(db, "users"));
+  if (!name || !dob || !location) {
+    alert("Fill everything");
+    return;
+  }
 
-  snapshot.forEach(docSnap => {
-    const user = docSnap.data();
+  const data = {
+    name,
+    dob,
+    location,
+    photo: currentUser.photoURL || ""
+  };
 
-    if (user.uid === currentUser.uid) return;
+  await setDoc(doc(db, "users", currentUser.uid), data);
 
-    const div = document.createElement("div");
-    div.className = "user";
-    div.innerText = user.name;
+  startApp(data);
+};
 
-    div.onclick = () => {
-      selectedUser = user;
-      loadMessages();
-    };
+/* START APP */
+function startApp(userData) {
+  authDiv.style.display = "none";
+  setupDiv.style.display = "none";
+  appDiv.style.display = "block";
 
-    usersDiv.appendChild(div);
-  });
+  welcome.innerText = "Welcome " + userData.name;
+
+  loadMessages();
 }
 
 /* SEND MESSAGE */
-window.sendMessage = async function () {
-  if (!selectedUser) return alert("Select a user first");
+window.sendMessage = async () => {
+  if (!message.value) return;
 
-  const text = document.getElementById("message").value;
-  if (!text) return;
-
-  const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text,
-    sender: currentUser.uid,
-    photo: currentUser.photoURL || "",
+  await addDoc(collection(db, "messages"), {
+    text: message.value,
+    user: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
-  document.getElementById("message").value = "";
+  message.value = "";
 };
 
-/* LOAD MESSAGES */
+/* LOAD CHAT */
 function loadMessages() {
-  const chatBox = document.getElementById("chatBox");
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
-
-  onSnapshot(q, snapshot => {
+  onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snapshot.forEach(doc => {
+    snap.forEach(doc => {
       const data = doc.data();
 
-      const row = document.createElement("div");
-      row.className = "row " + (data.sender === currentUser.uid ? "me" : "other");
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
 
-      const img = document.createElement("img");
-      img.className = "avatar";
-      img.src = data.photo || "https://via.placeholder.com/30";
+      const text = document.createElement("div");
+      text.className = "msgText";
+      text.innerText = data.text;
 
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.innerText = data.text;
-
-      if (data.sender === currentUser.uid) {
-        row.appendChild(bubble);
-        row.appendChild(img);
-      } else {
-        row.appendChild(img);
-        row.appendChild(bubble);
-      }
-
-      chatBox.appendChild(row);
+      div.appendChild(text);
+      chatBox.appendChild(div);
     });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
@@ -293,4 +272,4 @@ window.logout = () => signOut(auth);
 </script>
 
 </body>
-      </html>
+</html>
