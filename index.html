@@ -24,10 +24,6 @@
       font-weight: bold;
     }
 
-    h1 {
-      margin-top: 10px;
-    }
-
     button {
       padding: 14px 20px;
       border-radius: 25px;
@@ -103,11 +99,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserLocalPersistence
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -143,21 +138,16 @@ const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let unsubscribe = null;
 
-// ✅ KEEP USER LOGGED IN
-setPersistence(auth, browserLocalPersistence);
-
-// ✅ GOOGLE LOGIN
-window.googleLogin = async function () {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    alert(e.message);
-  }
+// ✅ LOGIN (REDIRECT)
+window.googleLogin = function () {
+  signInWithRedirect(auth, provider);
 };
 
-// ✅ AUTH STATE FIX (NO LOOP)
+// ✅ HANDLE REDIRECT RESULT
+getRedirectResult(auth).catch(() => {});
+
+// ✅ AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -171,9 +161,6 @@ onAuthStateChanged(auth, user => {
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
-
-    // stop old listener if logged out
-    if (unsubscribe) unsubscribe();
   }
 });
 
@@ -191,13 +178,11 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// ✅ LOAD MESSAGES (FIXED MULTIPLE LOAD BUG)
+// ✅ LOAD MESSAGES
 function loadMessages() {
-  if (unsubscribe) unsubscribe(); // stop old listener
-
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  unsubscribe = onSnapshot(q, snapshot => {
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
