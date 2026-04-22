@@ -218,9 +218,7 @@ onAuthStateChanged(auth, async user => {
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
-    welcome.innerText = "Welcome " + (user.displayName || user.email);
-
-    // ✅ SAVE USER WITH PHOTO (FIXED)
+    welcome.innerText =  PHOTO (FIXED)
     await setDoc(doc(db, "users", user.uid), {
       name: user.displayName || user.email,
       uid: user.uid,
@@ -330,6 +328,7 @@ window.closeProfile = function () {
   document.getElementById("profilePage").style.display = "none";
   document.getElementById("app").style.display = "block";
 };
+
 window.uploadProfilePic = function (event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -342,6 +341,7 @@ window.uploadProfilePic = function (event) {
 
   reader.readAsDataURL(file);
 };
+
 // 🚪 Logout (PUT BACK CORRECTLY)
 window.logout = () => signOut(auth);
 </script>
