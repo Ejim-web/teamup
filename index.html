@@ -14,28 +14,29 @@
     }
 
     .logo {
-      width: 70px;
-      height: 70px;
-      margin: 20px auto;
+      width: 80px;
+      height: 80px;
+      margin: 30px auto 10px;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 28px;
       font-weight: bold;
     }
 
     input {
       width: 80%;
       padding: 12px;
-      margin: 8px;
+      margin: 10px 0;
       border-radius: 20px;
       border: none;
     }
 
     button {
-      padding: 10px 15px;
+      padding: 12px 18px;
       border-radius: 20px;
       border: none;
       background: white;
@@ -48,23 +49,29 @@
       height: 300px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
-      border-radius: 15px;
-      margin: 15px;
+      border-radius: 20px;
+      margin: 20px;
       padding: 10px;
       text-align: left;
     }
 
-    .msg {
-      background: white;
-      color: black;
-      padding: 8px;
-      margin: 5px;
-      border-radius: 10px;
+    .message {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 15px;
+      max-width: 70%;
     }
 
     .me {
-      background: #ffe0e0;
-      text-align: right;
+      background: white;
+      color: #ff4b2b;
+      margin-left: auto;
+    }
+
+    .other {
+      background: rgba(255,255,255,0.6);
+      color: black;
+      margin-right: auto;
     }
 
     .hidden {
@@ -76,7 +83,7 @@
 <body>
 
 <div class="logo">TG</div>
-<h2>TeamUp Global</h2>
+<h1>TeamUp Global</h1>
 
 <div id="auth">
   <input type="email" id="email" placeholder="Email"><br>
@@ -86,26 +93,36 @@
 </div>
 
 <div id="app" class="hidden">
-  <h3 id="welcome"></h3>
+  <p id="welcome"></p>
 
   <div id="chatBox"></div>
 
   <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button><br>
+  <button onclick="sendMessage()">Send</button>
 
+  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
-  getAuth, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, onAuthStateChanged, signOut
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, collection, addDoc,
-  query, orderBy, onSnapshot, serverTimestamp
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -122,6 +139,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser;
+
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const message = document.getElementById("message");
+const chatBox = document.getElementById("chatBox");
+const welcome = document.getElementById("welcome");
 
 // SIGN UP
 window.signup = async function () {
@@ -149,10 +172,12 @@ onAuthStateChanged(auth, user => {
     document.getElementById("auth").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
 
-    document.getElementById("welcome").innerText =
-      "Welcome " + user.email;
+    welcome.innerText = "Welcome " + user.email;
 
     loadMessages();
+  } else {
+    document.getElementById("auth").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
   }
 });
 
@@ -177,36 +202,24 @@ function loadMessages() {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
-      const d = doc.data();
+      const data = doc.data();
 
-      const wrapper = document.createElement("div");
-      wrapper.style.display = "flex";
-      wrapper.style.margin = "8px 0";
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+      div.innerText = data.text;
 
-      const bubble = document.createElement("div");
-      bubble.style.padding = "10px 15px";
-      bubble.style.borderRadius = "20px";
-      bubble.style.maxWidth = "70%";
-      bubble.style.fontSize = "14px";
-
-      if (d.user === currentUser.email) {
-        // YOUR message
-        wrapper.style.justifyContent = "flex-end";
-        bubble.style.background = "#ffffff";
-        bubble.style.color = "#ff4b2b";
-      } else {
-        // OTHER message
-        wrapper.style.justifyContent = "flex-start";
-        bubble.style.background = "rgba(255,255,255,0.25)";
-        bubble.style.color = "#fff";
-      }
-
-      bubble.innerText = d.text;
-
-      wrapper.appendChild(bubble);
-      chatBox.appendChild(wrapper);
+      chatBox.appendChild(div);
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
+
+// LOGOUT
+window.logout = function () {
+  signOut(auth);
+};
+</script>
+
+</body>
+</html>
