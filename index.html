@@ -14,29 +14,28 @@
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
+      width: 70px;
+      height: 70px;
+      margin: 20px auto;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
       font-weight: bold;
     }
 
     input {
       width: 80%;
       padding: 12px;
-      margin: 10px 0;
+      margin: 8px;
       border-radius: 20px;
       border: none;
     }
 
     button {
-      padding: 12px 18px;
+      padding: 10px 15px;
       border-radius: 20px;
       border: none;
       background: white;
@@ -49,29 +48,23 @@
       height: 300px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      margin: 20px;
+      border-radius: 15px;
+      margin: 15px;
       padding: 10px;
       text-align: left;
     }
 
-    .message {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 15px;
-      max-width: 70%;
+    .msg {
+      background: white;
+      color: black;
+      padding: 8px;
+      margin: 5px;
+      border-radius: 10px;
     }
 
     .me {
-      background: white;
-      color: #ff4b2b;
-      margin-left: auto;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.6);
-      color: black;
-      margin-right: auto;
+      background: #ffe0e0;
+      text-align: right;
     }
 
     .hidden {
@@ -83,9 +76,8 @@
 <body>
 
 <div class="logo">TG</div>
-<h1>TeamUp Global</h1>
+<h2>TeamUp Global</h2>
 
-<!-- AUTH -->
 <div id="auth">
   <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Password"><br>
@@ -93,37 +85,27 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
-  <p id="welcome"></p>
+  <h3 id="welcome"></h3>
 
   <div id="chatBox"></div>
 
   <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
+  <button onclick="sendMessage()">Send</button><br>
 
-  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+  getAuth, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp
+  getFirestore, collection, addDoc,
+  query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -140,12 +122,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser;
-
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const message = document.getElementById("message");
-const chatBox = document.getElementById("chatBox");
-const welcome = document.getElementById("welcome");
 
 // SIGN UP
 window.signup = async function () {
@@ -165,7 +141,7 @@ window.login = async function () {
   }
 };
 
-// AUTO LOGIN STATE
+// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -173,18 +149,16 @@ onAuthStateChanged(auth, user => {
     document.getElementById("auth").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
 
-    welcome.innerText = "Welcome " + user.email;
+    document.getElementById("welcome").innerText =
+      "Welcome " + user.email;
 
     loadMessages();
-  } else {
-    document.getElementById("auth").classList.remove("hidden");
-    document.getElementById("app").classList.add("hidden");
   }
 });
 
 // SEND MESSAGE
 window.sendMessage = async function () {
-  if (!message.value.trim()) return;
+  if (!message.value) return;
 
   await addDoc(collection(db, "messages"), {
     text: message.value,
@@ -196,25 +170,23 @@ window.sendMessage = async function () {
 };
 
 // LOAD MESSAGES
-
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snapshot => {
-    const chatBox = document.getElementById("chatBox");
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
       const d = doc.data();
-
       const div = document.createElement("div");
-      div.style.background = "#fff";
-      div.style.color = "#000";
-      div.style.padding = "10px";
-      div.style.margin = "5px";
-      div.style.borderRadius = "10px";
 
-      div.innerText = d.user + ": " + d.text;
+      div.classList.add("msg");
+
+      if (d.user === currentUser.email) {
+        div.classList.add("me");
+      }
+
+      div.innerHTML = "<b>" + d.user + "</b><br>" + d.text;
 
       chatBox.appendChild(div);
     });
@@ -222,11 +194,13 @@ function loadMessages() {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
+
 // LOGOUT
 window.logout = function () {
   signOut(auth);
+  location.reload();
 };
 </script>
 
 </body>
-</html>
+  </html>
