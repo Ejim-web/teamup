@@ -13,40 +13,65 @@
       text-align: center;
     }
 
-    .container {
-      padding: 20px;
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 30px auto 10px;
+      border-radius: 50%;
+      background: white;
+      color: #ff4b2b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    #auth { margin-top: 60px; }
+
+    input {
+      width: 80%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 20px;
+      border: none;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 12px 18px;
       border-radius: 20px;
       border: none;
-      margin: 10px;
-    }
-
-    input {
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
-      width: 60%;
+      background: white;
+      color: #ff4b2b;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
     }
 
     #chatBox {
-      background: white;
-      color: black;
-      margin: 20px auto;
-      padding: 10px;
-      border-radius: 10px;
-      max-width: 90%;
-      height: 250px;
+      height: 300px;
       overflow-y: auto;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 10px;
+      margin: 20px;
     }
 
-    .msg {
-      padding: 8px;
+    .message {
+      padding: 10px;
       margin: 5px;
-      background: #eee;
-      border-radius: 10px;
+      border-radius: 20px;
+    }
+
+    .me {
+      background: white;
+      color: #ff4b2b;
+      text-align: right;
+    }
+
+    .other {
+      background: rgba(255,255,255,0.7);
+      color: black;
       text-align: left;
     }
   </style>
@@ -54,29 +79,32 @@
 
 <body>
 
-<div class="container">
-  <h2>TeamUp Global</h2>
+<div class="logo">TG</div>
+<h1>TeamUp Global</h1>
 
-  <!-- LOGIN -->
-  <div id="auth">
-    <button onclick="login()">Continue with Google</button>
-  </div>
-
-  <!-- APP -->
-  <div id="app" style="display:none;">
-    <p id="welcome"></p>
-
-    <div id="chatBox"></div>
-
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-
-    <br><br>
-    <button onclick="logout()">Logout</button>
-  </div>
+<div id="auth">
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
 </div>
 
+<div id="app" style="display:none;">
+  <p id="welcome"></p>
+
+  <div id="chatBox"></div>
+
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
+
+  <br><br>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- ✅ FIXED SCRIPT -->
 <script type="module">
+alert("JS is working now");
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
@@ -113,73 +141,62 @@ const db = getFirestore(app);
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+const welcome = document.getElementById("welcome");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
-let currentUser = null;
-let unsubscribe = null;
+let currentUser;
 
+// SIGN UP
 window.signup = function () {
   createUserWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
 
+// LOGIN
 window.login = function () {
   signInWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
 
+// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
     authDiv.style.display = "none";
     appDiv.style.display = "block";
     welcome.innerText = "Welcome " + user.email;
-
-    startChat();
+    loadMessages();
   } else {
-    currentUser = null;
     authDiv.style.display = "block";
     appDiv.style.display = "none";
-
-    if (unsubscribe) unsubscribe();
   }
 });
 
+// SEND MESSAGE
 window.sendMessage = async function () {
-  if (!currentUser) return;
+  if (!message.value) return;
 
-  const text = message.value.trim();
-  if (!text) return;
+  await addDoc(collection(db, "messages"), {
+    text: message.value,
+    user: currentUser.email,
+    createdAt: serverTimestamp()
+  });
 
-  try {
-    await addDoc(collection(db, "messages"), {
-      text: text,
-      user: currentUser.email,
-      createdAt: serverTimestamp()
-    });
-
-    message.value = "";
-  } catch (e) {
-    alert("Error sending message: " + e.message);
-  }
+  message.value = "";
 };
 
-function startChat() {
-  if (unsubscribe) unsubscribe();
-
+// LOAD MESSAGES
+function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  unsubscribe = onSnapshot(q, snapshot => {
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
       const data = doc.data();
-
-      if (!data.text || !data.user) return;
 
       const div = document.createElement("div");
       div.className = "message " + (data.user === currentUser.email ? "me" : "other");
@@ -189,12 +206,14 @@ function startChat() {
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
-  }, error => {
-    console.log("Firestore error:", error);
   });
 }
 
+// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
 </script>
+
+</body>
+</html>
