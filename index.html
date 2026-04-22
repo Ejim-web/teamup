@@ -321,7 +321,7 @@ window.openProfile = function () {
   document.getElementById("profileId").innerText =
     currentUser.uid;
 
-  document.getElementById("profilePic").src =
+  document.getElementById("profilePic").src = e.target.result;
     currentUser.photoURL || "https://via.placeholder.com/100";
 };
 
