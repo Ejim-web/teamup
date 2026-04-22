@@ -1,7 +1,10 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
   <title>TeamUp Global</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
     body {
       margin: 0;
       font-family: Arial;
@@ -32,16 +35,30 @@
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 20px;
+      margin-top: 10px;
+    }
+
+    #users {
+      margin: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .user {
+      background: rgba(255,255,255,0.2);
+      padding: 10px;
+      margin: 5px;
+      border-radius: 15px;
+      cursor: pointer;
     }
 
     #chatBox {
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
       padding: 10px;
-      margin: 20px;
+      margin: 10px;
     }
 
     .message {
@@ -84,16 +101,36 @@
       background: rgba(255,255,255,0.3);
       color: white;
     }
-  </style></head><body><div class="logo">TG</div>
-<h1>TeamUp Global</h1><div id="auth">
+  </style>
+</head>
+
+<body>
+
+<div class="logo">TG</div>
+<h1>TeamUp Global</h1>
+
+<div id="auth">
   <button onclick="googleLogin()">Continue with Google</button>
-</div><div id="app" style="display:none;">
-  <p id="welcome"></p>  <div id="chatBox"></div>  <div class="input-area">
+</div>
+
+<div id="app" style="display:none;">
+  <p id="welcome"></p>
+
+  <!-- ✅ USERS LIST -->
+  <div id="users"></div>
+
+  <!-- ✅ CHAT -->
+  <div id="chatBox"></div>
+
+  <div class="input-area">
     <input id="message" placeholder="Type message">
     <button onclick="sendMessage()">Send</button>
-  </div><button id="logout" onclick="logout()">Logout</button>
+  </div>
 
-</div><script type="module">
+  <button id="logout" onclick="logout()">Logout</button>
+</div>
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
@@ -101,19 +138,20 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserLocalPersistence
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getFirestore,
   collection,
   addDoc,
+  getDocs,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  setDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -134,18 +172,15 @@ const provider = new GoogleAuthProvider();
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+const usersDiv = document.getElementById("users");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let unsubscribe = null;
+let selectedUserId = null;
 
-// ✅ KEEP SESSION
-setPersistence(auth, browserLocalPersistence);
-
-// ✅ GOOGLE LOGIN
-window.googleLogin = async () => {
+window.googleLogin = async function () {
   try {
     await signInWithPopup(auth, provider);
   } catch (e) {
@@ -153,55 +188,86 @@ window.googleLogin = async () => {
   }
 };
 
-// ✅ FIX LOOP (delay UI change)
-onAuthStateChanged(auth, user => {
-  setTimeout(() => {
-    if (user) {
-      currentUser = user;
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    currentUser = user;
 
-      authDiv.style.display = "none";
-      appDiv.style.display = "block";
+    // ✅ Save user to Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      name: user.displayName || user.email,
+      uid: user.uid
+    });
 
-      welcome.innerText = "Welcome " + (user.displayName || user.email);
+    authDiv.style.display = "none";
+    appDiv.style.display = "block";
 
-      loadMessages();
-    } else {
-      authDiv.style.display = "block";
-      appDiv.style.display = "none";
+    welcome.innerText = "Welcome " + (user.displayName || user.email);
 
-      if (unsubscribe) unsubscribe();
-    }
-  }, 300); // 🔥 small delay fixes mobile issue
+    loadUsers();
+  } else {
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
+  }
 });
 
-// SEND MESSAGE
-window.sendMessage = async () => {
+async function loadUsers() {
+  usersDiv.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "users"));
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    if (data.uid === currentUser.uid) return;
+
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerText = data.name;
+
+    div.onclick = () => {
+      selectedUserId = data.uid;
+      loadMessages();
+    };
+
+    usersDiv.appendChild(div);
+  });
+}
+
+window.sendMessage = async function () {
+  if (!selectedUserId) {
+    alert("Select a user first");
+    return;
+  }
+
   const text = message.value;
   if (!text) return;
 
-  await addDoc(collection(db, "messages"), {
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text,
-    user: currentUser.uid,
+    sender: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// LOAD MESSAGES
 function loadMessages() {
-  if (unsubscribe) unsubscribe();
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
 
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
 
-  unsubscribe = onSnapshot(q, snapshot => {
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -211,7 +277,10 @@ function loadMessages() {
   });
 }
 
-// LOGOUT
-window.logout = () => signOut(auth);
-</script></body>
+window.logout = function () {
+  signOut(auth);
+};
+</script>
+
+</body>
 </html>
