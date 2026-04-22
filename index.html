@@ -16,7 +16,7 @@
     .logo {
       width: 80px;
       height: 80px;
-      margin: 20px auto;
+      margin: 30px auto 10px;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
@@ -28,42 +28,32 @@
     }
 
     button {
-      padding: 12px;
-      border-radius: 20px;
+      padding: 14px 20px;
+      border-radius: 25px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-      margin: 10px;
-    }
-
-    #users {
-      margin: 10px;
-    }
-
-    .user {
-      background: rgba(255,255,255,0.2);
-      padding: 10px;
-      border-radius: 15px;
-      margin: 5px;
       cursor: pointer;
+      margin-top: 20px;
     }
 
     #chatBox {
-      height: 250px;
+      height: 300px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
-      margin: 10px;
       padding: 10px;
+      margin: 20px;
     }
 
     .message {
       padding: 10px;
-      margin: 5px;
-      border-radius: 15px;
+      margin: 5px 0;
+      border-radius: 20px;
       max-width: 70%;
       display: inline-block;
+      clear: both;
     }
 
     .me {
@@ -80,15 +70,22 @@
 
     .input-area {
       display: flex;
-      margin: 10px;
       gap: 10px;
+      margin: 10px;
     }
 
     .input-area input {
       flex: 1;
-      padding: 10px;
+      padding: 12px;
       border-radius: 20px;
       border: none;
+    }
+
+    #logout {
+      width: 90%;
+      margin: 10px;
+      background: rgba(255,255,255,0.3);
+      color: white;
     }
   </style>
 </head>
@@ -96,31 +93,23 @@
 <body>
 
 <div class="logo">TG</div>
-<h2>TeamUp Global</h2>
+<h1>TeamUp Global</h1>
 
 <div id="auth">
-  <button onclick="login()">Continue with Google</button>
+  <button onclick="googleLogin()">Continue with Google</button>
 </div>
 
 <div id="app" style="display:none;">
+  <p id="welcome"></p>
 
-  <h3 id="welcome"></h3>
+  <div id="chatBox"></div>
 
-  <div id="users"></div>
-
-  <div id="chatSection" style="display:none;">
-    <h4 id="chatWith"></h4>
-
-    <div id="chatBox"></div>
-
-    <div class="input-area">
-      <input id="message" placeholder="Type message">
-      <button onclick="sendMessage()">Send</button>
-    </div>
+  <div class="input-area">
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
   </div>
 
-  <button onclick="logout()">Logout</button>
-
+  <button id="logout" onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
@@ -130,19 +119,15 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserLocalPersistence
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getFirestore,
   collection,
   addDoc,
-  setDoc,
-  doc,
-  getDocs,
   query,
   orderBy,
   onSnapshot,
@@ -164,87 +149,47 @@ const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 
-let currentUser;
-let selectedUserId;
+const message = document.getElementById("message");
+const welcome = document.getElementById("welcome");
+const chatBox = document.getElementById("chatBox");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
-const usersDiv = document.getElementById("users");
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
-const chatSection = document.getElementById("chatSection");
-const chatWith = document.getElementById("chatWith");
 
-// 🔥 KEEP USER LOGGED IN
-setPersistence(auth, browserLocalPersistence);
+let currentUser;
 
-// LOGIN
-window.login = async () => {
+// 🔥 FIXED LOGIN
+window.googleLogin = async function () {
   await signInWithRedirect(auth, provider);
 };
 
-// AUTH STATE (MAIN FIX)
-onAuthStateChanged(auth, async (user) => {
+// 🔥 HANDLE REDIRECT RESULT
+getRedirectResult(auth).catch(e => alert(e.message));
+
+// 🔥 AUTH STATE
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
-    document.getElementById("welcome").innerText =
-      "Welcome " + (user.displayName || user.email);
+    welcome.innerText = "Welcome " + (user.displayName || user.email);
 
-    // SAVE USER
-    await setDoc(doc(db, "users", user.uid), {
-      name: user.displayName || user.email
-    });
-
-    loadUsers();
-
+    loadMessages();
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
   }
 });
 
-// LOAD USERS
-async function loadUsers() {
-  const snapshot = await getDocs(collection(db, "users"));
-  usersDiv.innerHTML = "<h4>Users</h4>";
-
-  snapshot.forEach(docSnap => {
-    if (docSnap.id === currentUser.uid) return;
-
-    const data = docSnap.data();
-
-    const div = document.createElement("div");
-    div.className = "user";
-    div.innerText = data.name;
-
-    div.onclick = () => openChat(docSnap.id, data.name);
-
-    usersDiv.appendChild(div);
-  });
-}
-
-// OPEN CHAT
-function openChat(userId, name) {
-  selectedUserId = userId;
-  chatSection.style.display = "block";
-  chatWith.innerText = "Chat with " + name;
-
-  loadMessages();
-}
-
 // SEND MESSAGE
-window.sendMessage = async () => {
-  if (!message.value) return;
+window.sendMessage = async function () {
+  const text = message.value;
+  if (!text) return;
 
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text: message.value,
-    sender: currentUser.uid,
+  await addDoc(collection(db, "messages"), {
+    text,
+    user: currentUser.email,
     createdAt: serverTimestamp()
   });
 
@@ -253,12 +198,7 @@ window.sendMessage = async () => {
 
 // LOAD MESSAGES
 function loadMessages() {
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
@@ -267,9 +207,7 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className =
-        "message " + (data.sender === currentUser.uid ? "me" : "other");
-
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -280,7 +218,9 @@ function loadMessages() {
 }
 
 // LOGOUT
-window.logout = () => signOut(auth);
+window.logout = function () {
+  signOut(auth);
+};
 </script>
 
 </body>
