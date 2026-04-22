@@ -27,14 +27,6 @@
       font-weight: bold;
     }
 
-    input {
-      padding: 12px;
-      border-radius: 20px;
-      border: none;
-      margin: 5px;
-      width: 80%;
-    }
-
     button {
       padding: 14px 20px;
       border-radius: 25px;
@@ -47,33 +39,31 @@
     }
 
     #chatBox {
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
       padding: 10px;
-      margin: 20px;
+      margin: 10px;
     }
 
     .message {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 20px;
+      max-width: 70%;
       display: flex;
       align-items: center;
-      margin: 5px 0;
+      gap: 8px;
     }
 
-    .msgText {
-      padding: 10px;
-      border-radius: 20px;
-      max-width: 60%;
-    }
-
-    .me .msgText {
+    .me {
       background: white;
       color: #ff4b2b;
       margin-left: auto;
     }
 
-    .other .msgText {
+    .other {
       background: rgba(255,255,255,0.6);
       color: black;
       margin-right: auto;
@@ -83,11 +73,35 @@
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      margin: 0 5px;
     }
 
-    .hidden {
-      display: none;
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 20px;
+      border: none;
+    }
+
+    #usersList div {
+      background: rgba(255,255,255,0.3);
+      margin: 5px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #setup input {
+      width: 80%;
+      padding: 10px;
+      margin: 5px;
+      border-radius: 10px;
+      border: none;
     }
   </style>
 </head>
@@ -103,22 +117,26 @@
 </div>
 
 <!-- PROFILE SETUP -->
-<div id="setup" class="hidden">
-  <h3>Complete Your Profile</h3>
-  <input id="fullname" placeholder="Full Name"><br>
+<div id="setup" style="display:none;">
+  <h3>Complete Profile</h3>
+  <input id="name" placeholder="Full Name"><br>
   <input id="dob" type="date"><br>
   <input id="location" placeholder="Location"><br>
   <button onclick="saveProfile()">Continue</button>
 </div>
 
 <!-- APP -->
-<div id="app" class="hidden">
+<div id="app" style="display:none;">
   <p id="welcome"></p>
+
+  <div id="usersList"></div>
 
   <div id="chatBox"></div>
 
-  <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
+  <div class="input-area">
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
   <button onclick="logout()">Logout</button>
 </div>
@@ -137,15 +155,16 @@ import {
 
 import {
   getFirestore,
-  doc,
-  setDoc,
-  getDoc,
   collection,
   addDoc,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  setDoc,
+  doc,
+  getDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -163,24 +182,15 @@ const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 
-const authDiv = document.getElementById("auth");
-const setupDiv = document.getElementById("setup");
-const appDiv = document.getElementById("app");
-
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
-
 let currentUser;
+let selectedUserId = null;
 
-/* LOGIN */
 window.googleLogin = async () => {
   await signInWithRedirect(auth, provider);
 };
 
-getRedirectResult(auth).catch(()=>{});
+getRedirectResult(auth).catch(() => {});
 
-/* AUTH CHECK */
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -188,86 +198,113 @@ onAuthStateChanged(auth, async user => {
     const userRef = doc(db, "users", user.uid);
     const snap = await getDoc(userRef);
 
-    if (!snap.exists()) {
-      authDiv.style.display = "none";
-      setupDiv.style.display = "block";
+    if (!snap.exists() || !snap.data().name) {
+      auth.style.display = "none";
+      setup.style.display = "block";
     } else {
       startApp(snap.data());
     }
+  } else {
+    auth.style.display = "block";
+    setup.style.display = "none";
+    app.style.display = "none";
   }
 });
 
-/* SAVE PROFILE */
 window.saveProfile = async () => {
-  const name = document.getElementById("fullname").value;
-  const dob = document.getElementById("dob").value;
-  const location = document.getElementById("location").value;
-
-  if (!name || !dob || !location) {
-    alert("Fill everything");
-    return;
-  }
-
   const data = {
-    name,
-    dob,
-    location,
-    photo: currentUser.photoURL || ""
+    name: name.value,
+    dob: dob.value,
+    location: location.value,
+    photo: currentUser.photoURL
   };
 
-  await setDoc(doc(db, "users", currentUser.uid), data);
+  await setDoc(doc(db, "users", currentUser.uid), data, { merge: true });
 
   startApp(data);
 };
 
-/* START APP */
-function startApp(userData) {
-  authDiv.style.display = "none";
-  setupDiv.style.display = "none";
-  appDiv.style.display = "block";
+function startApp(data) {
+  setup.style.display = "none";
+  app.style.display = "block";
 
-  welcome.innerText = "Welcome " + userData.name;
+  welcome.innerText = "Welcome " + data.name;
 
+  loadUsers();
+}
+
+async function loadUsers() {
+  const snapshot = await getDocs(collection(db, "users"));
+
+  usersList.innerHTML = "";
+
+  snapshot.forEach(docSnap => {
+    const user = docSnap.data();
+
+    if (docSnap.id !== currentUser.uid) {
+      const div = document.createElement("div");
+      div.innerText = user.name;
+      div.onclick = () => selectUser(docSnap.id, user.name);
+      usersList.appendChild(div);
+    }
+  });
+}
+
+function selectUser(uid, name) {
+  selectedUserId = uid;
   loadMessages();
 }
 
-/* SEND MESSAGE */
 window.sendMessage = async () => {
-  if (!message.value) return;
+  if (!selectedUserId) {
+    alert("Select a user first");
+    return;
+  }
 
-  await addDoc(collection(db, "messages"), {
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text: message.value,
-    user: currentUser.uid,
+    sender: currentUser.uid,
+    photo: currentUser.photoURL,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-/* LOAD CHAT */
 function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
 
   onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snap.forEach(doc => {
-      const data = doc.data();
+    snap.forEach(d => {
+      const data = d.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
 
-      const text = document.createElement("div");
-      text.className = "msgText";
+      const img = document.createElement("img");
+      img.src = data.photo || "";
+      img.className = "avatar";
+
+      const text = document.createElement("span");
       text.innerText = data.text;
 
+      div.appendChild(img);
       div.appendChild(text);
+
       chatBox.appendChild(div);
     });
   });
 }
 
-/* LOGOUT */
 window.logout = () => signOut(auth);
 </script>
 
