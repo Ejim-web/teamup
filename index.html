@@ -325,7 +325,18 @@ window.closeProfile = function () {
   document.getElementById("profilePage").style.display = "none";
   document.getElementById("app").style.display = "block";
 };
+window.uploadProfilePic = function (event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    document.getElementById("profilePic").src = e.target.result;
+  };
+
+  reader.readAsDataURL(file);
+};
 // 🚪 Logout (PUT BACK CORRECTLY)
 window.logout = () => signOut(auth);
 </script>
