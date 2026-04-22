@@ -19,12 +19,9 @@
 
     button {
       padding: 10px 20px;
-      border: none;
       border-radius: 20px;
-      background: white;
-      color: #ff416c;
-      font-weight: bold;
-      margin: 5px;
+      border: none;
+      margin: 10px;
     }
 
     input {
@@ -35,17 +32,22 @@
     }
 
     #chatBox {
-      margin-top: 20px;
-      max-height: 300px;
+      background: white;
+      color: black;
+      margin: 20px auto;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 90%;
+      height: 250px;
       overflow-y: auto;
     }
 
-    .message {
-      background: white;
-      color: black;
+    .msg {
+      padding: 8px;
       margin: 5px;
-      padding: 10px;
-      border-radius: 15px;
+      background: #eee;
+      border-radius: 10px;
+      text-align: left;
     }
   </style>
 </head>
@@ -53,7 +55,6 @@
 <body>
 
 <div class="container">
-
   <h2>TeamUp Global</h2>
 
   <!-- LOGIN -->
@@ -73,7 +74,6 @@
     <br><br>
     <button onclick="logout()">Logout</button>
   </div>
-
 </div>
 
 <script type="module">
@@ -100,6 +100,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
+/* 🔥 YOUR FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGer49Zec_eGSJwf00JPeH",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -109,22 +110,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
 const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
 
-// LOGIN (redirect for mobile)
+/* ✅ LOGIN (MOBILE SAFE) */
 window.login = () => {
   signInWithRedirect(auth, provider);
 };
 
 
-// HANDLE REDIRECT RESULT
+/* ✅ HANDLE RETURN FROM GOOGLE */
 getRedirectResult(auth).catch(() => {});
 
 
-// AUTH STATE
+/* ✅ CHECK LOGIN STATE */
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
@@ -143,36 +145,36 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
-// SEND MESSAGE
+/* ✅ SEND MESSAGE */
 window.sendMessage = async () => {
-  const message = document.getElementById("message");
+  const input = document.getElementById("message");
 
-  if (!message.value) return;
+  if (!input.value) return;
 
   await addDoc(collection(db, "messages"), {
-    text: message.value,
+    text: input.value,
     user: currentUser.displayName || currentUser.email,
     createdAt: serverTimestamp()
   });
 
-  message.value = "";
+  input.value = "";
 };
 
 
-// LOAD MESSAGES
+/* ✅ LOAD MESSAGES */
 function loadMessages() {
   const chatBox = document.getElementById("chatBox");
 
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  onSnapshot(q, (snap) => {
+  onSnapshot(q, (snapshot) => {
     chatBox.innerHTML = "";
 
-    snap.forEach((doc) => {
+    snapshot.forEach((doc) => {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message";
+      div.className = "msg";
       div.innerText = data.user + ": " + data.text;
 
       chatBox.appendChild(div);
@@ -181,7 +183,7 @@ function loadMessages() {
 }
 
 
-// LOGOUT
+/* ✅ LOGOUT */
 window.logout = () => {
   signOut(auth);
 };
