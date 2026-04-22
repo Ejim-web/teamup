@@ -27,10 +27,6 @@
       font-weight: bold;
     }
 
-    h1 {
-      margin-top: 10px;
-    }
-
     button {
       padding: 14px 20px;
       border-radius: 25px;
@@ -39,11 +35,11 @@
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
     #chatBox {
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
@@ -85,19 +81,25 @@
       border: none;
     }
 
+    #users {
+      margin: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .user {
+      background: rgba(255,255,255,0.3);
+      margin: 5px;
+      padding: 8px;
+      border-radius: 15px;
+      cursor: pointer;
+    }
+
     #logout {
       width: 90%;
       margin: 10px;
       background: rgba(255,255,255,0.3);
       color: white;
-    }
-
-    /* 🔥 NEW PROFILE STYLE */
-    .profile img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      margin-top: 10px;
     }
   </style>
 </head>
@@ -112,7 +114,10 @@
 </div>
 
 <div id="app" style="display:none;">
-  <div id="welcome" class="profile"></div>
+  <p id="welcome"></p>
+
+  <h3>Select User</h3>
+  <div id="users"></div>
 
   <div id="chatBox"></div>
 
@@ -130,8 +135,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -143,7 +147,10 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  setDoc,
+  doc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -164,56 +171,98 @@ const provider = new GoogleAuthProvider();
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+const usersDiv = document.getElementById("users");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
+let selectedUserId = null;
 
-// 🔥 FIXED LOGIN (MOBILE SAFE)
-window.googleLogin = function () {
-  signInWithRedirect(auth, provider);
+// 🔐 LOGIN
+window.googleLogin = async function () {
+  await signInWithPopup(auth, provider);
 };
 
-// 🔥 HANDLE REDIRECT RETURN
-getRedirectResult(auth).catch((error) => {
-  alert(error.message);
-});
-
-onAuthStateChanged(auth, user => {
+// 🔄 AUTH STATE
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
+
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
-    // 🔥 PROFILE UPGRADE
-    welcome.innerHTML = `
-      <img src="${user.photoURL}">
-      <div>Welcome ${user.displayName || user.email}</div>
-    `;
+    welcome.innerText = "Welcome " + (user.displayName || user.email);
 
-    loadMessages();
+    // Save user in Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      name: user.displayName || user.email,
+      uid: user.uid
+    });
+
+    loadUsers();
+
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
   }
 });
 
+// 👥 LOAD USERS
+async function loadUsers() {
+  usersDiv.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "users"));
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    if (data.uid === currentUser.uid) return;
+
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerText = data.name;
+
+    div.onclick = () => {
+      selectedUserId = data.uid;
+      loadMessages();
+    };
+
+    usersDiv.appendChild(div);
+  });
+}
+
+// 💬 SEND MESSAGE
 window.sendMessage = async function () {
+  if (!selectedUserId) {
+    alert("Select a user first");
+    return;
+  }
+
   const text = message.value;
   if (!text) return;
 
-  await addDoc(collection(db, "messages"), {
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text,
-    user: currentUser.email,
+    sender: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
+// 📩 LOAD PRIVATE MESSAGES
 function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  if (!selectedUserId) return;
+
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
 
   onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
@@ -222,7 +271,7 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -232,6 +281,7 @@ function loadMessages() {
   });
 }
 
+// 🚪 LOGOUT
 window.logout = function () {
   signOut(auth);
 };
