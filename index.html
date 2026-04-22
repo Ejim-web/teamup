@@ -16,7 +16,7 @@
     .logo {
       width: 80px;
       height: 80px;
-      margin: 30px auto;
+      margin: 20px auto;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
@@ -28,26 +28,24 @@
     }
 
     button {
-      padding: 14px;
-      border-radius: 25px;
+      padding: 12px;
+      border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-      margin-top: 10px;
+      margin: 10px;
     }
 
     #users {
-      max-height: 120px;
-      overflow-y: auto;
       margin: 10px;
     }
 
     .user {
-      background: rgba(255,255,255,0.3);
-      padding: 8px;
-      margin: 5px;
+      background: rgba(255,255,255,0.2);
+      padding: 10px;
       border-radius: 15px;
+      margin: 5px;
       cursor: pointer;
     }
 
@@ -63,10 +61,9 @@
     .message {
       padding: 10px;
       margin: 5px;
-      border-radius: 20px;
+      border-radius: 15px;
       max-width: 70%;
       display: inline-block;
-      clear: both;
     }
 
     .me {
@@ -99,25 +96,31 @@
 <body>
 
 <div class="logo">TG</div>
-<h1>TeamUp Global</h1>
+<h2>TeamUp Global</h2>
 
 <div id="auth">
-  <button onclick="googleLogin()">Continue with Google</button>
+  <button onclick="login()">Continue with Google</button>
 </div>
 
 <div id="app" style="display:none;">
-  <p id="welcome"></p>
+
+  <h3 id="welcome"></h3>
 
   <div id="users"></div>
 
-  <div id="chatBox"></div>
+  <div id="chatSection" style="display:none;">
+    <h4 id="chatWith"></h4>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
+    <div id="chatBox"></div>
+
+    <div class="input-area">
+      <input id="message" placeholder="Type message">
+      <button onclick="sendMessage()">Send</button>
+    </div>
   </div>
 
   <button onclick="logout()">Logout</button>
+
 </div>
 
 <script type="module">
@@ -136,13 +139,13 @@ import {
   getFirestore,
   collection,
   addDoc,
+  setDoc,
+  doc,
+  getDocs,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
-  setDoc,
-  doc,
-  getDocs
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -160,39 +163,37 @@ const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
-const chatBox = document.getElementById("chatBox");
-const usersDiv = document.getElementById("users");
+let currentUser;
+let selectedUserId;
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
+const usersDiv = document.getElementById("users");
+const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
+const chatSection = document.getElementById("chatSection");
+const chatWith = document.getElementById("chatWith");
 
-let currentUser;
-let selectedUserId = null;
-
-// ✅ ONLY redirect (NO popup anywhere)
-window.googleLogin = function () {
-  signInWithRedirect(auth, provider);
+// LOGIN
+window.login = async () => {
+  await signInWithRedirect(auth, provider);
 };
 
-// ✅ Handle return from Google
-getRedirectResult(auth).catch(e => alert(e.message));
+getRedirectResult(auth);
 
-// ✅ Auth state
-onAuthStateChanged(auth, async user => {
+// AUTH STATE
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
 
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
-    welcome.innerText = "Welcome " + (user.displayName || user.email);
+    document.getElementById("welcome").innerText = "Welcome " + (user.displayName || user.email);
 
-    // Save user
+    // SAVE USER
     await setDoc(doc(db, "users", user.uid), {
-      name: user.displayName || user.email,
-      uid: user.uid
+      name: user.displayName || user.email
     });
 
     loadUsers();
@@ -203,32 +204,38 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// 👥 Load users
+// LOAD USERS
 async function loadUsers() {
-  usersDiv.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "users"));
+  usersDiv.innerHTML = "<h4>Users</h4>";
 
-  const snap = await getDocs(collection(db, "users"));
+  snapshot.forEach(docSnap => {
+    if (docSnap.id === currentUser.uid) return;
 
-  snap.forEach(d => {
-    const data = d.data();
-    if (data.uid === currentUser.uid) return;
+    const data = docSnap.data();
 
     const div = document.createElement("div");
     div.className = "user";
     div.innerText = data.name;
 
-    div.onclick = () => {
-      selectedUserId = data.uid;
-      loadMessages();
-    };
+    div.onclick = () => openChat(docSnap.id, data.name);
 
     usersDiv.appendChild(div);
   });
 }
 
-// 💬 Send message
-window.sendMessage = async function () {
-  if (!selectedUserId) return alert("Select a user");
+// OPEN CHAT
+function openChat(userId, name) {
+  selectedUserId = userId;
+  chatSection.style.display = "block";
+  chatWith.innerText = "Chat with " + name;
+
+  loadMessages();
+}
+
+// SEND MESSAGE
+window.sendMessage = async () => {
+  if (!message.value) return;
 
   const chatId = [currentUser.uid, selectedUserId].sort().join("_");
 
@@ -241,7 +248,7 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// 📩 Load messages
+// LOAD MESSAGES
 function loadMessages() {
   const chatId = [currentUser.uid, selectedUserId].sort().join("_");
 
@@ -250,23 +257,26 @@ function loadMessages() {
     orderBy("createdAt")
   );
 
-  onSnapshot(q, snap => {
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
-    snap.forEach(d => {
-      const data = d.data();
-      const div = document.createElement("div");
+    snapshot.forEach(doc => {
+      const data = doc.data();
 
+      const div = document.createElement("div");
       div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-// 🚪 Logout
+// LOGOUT
 window.logout = () => signOut(auth);
+
 </script>
 
 </body>
