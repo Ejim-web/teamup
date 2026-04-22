@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
   <title>TeamUp Global</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <style>
     body {
       margin: 0;
       font-family: Arial;
@@ -25,6 +22,10 @@
       justify-content: center;
       font-size: 28px;
       font-weight: bold;
+    }
+
+    h1 {
+      margin-top: 10px;
     }
 
     button {
@@ -87,41 +88,26 @@
       background: rgba(255,255,255,0.3);
       color: white;
     }
-  </style>
-</head>
-
-<body>
-
-<div class="logo">TG</div>
-<h1>TeamUp Global</h1>
-
-<div id="auth">
+  </style></head><body><div class="logo">TG</div>
+<h1>TeamUp Global</h1><div id="auth">
   <button onclick="googleLogin()">Continue with Google</button>
-</div>
-
-<div id="app" style="display:none;">
-  <p id="welcome"></p>
-
-  <div id="chatBox"></div>
-
-  <div class="input-area">
+</div><div id="app" style="display:none;">
+  <p id="welcome"></p>  <div id="chatBox"></div>  <div class="input-area">
     <input id="message" placeholder="Type message">
     <button onclick="sendMessage()">Send</button>
-  </div>
+  </div><button id="logout" onclick="logout()">Logout</button>
 
-  <button id="logout" onclick="logout()">Logout</button>
-</div>
-
-<script type="module">
+</div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   onAuthStateChanged,
-  signOut
+  signOut,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -157,19 +143,25 @@ const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
+let unsubscribe = null;
 
-// 🔥 FIXED LOGIN
+// ✅ KEEP USER LOGGED IN
+setPersistence(auth, browserLocalPersistence);
+
+// ✅ GOOGLE LOGIN
 window.googleLogin = async function () {
-  await signInWithRedirect(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
-// 🔥 HANDLE REDIRECT RESULT
-getRedirectResult(auth).catch(e => alert(e.message));
-
-// 🔥 AUTH STATE
+// ✅ AUTH STATE FIX (NO LOOP)
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
+
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
@@ -179,35 +171,40 @@ onAuthStateChanged(auth, user => {
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
+
+    // stop old listener if logged out
+    if (unsubscribe) unsubscribe();
   }
 });
 
-// SEND MESSAGE
+// ✅ SEND MESSAGE
 window.sendMessage = async function () {
   const text = message.value;
   if (!text) return;
 
   await addDoc(collection(db, "messages"), {
     text,
-    user: currentUser.email,
+    user: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// LOAD MESSAGES
+// ✅ LOAD MESSAGES (FIXED MULTIPLE LOAD BUG)
 function loadMessages() {
+  if (unsubscribe) unsubscribe(); // stop old listener
+
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  onSnapshot(q, snapshot => {
+  unsubscribe = onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(doc => {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -217,11 +214,9 @@ function loadMessages() {
   });
 }
 
-// LOGOUT
+// ✅ LOGOUT
 window.logout = function () {
   signOut(auth);
 };
-</script>
-
-</body>
+</script></body>
 </html>
