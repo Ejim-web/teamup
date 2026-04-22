@@ -191,10 +191,9 @@ onAuthStateChanged(auth, async user => {
 
     // Save user
     await setDoc(doc(db, "users", user.uid), {
-  name: user.displayName || user.email,
-  uid: user.uid,
-  online: true
-});
+      name: user.displayName || user.email,
+      uid: user.uid
+    });
 
     loadUsers();
 
@@ -216,11 +215,7 @@ async function loadUsers() {
 
     const div = document.createElement("div");
     div.className = "user";
-    div.innerHTML = `
-  <img src="${data.photo || 'https://via.placeholder.com/40'}"
-       style="width:40px;height:40px;border-radius:50%;margin-right:10px;">
-  ${data.name}
-`;
+    div.innerText = data.name;
 
     div.onclick = () => {
       selectedUserId = data.uid;
@@ -271,13 +266,7 @@ function loadMessages() {
 }
 
 // 🚪 Logout
-window.logout = async () => {
-  await setDoc(doc(db, "users", currentUser.uid), {
-    online: false
-  }, { merge: true });
-
-  signOut(auth);
-};
+window.logout = () => signOut(auth);
 </script>
 
 </body>
