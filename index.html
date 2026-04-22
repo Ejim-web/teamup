@@ -1,158 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Global</title>
+  <title>TeamUp Global Dating</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      background: linear-gradient(135deg,#ff416c,#ff4b2b);
       color: white;
       text-align: center;
     }
 
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
-      border-radius: 50%;
+    .card {
       background: white;
-      color: #ff4b2b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    #chatBox {
-      height: 300px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
+      color: black;
       border-radius: 20px;
-      padding: 10px;
+      padding: 20px;
       margin: 20px;
     }
 
-    .message {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 20px;
-      max-width: 70%;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .me {
-      background: white;
-      color: #ff4b2b;
-      margin-left: auto;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.6);
-      color: black;
-      margin-right: auto;
-    }
-
-    .avatar {
-      width: 30px;
-      height: 30px;
+    img {
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
     }
 
-    input, button {
+    button {
       padding: 12px;
       border-radius: 20px;
       border: none;
       margin: 5px;
-    }
-
-    button {
-      background: white;
-      color: #ff4b2b;
       font-weight: bold;
     }
 
-    .input-area {
-      display: flex;
+    #chatBox {
+      height: 200px;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
       margin: 10px;
-      gap: 10px;
-    }
-
-    .input-area input {
-      flex: 1;
+      padding: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<div class="logo">TG</div>
-<h1>TeamUp Global</h1>
+<h1>🔥 TeamUp Global</h1>
 
-<!-- LOGIN -->
 <div id="auth">
-  <button onclick="googleLogin()">Continue with Google</button>
+  <button onclick="login()">Login with Google</button>
 </div>
 
-<!-- PROFILE SETUP -->
 <div id="setup" style="display:none;">
   <h3>Complete Profile</h3>
-  <input id="name" placeholder="Full Name"><br>
-  <input id="dob" type="date"><br>
-  <input id="location" placeholder="Location"><br>
+  <input id="name" placeholder="Full name"><br><br>
+  <input id="age" placeholder="Age"><br><br>
+  <input id="location" placeholder="Location"><br><br>
   <button onclick="saveProfile()">Continue</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
-  <p id="welcome"></p>
 
+  <h3 id="welcome"></h3>
+
+  <!-- MATCH AREA -->
+  <div id="matchCard" class="card"></div>
+
+  <button onclick="like()">❤️ Like</button>
+  <button onclick="skip()">❌ Skip</button>
+
+  <!-- CHAT -->
   <div id="chatBox"></div>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-  </div>
+  <input id="msg" placeholder="Message">
+  <button onclick="send()">Send</button>
 
+  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged,
-  signOut
+  getAuth, GoogleAuthProvider,
+  signInWithRedirect, getRedirectResult,
+  onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  doc
+  getFirestore, doc, setDoc, getDoc,
+  collection, getDocs, addDoc,
+  query, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:b80b61d82df788cc0339e9"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -162,118 +111,108 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser;
-
-const message = document.getElementById("message");
-const chatBox = document.getElementById("chatBox");
+let users = [];
+let currentIndex = 0;
+let currentMatch = null;
 
 /* LOGIN */
-window.googleLogin = () => {
-  signInWithRedirect(auth, provider);
-};
+window.login = () => signInWithRedirect(auth, provider);
+getRedirectResult(auth);
 
-getRedirectResult(auth).catch(() => {});
-
-/* AUTH STATE */
-onAuthStateChanged(auth, user => {
+/* AUTH */
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
-    const saved = localStorage.getItem("profile_" + user.uid);
+    const docRef = doc(db, "users", user.uid);
+    const snap = await getDoc(docRef);
 
-    if (!saved) {
-      document.getElementById("auth").style.display = "none";
+    if (!snap.exists()) {
       document.getElementById("setup").style.display = "block";
-      return;
+      document.getElementById("auth").style.display = "none";
+    } else {
+      startApp(snap.data());
     }
-
-    startApp(JSON.parse(saved));
 
   } else {
     document.getElementById("auth").style.display = "block";
-    document.getElementById("setup").style.display = "none";
-    document.getElementById("app").style.display = "none";
   }
 });
 
 /* SAVE PROFILE */
 window.saveProfile = async () => {
-  const name = document.getElementById("name").value;
-  const dob = document.getElementById("dob").value;
-  const location = document.getElementById("location").value;
-
-  if (!name || !dob || !location) {
-    alert("Fill everything");
-    return;
-  }
-
   const data = {
-    name,
-    dob,
-    location,
-    email: currentUser.email,
+    name: name.value,
+    age: age.value,
+    location: location.value,
     photo: currentUser.photoURL
   };
 
-  await setDoc(doc(db, "users", currentUser.uid), data);
-
-  localStorage.setItem("profile_" + currentUser.uid, JSON.stringify(data));
-
+  await setDoc(doc(db,"users",currentUser.uid), data);
   startApp(data);
 };
 
 /* START APP */
-function startApp(data) {
-  document.getElementById("auth").style.display = "none";
+async function startApp(data) {
   document.getElementById("setup").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  document.getElementById("welcome").innerText = "Welcome " + data.name;
+  welcome.innerText = "Welcome " + data.name;
 
-  loadMessages();
+  const snapshot = await getDocs(collection(db,"users"));
+  users = snapshot.docs.map(d => ({id:d.id,...d.data()}))
+    .filter(u => u.id !== currentUser.uid);
+
+  showUser();
 }
 
-/* SEND MESSAGE */
-window.sendMessage = async () => {
-  if (!message.value) return;
+/* SHOW USER */
+function showUser() {
+  if (!users[currentIndex]) return;
 
-  await addDoc(collection(db, "messages"), {
-    text: message.value,
-    user: currentUser.email,
-    photo: currentUser.photoURL,
-    createdAt: serverTimestamp()
-  });
+  const u = users[currentIndex];
 
-  message.value = "";
+  matchCard.innerHTML = `
+    <img src="${u.photo}">
+    <h3>${u.name}</h3>
+    <p>${u.age} - ${u.location}</p>
+  `;
+}
+
+/* LIKE */
+window.like = () => {
+  currentMatch = users[currentIndex];
+  startChat();
 };
 
-/* LOAD MESSAGES */
-function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+/* SKIP */
+window.skip = () => {
+  currentIndex++;
+  showUser();
+};
+
+/* CHAT */
+function startChat() {
+  const chatId = [currentUser.uid, currentMatch.id].sort().join("_");
+
+  const q = query(collection(db,"chats",chatId,"messages"), orderBy("time"));
 
   onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snap.forEach(doc => {
-      const data = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-
-      const img = document.createElement("img");
-      img.src = data.photo || "https://via.placeholder.com/30";
-      img.className = "avatar";
-
-      const text = document.createElement("span");
-      text.innerText = data.text;
-
-      div.appendChild(img);
-      div.appendChild(text);
-
-      chatBox.appendChild(div);
+    snap.forEach(d => {
+      const m = d.data();
+      chatBox.innerHTML += `<div>${m.text}</div>`;
     });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
+
+  window.send = async () => {
+    await addDoc(collection(db,"chats",chatId,"messages"), {
+      text: msg.value,
+      time: Date.now()
+    });
+    msg.value="";
+  };
 }
 
 /* LOGOUT */
