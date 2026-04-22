@@ -27,24 +27,6 @@
       font-weight: bold;
     }
 
-    input {
-      padding: 12px;
-      border-radius: 20px;
-      border: none;
-      width: 80%;
-      margin: 5px;
-    }
-
-    button {
-      padding: 12px 20px;
-      border-radius: 25px;
-      border: none;
-      background: white;
-      color: #ff4b2b;
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
     #chatBox {
       height: 300px;
       overflow-y: auto;
@@ -59,6 +41,9 @@
       margin: 5px;
       border-radius: 20px;
       max-width: 70%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .me {
@@ -72,6 +57,35 @@
       color: black;
       margin-right: auto;
     }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+    }
+
+    input, button {
+      padding: 12px;
+      border-radius: 20px;
+      border: none;
+      margin: 5px;
+    }
+
+    button {
+      background: white;
+      color: #ff4b2b;
+      font-weight: bold;
+    }
+
+    .input-area {
+      display: flex;
+      margin: 10px;
+      gap: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+    }
   </style>
 </head>
 
@@ -82,7 +96,7 @@
 
 <!-- LOGIN -->
 <div id="auth">
-  <button onclick="login()">Continue with Google</button>
+  <button onclick="googleLogin()">Continue with Google</button>
 </div>
 
 <!-- PROFILE SETUP -->
@@ -94,21 +108,23 @@
   <button onclick="saveProfile()">Continue</button>
 </div>
 
-<!-- MAIN APP -->
+<!-- APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
   <div id="chatBox"></div>
 
-  <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
+  <div class="input-area">
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
-  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
   getAuth,
   GoogleAuthProvider,
@@ -120,15 +136,14 @@ import {
 
 import {
   getFirestore,
-  doc,
-  getDoc,
-  setDoc,
   collection,
   addDoc,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  setDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -141,33 +156,37 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 
 let currentUser;
 
-window.login = async () => {
-  await signInWithRedirect(auth, provider);
+const message = document.getElementById("message");
+const chatBox = document.getElementById("chatBox");
+
+/* LOGIN */
+window.googleLogin = () => {
+  signInWithRedirect(auth, provider);
 };
 
-getRedirectResult(auth).catch(()=>{});
+getRedirectResult(auth).catch(() => {});
 
-onAuthStateChanged(auth, async user => {
+/* AUTH STATE */
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
 
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
+    const saved = localStorage.getItem("profile_" + user.uid);
 
-    if (!snap.exists()) {
+    if (!saved) {
       document.getElementById("auth").style.display = "none";
       document.getElementById("setup").style.display = "block";
       return;
     }
 
-    startApp(snap.data());
+    startApp(JSON.parse(saved));
 
   } else {
     document.getElementById("auth").style.display = "block";
@@ -176,6 +195,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
+/* SAVE PROFILE */
 window.saveProfile = async () => {
   const name = document.getElementById("name").value;
   const dob = document.getElementById("dob").value;
@@ -186,59 +206,79 @@ window.saveProfile = async () => {
     return;
   }
 
-  await setDoc(doc(db, "users", currentUser.uid), {
+  const data = {
     name,
     dob,
     location,
-    email: currentUser.email
-  });
+    email: currentUser.email,
+    photo: currentUser.photoURL
+  };
 
-  startApp({ name });
+  await setDoc(doc(db, "users", currentUser.uid), data);
+
+  localStorage.setItem("profile_" + currentUser.uid, JSON.stringify(data));
+
+  startApp(data);
 };
 
-function startApp(userData) {
+/* START APP */
+function startApp(data) {
   document.getElementById("auth").style.display = "none";
   document.getElementById("setup").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  document.getElementById("welcome").innerText = "Welcome " + userData.name;
+  document.getElementById("welcome").innerText = "Welcome " + data.name;
 
   loadMessages();
 }
 
+/* SEND MESSAGE */
 window.sendMessage = async () => {
-  const text = document.getElementById("message").value;
-  if (!text) return;
+  if (!message.value) return;
 
   await addDoc(collection(db, "messages"), {
-    text,
-    user: currentUser.uid,
+    text: message.value,
+    user: currentUser.email,
+    photo: currentUser.photoURL,
     createdAt: serverTimestamp()
   });
 
-  document.getElementById("message").value = "";
+  message.value = "";
 };
 
+/* LOAD MESSAGES */
 function loadMessages() {
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snap => {
-    const chatBox = document.getElementById("chatBox");
     chatBox.innerHTML = "";
 
     snap.forEach(doc => {
       const data = doc.data();
-      const div = document.createElement("div");
 
-      div.className = "message " + (data.user === currentUser.uid ? "me" : "other");
-      div.innerText = data.text;
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+
+      const img = document.createElement("img");
+      img.src = data.photo || "https://via.placeholder.com/30";
+      img.className = "avatar";
+
+      const text = document.createElement("span");
+      text.innerText = data.text;
+
+      div.appendChild(img);
+      div.appendChild(text);
 
       chatBox.appendChild(div);
     });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
+/* LOGOUT */
 window.logout = () => signOut(auth);
+
 </script>
 
 </body>
