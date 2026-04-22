@@ -128,7 +128,24 @@
 
   <button onclick="logout()">Logout</button>
 </div>
+<div id="profilePage" style="display:none;">
 
+  <div style="background:#7c1f2a; padding:20px; color:white;">
+    <button onclick="closeProfile()">← Back</button>
+    <h2>My Profile</h2>
+  </div>
+
+  <div style="background:#eee; padding:20px; text-align:center;">
+    
+    <img id="profilePic" src="" 
+    style="width:100px; height:100px; border-radius:50%;">
+
+    <h2 id="profileName">Name</h2>
+    <p>ID: <span id="profileId"></span></p>
+
+  </div>
+
+</div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
@@ -288,8 +305,26 @@ function loadMessages() {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
+function openProfile() {
+  document.getElementById("app").style.display = "none";
+  document.getElementById("profilePage").style.display = "block";
 
-// 🚪 Logout
+  document.getElementById("profileName").innerText =
+    currentUser.displayName || currentUser.email;
+
+  document.getElementById("profileId").innerText =
+    currentUser.uid;
+
+  document.getElementById("profilePic").src =
+    currentUser.photoURL || "https://via.placeholder.com/100";
+}
+
+function closeProfile() {
+  document.getElementById("profilePage").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}8
+
+// 🚪 Logout (PUT IT BACK)
 window.logout = () => signOut(auth);
 </script>
 
