@@ -77,14 +77,12 @@
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -99,96 +97,104 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-
-/* 🔥 YOUR FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGer49Zec_eGSJwf00JPeH",
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.appspot.com",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:b80b61d82df788cc0339e9"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const provider = new GoogleAuthProvider();
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const message = document.getElementById("message");
+const welcome = document.getElementById("welcome");
+const chatBox = document.getElementById("chatBox");
+
+const authDiv = document.getElementById("auth");
+const appDiv = document.getElementById("app");
 
 let currentUser = null;
+let unsubscribe = null;
 
-
-/* ✅ LOGIN (MOBILE SAFE) */
-window.login = () => {
-  signInWithRedirect(auth, provider);
+window.signup = function () {
+  createUserWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
 };
 
+window.login = function () {
+  signInWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
+};
 
-/* ✅ HANDLE RETURN FROM GOOGLE */
-getRedirectResult(auth).catch(() => {});
-
-
-/* ✅ CHECK LOGIN STATE */
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
+    authDiv.style.display = "none";
+    appDiv.style.display = "block";
+    welcome.innerText = "Welcome " + user.email;
 
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    document.getElementById("welcome").innerText =
-      "Welcome " + (user.displayName || user.email);
-
-    loadMessages();
+    startChat();
   } else {
-    document.getElementById("auth").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    currentUser = null;
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
+
+    if (unsubscribe) unsubscribe();
   }
 });
 
+window.sendMessage = async function () {
+  if (!currentUser) return;
 
-/* ✅ SEND MESSAGE */
-window.sendMessage = async () => {
-  const input = document.getElementById("message");
+  const text = message.value.trim();
+  if (!text) return;
 
-  if (!input.value) return;
+  try {
+    await addDoc(collection(db, "messages"), {
+      text: text,
+      user: currentUser.email,
+      createdAt: serverTimestamp()
+    });
 
-  await addDoc(collection(db, "messages"), {
-    text: input.value,
-    user: currentUser.displayName || currentUser.email,
-    createdAt: serverTimestamp()
-  });
-
-  input.value = "";
+    message.value = "";
+  } catch (e) {
+    alert("Error sending message: " + e.message);
+  }
 };
 
-
-/* ✅ LOAD MESSAGES */
-function loadMessages() {
-  const chatBox = document.getElementById("chatBox");
+function startChat() {
+  if (unsubscribe) unsubscribe();
 
   const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  onSnapshot(q, (snapshot) => {
+  unsubscribe = onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
 
+      if (!data.text || !data.user) return;
+
       const div = document.createElement("div");
-      div.className = "msg";
-      div.innerText = data.user + ": " + data.text;
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+      div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }, error => {
+    console.log("Firestore error:", error);
   });
 }
 
-
-/* ✅ LOGOUT */
-window.logout = () => {
+window.logout = function () {
   signOut(auth);
 };
-
 </script>
-
-</body>
-</html>
