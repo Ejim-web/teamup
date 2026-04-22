@@ -170,7 +170,7 @@ window.sendMessage = async () => {
 
   await addDoc(collection(db, "messages"), {
     text: message.value,
-    user: currentUser.email,
+    user: currentUser.displayName,
     createdAt: serverTimestamp()
   });
 
@@ -188,8 +188,8 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
+      div.className = "message " + (data.user == currentUser.displayName? "me" : "other");
+      div.innerText = data.user + ": " + data.text;
 
       chatBox.appendChild(div);
     });
