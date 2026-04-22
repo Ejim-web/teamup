@@ -99,10 +99,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10..."
 
 import {
   getFirestore,
@@ -136,13 +137,9 @@ const message = document.getElementById("message");
 
 /* LOGIN */
 window.login = async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (error) {
-    alert(error.message);
-  }
+  await signInWithRedirect(auth, provider);
 };
-
+getRedirectResult(auth).catch(() => {});
 /* 🔥 FIXED AUTH (NO MORE COMING BACK) */
 onAuthStateChanged(auth, user => {
   if (user) {
