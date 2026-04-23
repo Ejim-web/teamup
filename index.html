@@ -19,29 +19,22 @@
       font-weight: bold;
     }
 
-    input {
-      width: 90%;
-      padding: 12px;
-      margin: 8px;
-      border-radius: 20px;
-      border: none;
-    }
-
-    button {
+    .section {
       padding: 10px;
-      border-radius: 20px;
-      border: none;
-      background: #25d366;
-      color: white;
-      margin: 5px;
-      cursor: pointer;
+      background: #ddd;
+      font-weight: bold;
     }
 
-    #usersList div {
+    .chat-item {
+      background: white;
       padding: 12px;
       border-bottom: 1px solid #ddd;
-      background: white;
       cursor: pointer;
+    }
+
+    .chat-item small {
+      color: gray;
+      float: right;
     }
 
     #chatBox {
@@ -56,7 +49,6 @@
       margin: 5px;
       border-radius: 10px;
       max-width: 70%;
-      font-size: 14px;
     }
 
     .me {
@@ -68,10 +60,21 @@
       background: white;
     }
 
-    .time {
-      font-size: 10px;
-      color: gray;
-      margin-top: 4px;
+    input {
+      width: 70%;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 20px;
+      border: none;
+    }
+
+    button {
+      padding: 10px;
+      border-radius: 20px;
+      border: none;
+      background: #25d366;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -81,17 +84,21 @@
 <div class="header">TeamUp Global</div>
 
 <div id="auth">
-  <input id="name" placeholder="Name">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
+  <input id="name" placeholder="Name"><br>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
 </div>
 
 <div id="app" style="display:none;">
+
   <p id="welcome"></p>
 
-  <h3>Users</h3>
+  <div class="section">Chats</div>
+  <div id="chatList"></div>
+
+  <div class="section">Start New Chat</div>
   <div id="usersList"></div>
 
   <h3 id="chatTitle"></h3>
@@ -100,7 +107,7 @@
   <input id="message" placeholder="Type message">
   <button onclick="sendMessage()">Send</button>
 
-  <br>
+  <br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
@@ -121,21 +128,19 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
   doc,
   setDoc,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ✅ YOUR CONFIG */
+/* 🔥 YOUR CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.appspot.com",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MWCTMC"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -146,6 +151,7 @@ const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const usersList = document.getElementById("usersList");
+const chatList = document.getElementById("chatList");
 const chatBox = document.getElementById("chatBox");
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
@@ -155,33 +161,19 @@ let currentUser;
 let selectedUser;
 let unsubscribe;
 
-/* SIGNUP */
+/* AUTH */
 window.signup = async () => {
-  try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      email.value.trim(),
-      password.value.trim()
-    );
-
-    await setDoc(doc(db, "users", cred.user.uid), {
-      name: nameInput.value.trim() || cred.user.email,
-      email: cred.user.email
-    });
-
-    alert("Account created!");
-  } catch (e) {
-    alert(e.message);
-  }
+  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+  await setDoc(doc(db, "users", cred.user.uid), {
+    name: nameInput.value || cred.user.email,
+    email: cred.user.email
+  });
 };
 
-/* LOGIN */
 window.login = () => {
-  signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim())
-    .catch(e => alert(e.message));
+  signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
-/* AUTH STATE */
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -189,13 +181,11 @@ onAuthStateChanged(auth, user => {
     document.getElementById("app").style.display = "block";
     welcome.innerText = "Welcome " + user.email;
     loadUsers();
-  } else {
-    document.getElementById("auth").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    loadChatList();
   }
 });
 
-/* LOAD USERS */
+/* USERS (for new chat) */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
   usersList.innerHTML = "";
@@ -204,14 +194,39 @@ async function loadUsers() {
     if (d.id === currentUser.uid) return;
 
     const data = d.data();
-    const displayName = data.name || data.email || "User";
-
     const div = document.createElement("div");
-    div.innerText = displayName;
+    div.className = "chat-item";
+    div.innerText = data.name || data.email;
 
-    div.onclick = () => openChat(d.id, displayName);
+    div.onclick = () => openChat(d.id, data.name);
 
     usersList.appendChild(div);
+  });
+}
+
+/* CHAT LIST */
+async function loadChatList() {
+  const snap = await getDocs(collection(db, "chats"));
+  chatList.innerHTML = "";
+
+  snap.forEach(d => {
+    const data = d.data();
+
+    if (!data.participants.includes(currentUser.uid)) return;
+
+    const otherUser = data.participants.find(u => u !== currentUser.uid);
+
+    const div = document.createElement("div");
+    div.className = "chat-item";
+
+    div.innerHTML = `
+      ${otherUser}
+      <small>${data.lastMessage || ""}</small>
+    `;
+
+    div.onclick = () => openChat(otherUser, otherUser);
+
+    chatList.appendChild(div);
   });
 }
 
@@ -222,38 +237,29 @@ function openChat(uid, name) {
   loadMessages();
 }
 
-/* ✅ FIXED SEND MESSAGE */
+/* SEND MESSAGE */
 window.sendMessage = async () => {
-  try {
-    if (!selectedUser) {
-      alert("Select a user first");
-      return;
-    }
+  if (!selectedUser) return alert("Select user");
 
-    const text = message.value.trim();
-    if (!text) {
-      alert("Type a message");
-      return;
-    }
+  const text = message.value.trim();
+  if (!text) return;
 
-    const chatId = [currentUser.uid, selectedUser].sort().join("_");
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
-    await setDoc(doc(db, "chats", chatId), {
-      participants: [currentUser.uid, selectedUser]
-    }, { merge: true });
+  await setDoc(doc(db, "chats", chatId), {
+    participants: [currentUser.uid, selectedUser],
+    lastMessage: text,
+    updatedAt: Date.now()
+  }, { merge: true });
 
-    await addDoc(collection(db, "chats", chatId, "messages"), {
-      text,
-      sender: currentUser.uid,
-      createdAt: serverTimestamp()
-    });
+  await addDoc(collection(db, "chats", chatId, "messages"), {
+    text,
+    sender: currentUser.uid,
+    createdAt: Date.now()
+  });
 
-    message.value = "";
-
-  } catch (e) {
-    alert("Error: " + e.message);
-    console.error(e);
-  }
+  message.value = "";
+  loadChatList(); // refresh chat list
 };
 
 /* LOAD MESSAGES */
@@ -262,10 +268,7 @@ function loadMessages() {
 
   if (unsubscribe) unsubscribe();
 
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
+  const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt"));
 
   unsubscribe = onSnapshot(q, snap => {
     chatBox.innerHTML = "";
@@ -275,13 +278,7 @@ function loadMessages() {
 
       const div = document.createElement("div");
       div.className = "msg " + (data.sender === currentUser.uid ? "me" : "other");
-
-      const time = data.createdAt?.toDate().toLocaleTimeString();
-
-      div.innerHTML = `
-        ${data.text}
-        <div class="time">${time || ""}</div>
-      `;
+      div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
