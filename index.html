@@ -16,39 +16,39 @@
     .logo {
       width: 80px;
       height: 80px;
-      margin: 20px auto;
+      margin: 30px auto;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 28px;
       font-weight: bold;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    .logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    input {
-      width: 80%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 20px;
-      border: none;
     }
 
     button {
-      padding: 12px;
-      border-radius: 20px;
+      padding: 14px;
+      border-radius: 25px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
+      margin-top: 10px;
+    }
+
+    #users {
+      max-height: 120px;
+      overflow-y: auto;
+      margin: 10px;
+    }
+
+    .user {
+      background: rgba(255,255,255,0.3);
+      padding: 8px;
+      margin: 5px;
+      border-radius: 15px;
+      cursor: pointer;
     }
 
     #chatBox {
@@ -56,8 +56,8 @@
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
-      padding: 10px;
       margin: 10px;
+      padding: 10px;
     }
 
     .message {
@@ -69,48 +69,51 @@
       clear: both;
     }
 
-    .me { background: white; color: #ff4b2b; float: right; }
-    .other { background: rgba(255,255,255,0.6); color: black; float: left; }
+    .me {
+      background: white;
+      color: #ff4b2b;
+      float: right;
+    }
+
+    .other {
+      background: rgba(255,255,255,0.6);
+      color: black;
+      float: left;
+    }
 
     .input-area {
       display: flex;
       margin: 10px;
-      gap: 5px;
+      gap: 10px;
     }
 
-    .input-area input { flex: 1; }
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: none;
+    }
   </style>
 </head>
 
 <body>
 
-<input type="file" id="profileInput" style="display:none">
-
-<div class="logo" onclick="profileInput.click()">
-  <img id="profileImage" style="display:none;">
-  <span id="initials">TG</span>
-</div>
-
-<h2>TeamUp Global</h2>
+<div class="logo">TG</div>
+<h1>TeamUp Global</h1>
 
 <div id="auth">
-  <input id="username" placeholder="Username">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+  <button onclick="googleLogin()">Continue with Google</button>
 </div>
 
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
-  <input id="chatUser" placeholder="Enter username to chat">
-  <button onclick="startChat()">Start Chat</button>
+  <div id="users"></div>
 
   <div id="chatBox"></div>
 
   <div class="input-area">
-    <input id="message">
+    <input id="message" placeholder="Type message">
     <button onclick="sendMessage()">Send</button>
   </div>
 
@@ -121,16 +124,27 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-  getAuth, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, onAuthStateChanged, signOut
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, collection, addDoc, query, orderBy,
-  onSnapshot, serverTimestamp, doc, setDoc, getDoc
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  doc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ✅ YOUR ORIGINAL CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -144,50 +158,44 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM
-const usernameInput = document.getElementById("username");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
+const provider = new GoogleAuthProvider();
+
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+const usersDiv = document.getElementById("users");
+
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let currentChatId = null;
+let selectedUserId = null;
 
-// SIGNUP
-window.signup = async () => {
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email.value, password.value);
-
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      username: usernameInput.value
-    });
-
-  } catch (e) {
-    alert(e.message);
-  }
+// ✅ ONLY redirect (NO popup anywhere)
+window.googleLogin = function () {
+  signInWithRedirect(auth, provider);
 };
 
-// LOGIN
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
-};
+// ✅ Handle return from Google
+getRedirectResult(auth).catch(e => alert(e.message));
 
-// AUTH STATE
+// ✅ Auth state
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
-    const snap = await getDoc(doc(db, "users", user.uid));
-    currentUser.username = snap.data()?.username || user.email;
-
     authDiv.style.display = "none";
     appDiv.style.display = "block";
-    welcome.innerText = "Welcome " + currentUser.username;
+
+    welcome.innerText = "Welcome " + (user.displayName || user.email);
+
+    // Save user
+    await setDoc(doc(db, "users", user.uid), {
+      name: user.displayName || user.email,
+      uid: user.uid
+    });
+
+    loadUsers();
 
   } else {
     authDiv.style.display = "block";
@@ -195,80 +203,70 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// START CHAT
-window.startChat = () => {
-  const other = document.getElementById("chatUser").value;
-  if (!other) return alert("Enter username");
+// 👥 Load users
+async function loadUsers() {
+  usersDiv.innerHTML = "";
 
-  currentChatId = [currentUser.username, other].sort().join("_");
-  loadMessages();
-};
+  const snap = await getDocs(collection(db, "users"));
 
-// SEND MESSAGE
-window.sendMessage = async () => {
-  if (!currentChatId) return alert("Start chat first");
+  snap.forEach(d => {
+    const data = d.data();
+    if (data.uid === currentUser.uid) return;
 
-  await addDoc(collection(db, "chats", currentChatId, "messages"), {
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerText = data.name;
+
+    div.onclick = () => {
+      selectedUserId = data.uid;
+      loadMessages();
+    };
+
+    usersDiv.appendChild(div);
+  });
+}
+
+// 💬 Send message
+window.sendMessage = async function () {
+  if (!selectedUserId) return alert("Select a user");
+
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text: message.value,
-    user: currentUser.username,
+    sender: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// LOAD MESSAGES
+// 📩 Load messages
 function loadMessages() {
+  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+
   const q = query(
-    collection(db, "chats", currentChatId, "messages"),
+    collection(db, "chats", chatId, "messages"),
     orderBy("createdAt")
   );
 
   onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snap.forEach(doc => {
-      const data = doc.data();
+    snap.forEach(d => {
+      const data = d.data();
       const div = document.createElement("div");
 
-      div.className = "message " +
-        (data.user === currentUser.username ? "me" : "other");
-
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
+// 🚪 Logout
 window.logout = () => signOut(auth);
-
-// PROFILE IMAGE (LOCAL ONLY)
-const profileInput = document.getElementById("profileInput");
-const profileImage = document.getElementById("profileImage");
-const initials = document.getElementById("initials");
-
-profileInput.onchange = e => {
-  const reader = new FileReader();
-  reader.onload = () => {
-    profileImage.src = reader.result;
-    profileImage.style.display = "block";
-    initials.style.display = "none";
-    localStorage.setItem("pic", reader.result);
-  };
-  reader.readAsDataURL(e.target.files[0]);
-};
-
-window.onload = () => {
-  const pic = localStorage.getItem("pic");
-  if (pic) {
-    profileImage.src = pic;
-    profileImage.style.display = "block";
-    initials.style.display = "none";
-  }
-};
 </script>
 
 </body>
