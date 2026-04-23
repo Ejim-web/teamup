@@ -190,14 +190,27 @@ window.login = async () => {
   }
 };
 
-/* AUTH STATE */
+/* AUTH STATE (FIXED LOGOUT HERE) */
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
+
     document.getElementById("auth").style.display = "none";
     document.getElementById("app").style.display = "block";
+
     welcome.innerText = "Welcome " + user.email;
+
     loadUsers();
+  } else {
+    // ✅ LOGOUT FIX
+    document.getElementById("auth").style.display = "block";
+    document.getElementById("app").style.display = "none";
+
+    currentUser = null;
+    selectedUser = null;
+    chatBox.innerHTML = "";
+    usersList.innerHTML = "";
+    welcome.innerText = "";
   }
 });
 
@@ -269,8 +282,11 @@ function loadMessages() {
   });
 }
 
-/* LOGOUT */
-window.logout = () => signOut(auth);
+/* LOGOUT (IMPROVED) */
+window.logout = async () => {
+  await signOut(auth);
+  alert("Logged out");
+};
 
 /* PROFILE IMAGE */
 const input = document.getElementById("profileInput");
