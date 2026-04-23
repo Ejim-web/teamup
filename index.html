@@ -13,6 +13,7 @@
       text-align: center;
     }
 
+    /* ✅ LOGO STYLE */
     .logo {
       width: 80px;
       height: 80px;
@@ -25,14 +26,15 @@
       justify-content: center;
       font-size: 28px;
       font-weight: bold;
-      overflow: hidden;
-      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
     }
 
-    .logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    h1 {
+      margin-top: 10px;
+    }
+
+    #auth {
+      margin-top: 80px;
     }
 
     input {
@@ -104,32 +106,20 @@
 
 <body>
 
-<!-- PROFILE -->
-<input type="file" id="profileInput" accept="image/*" style="display:none">
-
-<div class="logo" onclick="profileInput.click()">
-  <img id="profileImage" style="display:none;">
-  <span id="initials">TG</span>
-</div>
+<!-- ✅ LOGO ADDED HERE -->
+<div class="logo">TG</div>
 
 <h1>TeamUp Global</h1>
 
-<!-- AUTH -->
 <div id="auth">
-  <input type="text" id="username" placeholder="Username"><br>
   <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
-
-  <!-- START CHAT -->
-  <input id="chatUser" placeholder="Enter username to chat">
-  <button onclick="startChat()">Start Chat</button>
 
   <div id="chatBox"></div>
 
@@ -143,7 +133,6 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -159,10 +148,7 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
-  doc,
-  setDoc,
-  getDoc
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -178,32 +164,20 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM
-const usernameInput = document.getElementById("username");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let currentChatId = null;
 
-// AUTH
-window.signup = async function () {
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email.value, password.value);
-
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      username: usernameInput.value,
-      email: email.value
-    });
-
-  } catch (e) {
-    alert(e.message);
-  }
+window.signup = function () {
+  createUserWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
 };
 
 window.login = function () {
@@ -211,53 +185,34 @@ window.login = function () {
     .catch(e => alert(e.message));
 };
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    const data = userDoc.data();
-
-    currentUser.username = data.username;
-
     authDiv.style.display = "none";
     appDiv.style.display = "block";
-    welcome.innerText = "Welcome " + data.username;
-
+    welcome.innerText = "Welcome " + user.email;
+    loadMessages();
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
   }
 });
 
-// START PRIVATE CHAT
-window.startChat = function () {
-  const otherUser = document.getElementById("chatUser").value;
-  if (!otherUser) return;
-
-  currentChatId = [currentUser.username, otherUser].sort().join("_");
-  loadMessages();
-};
-
-// SEND MESSAGE
 window.sendMessage = async function () {
-  if (!currentChatId) return alert("Start a chat first");
+  const text = message.value;
+  if (!text) return;
 
-  await addDoc(collection(db, "chats", currentChatId, "messages"), {
-    text: message.value,
-    user: currentUser.username,
+  await addDoc(collection(db, "messages"), {
+    text,
+    user: currentUser.email,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// LOAD MESSAGES
 function loadMessages() {
-  const q = query(
-    collection(db, "chats", currentChatId, "messages"),
-    orderBy("createdAt")
-  );
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
   onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
@@ -266,7 +221,7 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.username ? "me" : "other");
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -279,38 +234,6 @@ function loadMessages() {
 window.logout = function () {
   signOut(auth);
 };
-
-// PROFILE IMAGE
-const profileInput = document.getElementById("profileInput");
-const profileImage = document.getElementById("profileImage");
-const initials = document.getElementById("initials");
-
-profileInput.addEventListener("change", function () {
-  const file = this.files[0];
-
-  if (file) {
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-      profileImage.src = e.target.result;
-      profileImage.style.display = "block";
-      initials.style.display = "none";
-      localStorage.setItem("profilePic", e.target.result);
-    };
-
-    reader.readAsDataURL(file);
-  }
-});
-
-// LOAD SAVED PROFILE
-window.addEventListener("load", () => {
-  const saved = localStorage.getItem("profilePic");
-  if (saved) {
-    profileImage.src = saved;
-    profileImage.style.display = "block";
-    initials.style.display = "none";
-  }
-});
 </script>
 
 </body>
