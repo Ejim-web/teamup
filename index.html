@@ -16,7 +16,7 @@
     .logo {
       width: 80px;
       height: 80px;
-      margin: 30px auto 10px;
+      margin: 20px auto;
       border-radius: 50%;
       background: white;
       overflow: hidden;
@@ -29,10 +29,6 @@
       object-fit: cover;
     }
 
-    h1 { margin-top: 10px; }
-
-    #auth { margin-top: 60px; }
-
     input {
       width: 80%;
       padding: 12px;
@@ -42,7 +38,7 @@
     }
 
     button {
-      padding: 12px;
+      padding: 10px;
       border-radius: 20px;
       border: none;
       background: white;
@@ -52,20 +48,19 @@
     }
 
     #chatBox {
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
-      border-radius: 20px;
+      margin: 10px;
+      border-radius: 15px;
       padding: 10px;
-      margin: 20px;
     }
 
     .message {
-      padding: 10px;
+      padding: 8px;
       margin: 5px;
-      border-radius: 20px;
+      border-radius: 15px;
       max-width: 70%;
-      display: inline-block;
       clear: both;
     }
 
@@ -81,37 +76,30 @@
       float: left;
     }
 
-    .input-area {
-      display: flex;
-      gap: 10px;
-      margin: 10px;
-    }
-
-    .input-area input { flex: 1; }
-
-    #logout {
-      width: 90%;
-      margin: 10px;
-      background: rgba(255,255,255,0.3);
-      color: white;
+    #usersList div {
+      background: white;
+      color: black;
+      margin: 5px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<!-- PROFILE IMAGE -->
-<input type="file" id="fileInput" accept="image/*" style="display:none">
+<input type="file" id="profileInput" hidden>
 
-<div class="logo" onclick="fileInput.click()">
-  <img id="profilePic" style="display:none;">
+<div class="logo" onclick="document.getElementById('profileInput').click()">
+  <img id="profileImage" style="display:none;">
 </div>
 
-<h1>TeamUp Global</h1>
+<h2>TeamUp Global</h2>
 
 <div id="auth">
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Password"><br>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
 </div>
@@ -119,14 +107,15 @@
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
+  <div id="usersList"></div>
+
   <div id="chatBox"></div>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-  </div>
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
 
-  <button id="logout" onclick="logout()">Logout</button>
+  <br><br>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
@@ -146,15 +135,18 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  doc,
+  setDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ✅ YOUR CONFIG
+/* ✅ YOUR CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
+  storageBucket: "teamup-68a21.appspot.com",
   messagingSenderId: "379106762572",
   appId: "1:379106762572:web:a1537754ed17d3a60339e9"
 };
@@ -163,22 +155,22 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM
+let currentUser;
+let selectedUser = null;
+
 const email = document.getElementById("email");
 const password = document.getElementById("password");
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
+const usersList = document.getElementById("usersList");
+const welcome = document.getElementById("welcome");
 
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-
-let currentUser;
-
-// AUTH
-window.signup = () => {
-  createUserWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+/* AUTH */
+window.signup = async () => {
+  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+  await setDoc(doc(db, "users", cred.user.uid), {
+    email: cred.user.email
+  });
 };
 
 window.login = () => {
@@ -189,40 +181,69 @@ window.login = () => {
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-    authDiv.style.display = "none";
-    appDiv.style.display = "block";
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
     welcome.innerText = "Welcome " + user.email;
-    loadMessages();
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
+    loadUsers();
   }
 });
 
-// CHAT
-window.sendMessage = async () => {
-  if (!message.value) return;
+/* USERS */
+async function loadUsers() {
+  const snap = await getDocs(collection(db, "users"));
+  usersList.innerHTML = "<h3>Select User</h3>";
 
-  await addDoc(collection(db, "messages"), {
+  snap.forEach(docSnap => {
+    if (docSnap.id === currentUser.uid) return;
+
+    const div = document.createElement("div");
+    div.innerText = docSnap.data().email;
+
+    div.onclick = () => openChat(docSnap.id, docSnap.data().email);
+
+    usersList.appendChild(div);
+  });
+}
+
+/* OPEN CHAT */
+function openChat(uid, email) {
+  selectedUser = uid;
+  welcome.innerText = "Chat with " + email;
+  loadMessages();
+}
+
+/* SEND */
+window.sendMessage = async () => {
+  if (!selectedUser) return alert("Select user first");
+
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
     text: message.value,
-    user: currentUser.email,
+    sender: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
+/* LOAD MESSAGES */
 function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
-  onSnapshot(q, snapshot => {
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
+
+  onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
-    snapshot.forEach(doc => {
+    snap.forEach(doc => {
       const data = doc.data();
-
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
+
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
@@ -232,34 +253,30 @@ function loadMessages() {
   });
 }
 
-// LOGOUT
+/* LOGOUT */
 window.logout = () => signOut(auth);
 
-// PROFILE (FREE VERSION)
-const fileInput = document.getElementById("fileInput");
-const profilePic = document.getElementById("profilePic");
+/* PROFILE IMAGE (LOCAL) */
+const input = document.getElementById("profileInput");
+const img = document.getElementById("profileImage");
 
-fileInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (!file) return;
-
+input.onchange = () => {
   const reader = new FileReader();
   reader.onload = e => {
-    profilePic.src = e.target.result;
-    profilePic.style.display = "block";
-    localStorage.setItem("profilePic", e.target.result);
+    img.src = e.target.result;
+    img.style.display = "block";
+    localStorage.setItem("pic", e.target.result);
   };
-  reader.readAsDataURL(file);
-});
+  reader.readAsDataURL(input.files[0]);
+};
 
-// LOAD SAVED PIC
-window.addEventListener("load", () => {
-  const saved = localStorage.getItem("profilePic");
+window.onload = () => {
+  const saved = localStorage.getItem("pic");
   if (saved) {
-    profilePic.src = saved;
-    profilePic.style.display = "block";
+    img.src = saved;
+    img.style.display = "block";
   }
-});
+};
 </script>
 
 </body>
