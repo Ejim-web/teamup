@@ -49,15 +49,6 @@
       margin: 5px;
       border-radius: 15px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .user img {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
     }
 
     #chatBox {
@@ -116,7 +107,7 @@
 
 <div id="app" style="display:none;">
   <p id="welcome"></p>
-<button onclick="window.openProfile()">My Profile</button>
+
   <div id="users"></div>
 
   <div id="chatBox"></div>
@@ -128,29 +119,7 @@
 
   <button onclick="logout()">Logout</button>
 </div>
-<div id="profilePage" style="display:none;">
 
-  <div style="background:#7c1f2a; padding:20px; color:white;">
-    <button onclick="closeProfile()">← Back</button>
-    <h2>My Profile</h2>
-  </div>
-
-  <div style="background:#eee; padding:20px; text-align:center;">
-    
-    <img id="profilePic" src="" 
-    style="width:100px; height:100px; border-radius:50%;">
-<button onclick="document.getElementById('uploadPic').click()">
-  Upload Picture
-</button>
-
-<input type="file" id="uploadPic" accept="image/*" style="display:none"
-       onchange="uploadProfilePic(event)">
-    <h2 id="profileName">Name</h2>
-    <p>ID: <span id="profileId"></span></p>
-
-  </div>
-
-</div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
@@ -201,15 +170,16 @@ const appDiv = document.getElementById("app");
 
 let currentUser;
 let selectedUserId = null;
-let unsubscribeMessages = null;
 
-// 🔐 Login
-window.googleLogin = async function () {
-  await signInWithPopup(auth, provider);
+// ✅ ONLY redirect (NO popup anywhere)
+window.googleLogin = function () {
+  signInWithRedirect(auth, provider);
 };
 
+// ✅ Handle return from Google
+getRedirectResult(auth).catch(e => alert(e.message));
 
-// 👤 Auth state
+// ✅ Auth state
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -217,12 +187,13 @@ onAuthStateChanged(auth, async user => {
     authDiv.style.display = "none";
     appDiv.style.display = "block";
 
-    welcome.innerText = user.displayName || user.email;
+    welcome.innerText = "Welcome " + (user.displayName || user.email);
+
+    // Save user
     await setDoc(doc(db, "users", user.uid), {
       name: user.displayName || user.email,
-      uid: user.uid,
-      photo: user.photoURL || ""
-    }, { merge: true });
+      uid: user.uid
+    });
 
     loadUsers();
 
@@ -232,7 +203,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// 👥 Load users (with profile picture)
+// 👥 Load users
 async function loadUsers() {
   usersDiv.innerHTML = "";
 
@@ -244,15 +215,7 @@ async function loadUsers() {
 
     const div = document.createElement("div");
     div.className = "user";
-
-    const img = document.createElement("img");
-    img.src = data.photo || "https://via.placeholder.com/30";
-
-    const name = document.createElement("span");
-    name.innerText = data.name;
-
-    div.appendChild(img);
-    div.appendChild(name);
+    div.innerText = data.name;
 
     div.onclick = () => {
       selectedUserId = data.uid;
@@ -263,10 +226,9 @@ async function loadUsers() {
   });
 }
 
-// 💬 Send message (SAFE)
+// 💬 Send message
 window.sendMessage = async function () {
-  if (!selectedUserId) return alert("Select a user first");
-  if (!message.value.trim()) return;
+  if (!selectedUserId) return alert("Select a user");
 
   const chatId = [currentUser.uid, selectedUserId].sort().join("_");
 
@@ -279,18 +241,16 @@ window.sendMessage = async function () {
   message.value = "";
 };
 
-// 📩 Load messages (FIXED REALTIME + NO DUPLICATE LISTENER)
+// 📩 Load messages
 function loadMessages() {
   const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  if (unsubscribeMessages) unsubscribeMessages();
 
   const q = query(
     collection(db, "chats", chatId, "messages"),
     orderBy("createdAt")
   );
 
-  unsubscribeMessages = onSnapshot(q, snap => {
+  onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
     snap.forEach(d => {
@@ -302,47 +262,12 @@ function loadMessages() {
 
       chatBox.appendChild(div);
     });
-
-    // ✅ AUTO SCROLL
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
-// 👤 Open Profile
-window.openProfile = function () {
-  document.getElementById("app").style.display = "none";
-  document.getElementById("profilePage").style.display = "block";
 
-  document.getElementById("profileName").innerText =
-    currentUser.displayName || currentUser.email;
-
-  document.getElementById("profileId").innerText =
-    currentUser.uid;
-
-  document.getElementById("profilePic").src = e.target.result;
-    currentUser.photoURL || "https://via.placeholder.com/100";
-};
-
-// 🔙 Close Profile
-window.closeProfile = function () {
-  document.getElementById("profilePage").style.display = "none";
-  document.getElementById("app").style.display = "block";
-};
-
-window.uploadProfilePic = function (event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = function (e) {
-    document.getElementById("profilePic").src = e.target.result;
-  };
-
-  reader.readAsDataURL(file);
-};
-
-// 🚪 Logout (PUT BACK CORRECTLY)
+// 🚪 Logout
 window.logout = () => signOut(auth);
 </script>
+
 </body>
 </html>
