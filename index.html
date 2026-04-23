@@ -14,12 +14,12 @@
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
+      width: 90px;
+      height: 90px;
       margin: 20px auto;
       border-radius: 50%;
-      background: white;
       overflow: hidden;
+      background: white;
       cursor: pointer;
     }
 
@@ -38,42 +38,13 @@
     }
 
     button {
-      padding: 10px;
+      padding: 10px 15px;
       border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    #chatBox {
-      height: 250px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      margin: 10px;
-      border-radius: 15px;
-      padding: 10px;
-    }
-
-    .message {
-      padding: 8px;
-      margin: 5px;
-      border-radius: 15px;
-      max-width: 70%;
-      clear: both;
-    }
-
-    .me {
-      background: white;
-      color: #ff4b2b;
-      float: right;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.6);
-      color: black;
-      float: left;
     }
 
     #usersList div {
@@ -83,6 +54,49 @@
       padding: 10px;
       border-radius: 10px;
       cursor: pointer;
+    }
+
+    /* CHAT BOX */
+    #chatBox {
+      height: 260px;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.2);
+      margin: 10px;
+      border-radius: 15px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg-row {
+      display: flex;
+      margin: 5px 0;
+    }
+
+    .msg-row.me {
+      justify-content: flex-end;
+    }
+
+    .msg-row.other {
+      justify-content: flex-start;
+    }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 20px;
+      max-width: 70%;
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+
+    .msg-row.me .msg-bubble {
+      background: white;
+      color: #ff4b2b;
+    }
+
+    .msg-row.other .msg-bubble {
+      background: rgba(255,255,255,0.7);
+      color: black;
     }
   </style>
 </head>
@@ -97,7 +111,6 @@
 
 <h2>TeamUp Global</h2>
 
-<!-- AUTH -->
 <div id="auth">
   <input id="name" placeholder="Your Name"><br>
   <input id="email" placeholder="Email"><br>
@@ -106,10 +119,10 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
+  <h3>Select User</h3>
   <div id="usersList"></div>
 
   <div id="chatBox"></div>
@@ -159,7 +172,6 @@ const db = getFirestore(app);
 
 let currentUser;
 let selectedUser = null;
-let unsubscribe = null;
 
 const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
@@ -171,49 +183,39 @@ const welcome = document.getElementById("welcome");
 
 /* SIGNUP */
 window.signup = async () => {
+  if (!nameInput.value.trim()) return alert("Enter your name");
+
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email.value.trim(), password.value.trim());
+    const cred = await createUserWithEmailAndPassword(
+      auth,
+      email.value.trim(),
+      password.value.trim()
+    );
 
     await setDoc(doc(db, "users", cred.user.uid), {
       name: nameInput.value.trim(),
       email: cred.user.email
     });
 
-    alert("Account created!");
+    alert("Account created! Now login");
   } catch (e) {
     alert(e.message);
   }
 };
 
 /* LOGIN */
-window.login = async () => {
-  try {
-    await signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim());
-  } catch (e) {
-    alert(e.message);
-  }
+window.login = () => {
+  signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim())
+    .catch(e => alert(e.message));
 };
 
 /* AUTH STATE */
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-
     document.getElementById("auth").style.display = "none";
     document.getElementById("app").style.display = "block";
-
-    // get name from Firestore
-    const snap = await getDocs(collection(db, "users"));
-    let myName = user.email;
-
-    snap.forEach(docSnap => {
-      if (docSnap.id === user.uid) {
-        myName = docSnap.data().name || user.email;
-      }
-    });
-
-    welcome.innerText = "Welcome " + myName;
-
+    welcome.innerText = "Welcome " + user.email;
     loadUsers();
   } else {
     document.getElementById("auth").style.display = "block";
@@ -224,18 +226,18 @@ onAuthStateChanged(auth, async user => {
 /* LOAD USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
-  usersList.innerHTML = "<h3>Select User</h3>";
+  usersList.innerHTML = "";
 
   snap.forEach(docSnap => {
     if (docSnap.id === currentUser.uid) return;
 
     const data = docSnap.data();
-    if (!data.name) return;
+    const displayName = data.name || data.email;
 
     const div = document.createElement("div");
-    div.innerText = data.name;
+    div.innerText = displayName;
 
-    div.onclick = () => openChat(docSnap.id, data.name);
+    div.onclick = () => openChat(docSnap.id, displayName);
 
     usersList.appendChild(div);
   });
@@ -245,12 +247,10 @@ async function loadUsers() {
 function openChat(uid, name) {
   selectedUser = uid;
   welcome.innerText = "Chat with " + name;
-
-  if (unsubscribe) unsubscribe();
   loadMessages();
 }
 
-/* SEND */
+/* SEND MESSAGE */
 window.sendMessage = async () => {
   if (!selectedUser) return alert("Select user first");
   if (!message.value.trim()) return;
@@ -270,19 +270,26 @@ window.sendMessage = async () => {
 function loadMessages() {
   const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
-  const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt"));
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
 
-  unsubscribe = onSnapshot(q, snap => {
+  onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
     snap.forEach(doc => {
       const data = doc.data();
 
-      const div = document.createElement("div");
-      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
-      div.innerText = data.text;
+      const row = document.createElement("div");
+      row.className = "msg-row " + (data.sender === currentUser.uid ? "me" : "other");
 
-      chatBox.appendChild(div);
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.innerText = data.text;
+
+      row.appendChild(bubble);
+      chatBox.appendChild(row);
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -294,10 +301,9 @@ window.logout = async () => {
   await signOut(auth);
   selectedUser = null;
   chatBox.innerHTML = "";
-  usersList.innerHTML = "";
 };
 
-/* PROFILE IMAGE */
+/* PROFILE IMAGE LOCAL */
 const input = document.getElementById("profileInput");
 const img = document.getElementById("profileImage");
 
@@ -321,4 +327,4 @@ window.onload = () => {
 </script>
 
 </body>
-</html>
+  </html>
