@@ -18,8 +18,8 @@
       height: 90px;
       margin: 20px auto;
       border-radius: 50%;
-      overflow: hidden;
       background: white;
+      overflow: hidden;
       cursor: pointer;
     }
 
@@ -38,13 +38,44 @@
     }
 
     button {
-      padding: 10px 15px;
+      padding: 10px;
       border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    #chatBox {
+      height: 300px;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.2);
+      margin: 10px;
+      border-radius: 15px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 15px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .me {
+      background: white;
+      color: #ff4b2b;
+      align-self: flex-end;
+    }
+
+    .other {
+      background: rgba(255,255,255,0.7);
+      color: black;
+      align-self: flex-start;
     }
 
     #usersList div {
@@ -55,49 +86,6 @@
       border-radius: 10px;
       cursor: pointer;
     }
-
-    /* CHAT BOX */
-    #chatBox {
-      height: 260px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      margin: 10px;
-      border-radius: 15px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .msg-row {
-      display: flex;
-      margin: 6px 0;
-    }
-
-    .msg-row.me {
-      justify-content: flex-end;
-    }
-
-    .msg-row.other {
-      justify-content: flex-start;
-    }
-
-    .msg-bubble {
-      padding: 12px 16px;
-      border-radius: 20px;
-      max-width: 75%;
-      font-size: 15px;
-      word-wrap: break-word;
-    }
-
-    .msg-row.me .msg-bubble {
-      background: white;
-      color: #ff4b2b;
-    }
-
-    .msg-row.other .msg-bubble {
-      background: rgba(255,255,255,0.85);
-      color: black;
-    }
   </style>
 </head>
 
@@ -106,7 +94,7 @@
 <input type="file" id="profileInput" hidden>
 
 <div class="logo" onclick="document.getElementById('profileInput').click()">
-  <img id="profileImage" style="display:none;">
+  <img id="profileImage">
 </div>
 
 <h2>TeamUp Global</h2>
@@ -122,7 +110,6 @@
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
-  <h3>Select User</h3>
   <div id="usersList"></div>
 
   <div id="chatBox"></div>
@@ -157,6 +144,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -172,7 +160,9 @@ const db = getFirestore(app);
 
 let currentUser;
 let selectedUser = null;
+let unsubscribeMessages = null;
 
+/* ELEMENTS */
 const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -183,39 +173,44 @@ const welcome = document.getElementById("welcome");
 
 /* SIGNUP */
 window.signup = async () => {
-  if (!nameInput.value.trim()) return alert("Enter your name");
-
   try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      email.value.trim(),
-      password.value.trim()
-    );
+    const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
 
     await setDoc(doc(db, "users", cred.user.uid), {
-      name: nameInput.value.trim(),
-      email: cred.user.email
+      email: cred.user.email,
+      name: nameInput.value || "User"
     });
 
-    alert("Account created! Now login");
+    alert("Account created!");
   } catch (e) {
     alert(e.message);
   }
 };
 
 /* LOGIN */
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim())
-    .catch(e => alert(e.message));
+window.login = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
 /* AUTH STATE */
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
+
     document.getElementById("auth").style.display = "none";
     document.getElementById("app").style.display = "block";
-    welcome.innerText = "Welcome " + user.email;
+
+    const snap = await getDocs(collection(db, "users"));
+    snap.forEach(docSnap => {
+      if (docSnap.id === user.uid) {
+        welcome.innerText = "Welcome " + docSnap.data().name;
+      }
+    });
+
     loadUsers();
   } else {
     document.getElementById("auth").style.display = "block";
@@ -226,18 +221,17 @@ onAuthStateChanged(auth, user => {
 /* LOAD USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
-  usersList.innerHTML = "";
+  usersList.innerHTML = "<h3>Select User</h3>";
 
   snap.forEach(docSnap => {
     if (docSnap.id === currentUser.uid) return;
 
     const data = docSnap.data();
-    const displayName = data.name || data.email;
 
     const div = document.createElement("div");
-    div.innerText = displayName;
+    div.innerText = data.name || data.email;
 
-    div.onclick = () => openChat(docSnap.id, displayName);
+    div.onclick = () => openChat(docSnap.id, data.name);
 
     usersList.appendChild(div);
   });
@@ -247,12 +241,16 @@ async function loadUsers() {
 function openChat(uid, name) {
   selectedUser = uid;
   welcome.innerText = "Chat with " + name;
+
+  if (unsubscribeMessages) unsubscribeMessages();
+
   loadMessages();
 }
 
-/* SEND MESSAGE */
+/* SEND */
 window.sendMessage = async () => {
   if (!selectedUser) return alert("Select user first");
+
   if (!message.value.trim()) return;
 
   const chatId = [currentUser.uid, selectedUser].sort().join("_");
@@ -275,21 +273,17 @@ function loadMessages() {
     orderBy("createdAt")
   );
 
-  onSnapshot(q, snap => {
+  unsubscribeMessages = onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
     snap.forEach(doc => {
       const data = doc.data();
 
-      const row = document.createElement("div");
-      row.className = "msg-row " + (data.sender === currentUser.uid ? "me" : "other");
+      const div = document.createElement("div");
+      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
+      div.innerText = data.text;
 
-      const bubble = document.createElement("div");
-      bubble.className = "msg-bubble";
-      bubble.innerText = data.text;
-
-      row.appendChild(bubble);
-      chatBox.appendChild(row);
+      chatBox.appendChild(div);
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -311,7 +305,6 @@ input.onchange = () => {
   const reader = new FileReader();
   reader.onload = e => {
     img.src = e.target.result;
-    img.style.display = "block";
     localStorage.setItem("pic", e.target.result);
   };
   reader.readAsDataURL(input.files[0]);
@@ -319,10 +312,7 @@ input.onchange = () => {
 
 window.onload = () => {
   const saved = localStorage.getItem("pic");
-  if (saved) {
-    img.src = saved;
-    img.style.display = "block";
-  }
+  if (saved) img.src = saved;
 };
 </script>
 
