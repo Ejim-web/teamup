@@ -13,10 +13,11 @@
       text-align: center;
     }
 
+    /* ✅ LOGO STYLE */
     .logo {
       width: 80px;
       height: 80px;
-      margin: 30px auto;
+      margin: 30px auto 10px;
       border-radius: 50%;
       background: white;
       color: #ff4b2b;
@@ -25,44 +26,47 @@
       justify-content: center;
       font-size: 28px;
       font-weight: bold;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      margin-top: 10px;
+    }
+
+    #auth {
+      margin-top: 80px;
+    }
+
+    input {
+      width: 80%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 20px;
+      border: none;
     }
 
     button {
-      padding: 14px;
-      border-radius: 25px;
+      padding: 12px 18px;
+      border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-      margin-top: 10px;
-    }
-
-    #users {
-      max-height: 120px;
-      overflow-y: auto;
-      margin: 10px;
-    }
-
-    .user {
-      background: rgba(255,255,255,0.3);
-      padding: 8px;
-      margin: 5px;
-      border-radius: 15px;
       cursor: pointer;
     }
 
     #chatBox {
-      height: 250px;
+      height: 300px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
       border-radius: 20px;
-      margin: 10px;
       padding: 10px;
+      margin: 20px;
     }
 
     .message {
       padding: 10px;
-      margin: 5px;
+      margin: 5px 0;
       border-radius: 20px;
       max-width: 70%;
       display: inline-block;
@@ -83,32 +87,39 @@
 
     .input-area {
       display: flex;
-      margin: 10px;
       gap: 10px;
+      margin: 10px;
     }
 
     .input-area input {
       flex: 1;
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
+    }
+
+    #logout {
+      width: 90%;
+      margin: 10px;
+      background: rgba(255,255,255,0.3);
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
+<!-- ✅ LOGO ADDED HERE -->
 <div class="logo">TG</div>
+
 <h1>TeamUp Global</h1>
 
 <div id="auth">
-  <button onclick="googleLogin()">Continue with Google</button>
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
 </div>
 
 <div id="app" style="display:none;">
   <p id="welcome"></p>
-
-  <div id="users"></div>
 
   <div id="chatBox"></div>
 
@@ -117,17 +128,15 @@
     <button onclick="sendMessage()">Send</button>
   </div>
 
-  <button onclick="logout()">Logout</button>
+  <button id="logout" onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -139,10 +148,7 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
-  setDoc,
-  doc,
-  getDocs
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -158,115 +164,76 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const provider = new GoogleAuthProvider();
-
+const email = document.getElementById("email");
+const password = document.getElementById("password");
 const message = document.getElementById("message");
 const welcome = document.getElementById("welcome");
 const chatBox = document.getElementById("chatBox");
-const usersDiv = document.getElementById("users");
 
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 
 let currentUser;
-let selectedUserId = null;
 
-// ✅ ONLY redirect (NO popup anywhere)
-window.googleLogin = function () {
-  signInWithRedirect(auth, provider);
+window.signup = function () {
+  createUserWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
 };
 
-// ✅ Handle return from Google
-getRedirectResult(auth).catch(e => alert(e.message));
+window.login = function () {
+  signInWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
+};
 
-// ✅ Auth state
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-
     authDiv.style.display = "none";
     appDiv.style.display = "block";
-
-    welcome.innerText = "Welcome " + (user.displayName || user.email);
-
-    // Save user
-    await setDoc(doc(db, "users", user.uid), {
-      name: user.displayName || user.email,
-      uid: user.uid
-    });
-
-    loadUsers();
-
+    welcome.innerText = "Welcome " + user.email;
+    loadMessages();
   } else {
     authDiv.style.display = "block";
     appDiv.style.display = "none";
   }
 });
 
-// 👥 Load users
-async function loadUsers() {
-  usersDiv.innerHTML = "";
-
-  const snap = await getDocs(collection(db, "users"));
-
-  snap.forEach(d => {
-    const data = d.data();
-    if (data.uid === currentUser.uid) return;
-
-    const div = document.createElement("div");
-    div.className = "user";
-    div.innerText = data.name;
-
-    div.onclick = () => {
-      selectedUserId = data.uid;
-      loadMessages();
-    };
-
-    usersDiv.appendChild(div);
-  });
-}
-
-// 💬 Send message
 window.sendMessage = async function () {
-  if (!selectedUserId) return alert("Select a user");
+  const text = message.value;
+  if (!text) return;
 
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
-
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text: message.value,
-    sender: currentUser.uid,
+  await addDoc(collection(db, "messages"), {
+    text,
+    user: currentUser.email,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
-// 📩 Load messages
 function loadMessages() {
-  const chatId = [currentUser.uid, selectedUserId].sort().join("_");
+  const q = query(collection(db, "messages"), orderBy("createdAt"));
 
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
-
-  onSnapshot(q, snap => {
+  onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
 
-    snap.forEach(d => {
-      const data = d.data();
-      const div = document.createElement("div");
+    snapshot.forEach(doc => {
+      const data = doc.data();
 
-      div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
       div.innerText = data.text;
 
       chatBox.appendChild(div);
     });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-// 🚪 Logout
-window.logout = () => signOut(auth);
+window.logout = function () {
+  signOut(auth);
+};
 </script>
 
 </body>
