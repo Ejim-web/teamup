@@ -141,16 +141,23 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-let me, selected = null;
+/* FIX: DEFINE THESE */
+const authDiv = document.getElementById("auth");
+const appDiv = document.getElementById("app");
 
 const dp = document.getElementById("dp");
 const file = document.getElementById("file");
 
+let me = null;
+let selected = null;
+
 /* SIGNUP */
 window.signup = async () => {
+  if (!name.value) return alert("Enter your name");
+
   try {
     const cred = await createUserWithEmailAndPassword(
       auth,
@@ -164,47 +171,65 @@ window.signup = async () => {
       photo: ""
     });
 
+    alert("Account created, now login");
   } catch (e) {
     alert(e.message);
   }
 };
 
 /* LOGIN */
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+window.login = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+  } catch (e) {
+    alert("Login failed: " + e.message);
+  }
 };
 
 /* AUTH STATE */
 onAuthStateChanged(auth, async user => {
   if (user) {
     me = user;
+
     authDiv.style.display = "none";
-    app.style.display = "block";
+    appDiv.style.display = "block";
 
     const snap = await getDoc(doc(db, "users", user.uid));
+
+    if (!snap.exists()) {
+      alert("User data missing. Signup again.");
+      await signOut(auth);
+      return;
+    }
+
     const data = snap.data();
 
-    welcome.innerText = "Welcome " + data.name;
+    document.getElementById("welcome").innerText = "Welcome " + data.name;
 
     if (data.photo) dp.src = data.photo;
 
     loadUsers();
+  } else {
+    authDiv.style.display = "block";
+    appDiv.style.display = "none";
   }
 });
 
 /* USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
+  const usersList = document.getElementById("usersList");
+
   usersList.innerHTML = "<h3>Select User</h3>";
 
   snap.forEach(d => {
     if (d.id === me.uid) return;
 
     const u = d.data();
+    if (!u.name) return;
 
     const div = document.createElement("div");
-    div.innerText = u.name || u.email;
+    div.innerText = u.name;
 
     div.onclick = () => openChat(d.id, u.name);
 
@@ -215,7 +240,7 @@ async function loadUsers() {
 /* CHAT */
 function openChat(uid, name) {
   selected = uid;
-  welcome.innerText = "Chat with " + name;
+  document.getElementById("welcome").innerText = "Chat with " + name;
 
   const id = [me.uid, uid].sort().join("_");
 
@@ -224,13 +249,15 @@ function openChat(uid, name) {
     orderBy("createdAt")
   );
 
+  const chatBox = document.getElementById("chatBox");
+
   onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
     snap.forEach(d => {
       const m = d.data();
-      const div = document.createElement("div");
 
+      const div = document.createElement("div");
       div.className = "msg " + (m.sender === me.uid ? "me" : "other");
       div.innerText = m.text;
 
@@ -243,28 +270,32 @@ function openChat(uid, name) {
 
 /* SEND */
 window.send = async () => {
-  if (!selected) return alert("Select user");
+  if (!selected) return alert("Select user first");
+
+  const msgInput = document.getElementById("msg");
+
+  if (!msgInput.value) return;
 
   const id = [me.uid, selected].sort().join("_");
 
   await addDoc(collection(db, "chats", id, "messages"), {
-    text: msg.value,
+    text: msgInput.value,
     sender: me.uid,
     createdAt: serverTimestamp()
   });
 
-  msg.value = "";
+  msgInput.value = "";
 };
 
 /* LOGOUT */
 window.logout = async () => {
   await signOut(auth);
-  location.reload();
 };
 
 /* PROFILE */
 file.onchange = () => {
   const reader = new FileReader();
+
   reader.onload = async e => {
     dp.src = e.target.result;
 
@@ -272,6 +303,7 @@ file.onchange = () => {
       photo: e.target.result
     }, { merge: true });
   };
+
   reader.readAsDataURL(file.files[0]);
 };
 </script>
