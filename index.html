@@ -6,147 +6,71 @@
 
   <style>
     body {
-      margin: 0;
       font-family: Arial;
       background: linear-gradient(135deg, #ff416c, #ff4b2b);
       color: white;
       text-align: center;
     }
 
-    /* LOGO / AVATAR */
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 30px auto 10px;
+    img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: white;
-      color: #ff4b2b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: bold;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      overflow: hidden;
-      cursor: pointer;
-    }
-
-    .logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    h1 {
-      margin-top: 10px;
-    }
-
-    #auth {
-      margin-top: 80px;
-    }
-
-    input {
-      width: 80%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 20px;
-      border: none;
-    }
-
-    button {
-      padding: 12px 18px;
-      border-radius: 20px;
-      border: none;
-      background: white;
-      color: #ff4b2b;
-      font-weight: bold;
-      cursor: pointer;
     }
 
     #chatBox {
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
       background: rgba(255,255,255,0.2);
-      border-radius: 20px;
+      margin: 10px;
       padding: 10px;
-      margin: 20px;
+      border-radius: 10px;
     }
 
-    .message {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 20px;
-      max-width: 70%;
-      display: inline-block;
-      clear: both;
-    }
-
-    .me {
-      background: white;
-      color: #ff4b2b;
-      float: right;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.6);
-      color: black;
-      float: left;
-    }
-
-    .input-area {
+    .msg {
       display: flex;
       gap: 10px;
-      margin: 10px;
+      margin: 5px;
+      align-items: center;
     }
 
-    .input-area input {
-      flex: 1;
-    }
-
-    #logout {
-      width: 90%;
-      margin: 10px;
-      background: rgba(255,255,255,0.3);
-      color: white;
-    }
+    .me { justify-content: flex-end; }
   </style>
 </head>
 
 <body>
 
-<!-- 🔥 Hidden file input -->
-<input type="file" id="profileInput" accept="image/*" style="display:none">
-
-<!-- 🔥 Clickable Avatar -->
-<div class="logo" onclick="document.getElementById('profileInput').click()">
-  <img id="profileImage" style="display:none;">
-  <span id="initials">TG</span>
-</div>
-
-<h1>TeamUp Global</h1>
+<h2>🔥 TeamUp Global</h2>
 
 <div id="auth">
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Password"><br>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <input id="photo" placeholder="Paste profile image URL"><br>
+
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
 </div>
 
 <div id="app" style="display:none;">
-  <p id="welcome"></p>
+  <h3 id="welcome"></h3>
 
-  <div id="chatBox"></div>
+  <h4>Users</h4>
+  <div id="users"></div>
 
-  <div class="input-area">
-    <input id="message" placeholder="Type message">
+  <div id="chatSection" style="display:none;">
+    <h4 id="chatWith"></h4>
+    <div id="chatBox"></div>
+
+    <input id="message" placeholder="Message">
     <button onclick="sendMessage()">Send</button>
   </div>
 
-  <button id="logout" onclick="logout()">Logout</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -159,6 +83,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  getDocs,
   query,
   orderBy,
   onSnapshot,
@@ -168,68 +93,82 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:b80b61d82df788cc0339e9"
+  projectId: "teamup-68a21"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
-const chatBox = document.getElementById("chatBox");
-
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-
 let currentUser;
+let selectedUser;
+let currentChatId;
 
-// AUTH
-window.signup = function () {
-  createUserWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+// SIGNUP
+window.signup = async () => {
+  await createUserWithEmailAndPassword(auth, email.value, password.value);
+
+  await addDoc(collection(db, "users"), {
+    email: email.value,
+    photo: photo.value || "https://i.pravatar.cc/150?img=3"
+  });
 };
 
-window.login = function () {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+// LOGIN
+window.login = () => {
+  signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
-onAuthStateChanged(auth, user => {
-  if (user) {
-    currentUser = user;
-    authDiv.style.display = "none";
-    appDiv.style.display = "block";
-    welcome.innerText = "Welcome " + user.email;
-    loadMessages();
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
-  }
-});
+// LOAD USERS
+async function loadUsers() {
+  const snap = await getDocs(collection(db, "users"));
+  users.innerHTML = "";
 
-// CHAT
-window.sendMessage = async function () {
-  const text = message.value;
-  if (!text) return;
+  snap.forEach(doc => {
+    const u = doc.data();
 
-  await addDoc(collection(db, "messages"), {
-    text,
-    user: currentUser.email,
+    if (u.email === currentUser.email) return;
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <img src="${u.photo}">
+      <button onclick="startChat('${u.email}')">${u.email}</button>
+    `;
+
+    users.appendChild(div);
+  });
+}
+
+// START CHAT
+window.startChat = (email) => {
+  selectedUser = email;
+  chatSection.style.display = "block";
+  chatWith.innerText = "Chat with " + email;
+
+  currentChatId = [currentUser.email, selectedUser].sort().join("_");
+
+  loadMessages();
+};
+
+// SEND
+window.sendMessage = async () => {
+  if (!message.value) return;
+
+  await addDoc(collection(db, "chats", currentChatId, "messages"), {
+    text: message.value,
+    sender: currentUser.email,
     createdAt: serverTimestamp()
   });
 
   message.value = "";
 };
 
+// LOAD MESSAGES
 function loadMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
+  const q = query(
+    collection(db, "chats", currentChatId, "messages"),
+    orderBy("createdAt")
+  );
 
   onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
@@ -238,50 +177,33 @@ function loadMessages() {
       const data = doc.data();
 
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
+      div.className = "msg " + (data.sender === currentUser.email ? "me" : "");
+
+      div.innerHTML = `
+        <img src="https://i.pravatar.cc/150">
+        <span>${data.text}</span>
+      `;
 
       chatBox.appendChild(div);
     });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-window.logout = function () {
-  signOut(auth);
-};
+// AUTH STATE
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUser = user;
+    auth.style.display = "none";
+    app.style.display = "block";
+    welcome.innerText = user.email;
 
-// 🔥 PROFILE IMAGE (NEW FEATURE)
-const profileInput = document.getElementById("profileInput");
-const profileImage = document.getElementById("profileImage");
-const initials = document.getElementById("initials");
-
-profileInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (file) {
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-      profileImage.src = e.target.result;
-      profileImage.style.display = "block";
-      initials.style.display = "none";
-      localStorage.setItem("profilePic", e.target.result);
-    };
-
-    reader.readAsDataURL(file);
+    loadUsers();
   }
 });
 
-// Load saved image
-window.addEventListener("load", () => {
-  const saved = localStorage.getItem("profilePic");
-  if (saved) {
-    profileImage.src = saved;
-    profileImage.style.display = "block";
-    initials.style.display = "none";
-  }
-});
+// LOGOUT
+window.logout = () => signOut(auth);
+
 </script>
 
 </body>
