@@ -141,7 +141,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ✅ YOUR CONFIG */
+/* YOUR CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -157,6 +157,7 @@ const db = getFirestore(app);
 
 let currentUser;
 let selectedUser = null;
+let unsubscribeMessages = null;
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -165,19 +166,31 @@ const message = document.getElementById("message");
 const usersList = document.getElementById("usersList");
 const welcome = document.getElementById("welcome");
 
-/* AUTH */
+/* SIGNUP */
 window.signup = async () => {
-  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
-  await setDoc(doc(db, "users", cred.user.uid), {
-    email: cred.user.email
-  });
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+
+    await setDoc(doc(db, "users", cred.user.uid), {
+      email: cred.user.email
+    });
+
+    alert("Account created!");
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
+/* LOGIN */
+window.login = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
+/* AUTH STATE */
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
@@ -188,7 +201,7 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* USERS */
+/* LOAD USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
   usersList.innerHTML = "<h3>Select User</h3>";
@@ -209,12 +222,15 @@ async function loadUsers() {
 function openChat(uid, email) {
   selectedUser = uid;
   welcome.innerText = "Chat with " + email;
+
+  if (unsubscribeMessages) unsubscribeMessages();
   loadMessages();
 }
 
-/* SEND */
+/* SEND MESSAGE */
 window.sendMessage = async () => {
   if (!selectedUser) return alert("Select user first");
+  if (!message.value.trim()) return;
 
   const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
@@ -236,13 +252,13 @@ function loadMessages() {
     orderBy("createdAt")
   );
 
-  onSnapshot(q, snap => {
+  unsubscribeMessages = onSnapshot(q, snap => {
     chatBox.innerHTML = "";
 
     snap.forEach(doc => {
       const data = doc.data();
-      const div = document.createElement("div");
 
+      const div = document.createElement("div");
       div.className = "message " + (data.sender === currentUser.uid ? "me" : "other");
       div.innerText = data.text;
 
@@ -256,7 +272,7 @@ function loadMessages() {
 /* LOGOUT */
 window.logout = () => signOut(auth);
 
-/* PROFILE IMAGE (LOCAL) */
+/* PROFILE IMAGE */
 const input = document.getElementById("profileInput");
 const img = document.getElementById("profileImage");
 
