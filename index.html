@@ -89,7 +89,6 @@
 
 <body>
 
-<!-- PROFILE -->
 <input type="file" id="profileInput" hidden>
 
 <div class="logo" onclick="document.getElementById('profileInput').click()">
@@ -100,6 +99,7 @@
 
 <!-- AUTH -->
 <div id="auth">
+  <input id="name" placeholder="Your Name"><br>
   <input id="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
@@ -161,6 +161,7 @@ let currentUser;
 let selectedUser = null;
 let unsubscribe = null;
 
+const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const chatBox = document.getElementById("chatBox");
@@ -174,6 +175,7 @@ window.signup = async () => {
     const cred = await createUserWithEmailAndPassword(auth, email.value.trim(), password.value.trim());
 
     await setDoc(doc(db, "users", cred.user.uid), {
+      name: nameInput.value.trim(),
       email: cred.user.email
     });
 
@@ -193,14 +195,24 @@ window.login = async () => {
 };
 
 /* AUTH STATE */
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
     document.getElementById("auth").style.display = "none";
     document.getElementById("app").style.display = "block";
 
-    welcome.innerText = "Welcome " + user.email;
+    // get name from Firestore
+    const snap = await getDocs(collection(db, "users"));
+    let myName = user.email;
+
+    snap.forEach(docSnap => {
+      if (docSnap.id === user.uid) {
+        myName = docSnap.data().name || user.email;
+      }
+    });
+
+    welcome.innerText = "Welcome " + myName;
 
     loadUsers();
   } else {
@@ -218,27 +230,27 @@ async function loadUsers() {
     if (docSnap.id === currentUser.uid) return;
 
     const data = docSnap.data();
-    const userEmail = data.email || "User";
+    if (!data.name) return;
 
     const div = document.createElement("div");
-    div.innerText = userEmail;
+    div.innerText = data.name;
 
-    div.onclick = () => openChat(docSnap.id, userEmail);
+    div.onclick = () => openChat(docSnap.id, data.name);
 
     usersList.appendChild(div);
   });
 }
 
 /* OPEN CHAT */
-function openChat(uid, email) {
+function openChat(uid, name) {
   selectedUser = uid;
-  welcome.innerText = "Chat with " + email;
+  welcome.innerText = "Chat with " + name;
 
   if (unsubscribe) unsubscribe();
   loadMessages();
 }
 
-/* SEND MESSAGE */
+/* SEND */
 window.sendMessage = async () => {
   if (!selectedUser) return alert("Select user first");
   if (!message.value.trim()) return;
@@ -280,7 +292,6 @@ function loadMessages() {
 /* LOGOUT */
 window.logout = async () => {
   await signOut(auth);
-
   selectedUser = null;
   chatBox.innerHTML = "";
   usersList.innerHTML = "";
