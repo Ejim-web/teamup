@@ -13,17 +13,17 @@
       text-align: center;
     }
 
-    .profile {
+    .logo {
       width: 90px;
       height: 90px;
-      border-radius: 50%;
-      background: white;
       margin: 20px auto;
+      border-radius: 50%;
       overflow: hidden;
+      background: white;
       cursor: pointer;
     }
 
-    .profile img {
+    .logo img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -32,72 +32,83 @@
     input {
       width: 80%;
       padding: 12px;
-      margin: 8px;
+      margin: 10px 0;
       border-radius: 20px;
       border: none;
     }
 
     button {
-      padding: 10px;
+      padding: 10px 15px;
       border-radius: 20px;
       border: none;
       background: white;
       color: #ff4b2b;
       font-weight: bold;
-    }
-
-    #chatBox {
-      height: 250px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.2);
-      margin: 10px;
-      border-radius: 15px;
-      padding: 10px;
-    }
-
-    .msg {
-      padding: 8px;
-      margin: 5px;
-      border-radius: 15px;
-      max-width: 70%;
-      clear: both;
-    }
-
-    .me {
-      background: white;
-      color: #ff4b2b;
-      float: right;
-    }
-
-    .other {
-      background: rgba(255,255,255,0.7);
-      color: black;
-      float: left;
+      cursor: pointer;
     }
 
     #usersList div {
       background: white;
       color: black;
       margin: 5px;
-      padding: 10px;
-      border-radius: 10px;
+      padding: 12px;
+      border-radius: 12px;
       cursor: pointer;
+    }
+
+    #usersList .active {
+      background: #ffe0e6;
+    }
+
+    #chatBox {
+      height: 260px;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.2);
+      margin: 10px;
+      border-radius: 15px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg-row {
+      display: flex;
+      margin: 6px 0;
+    }
+
+    .me { justify-content: flex-end; }
+    .other { justify-content: flex-start; }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 20px;
+      max-width: 75%;
+    }
+
+    .me .msg-bubble {
+      background: white;
+      color: #ff4b2b;
+    }
+
+    .other .msg-bubble {
+      background: rgba(255,255,255,0.9);
+      color: black;
     }
   </style>
 </head>
 
 <body>
 
-<input type="file" id="file" hidden>
+<input type="file" id="profileInput" hidden>
 
-<div class="profile" onclick="file.click()">
-  <img id="dp">
+<div class="logo" onclick="profileInput.click()">
+  <img id="profileImage" style="display:none;">
 </div>
 
 <h2>TeamUp Global</h2>
 
 <div id="auth">
-  <input id="name" placeholder="Full Name"><br>
+  <input id="name" placeholder="Your Name"><br>
   <input id="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Password"><br>
   <button onclick="signup()">Sign Up</button>
@@ -105,14 +116,15 @@
 </div>
 
 <div id="app" style="display:none;">
-  <h3 id="welcome"></h3>
+  <p id="welcome"></p>
 
+  <h3>Select User</h3>
   <div id="usersList"></div>
 
   <div id="chatBox"></div>
 
-  <input id="msg" placeholder="Type message">
-  <button onclick="send()">Send</button>
+  <input id="message" placeholder="Type message">
+  <button onclick="sendMessage()">Send</button>
 
   <br><br>
   <button onclick="logout()">Logout</button>
@@ -126,142 +138,124 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, doc, setDoc, getDoc,
-  collection, getDocs, addDoc,
-  query, orderBy, onSnapshot, serverTimestamp
+  getFirestore, collection, addDoc, query, orderBy,
+  onSnapshot, serverTimestamp, doc, setDoc, getDocs, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
-};
+  projectId: "teamup-68a21"
+});
 
-const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* FIX: DEFINE THESE */
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
+let currentUser, selectedUser = null, unsubscribe = null;
 
-const dp = document.getElementById("dp");
-const file = document.getElementById("file");
-
-let me = null;
-let selected = null;
+const nameInput = document.getElementById("name");
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
+const usersList = document.getElementById("usersList");
+const welcome = document.getElementById("welcome");
 
 /* SIGNUP */
 window.signup = async () => {
-  if (!name.value) return alert("Enter your name");
+  if (!nameInput.value || !email.value || !password.value)
+    return alert("Fill all fields");
 
-  try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      email.value,
-      password.value
-    );
+  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
 
-    await setDoc(doc(db, "users", cred.user.uid), {
-      name: name.value,
-      email: cred.user.email,
-      photo: ""
-    });
+  await setDoc(doc(db, "users", cred.user.uid), {
+    name: nameInput.value,
+    email: cred.user.email,
+    photo: localStorage.getItem("pic") || ""
+  });
 
-    alert("Account created, now login");
-  } catch (e) {
-    alert(e.message);
-  }
+  alert("Account created!");
 };
 
 /* LOGIN */
 window.login = async () => {
+  if (!email.value || !password.value)
+    return alert("Enter email & password");
+
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value);
   } catch (e) {
-    alert("Login failed: " + e.message);
+    alert("Wrong email or password");
   }
 };
 
-/* AUTH STATE */
+/* AUTH */
 onAuthStateChanged(auth, async user => {
   if (user) {
-    me = user;
-
-    authDiv.style.display = "none";
-    appDiv.style.display = "block";
-
-    const snap = await getDoc(doc(db, "users", user.uid));
-
-    if (!snap.exists()) {
-      alert("User data missing. Signup again.");
-      await signOut(auth);
-      return;
-    }
-
-    const data = snap.data();
-
-    document.getElementById("welcome").innerText = "Welcome " + data.name;
-
-    if (data.photo) dp.src = data.photo;
-
+    currentUser = user;
+    auth.style.display = "none";
+    app.style.display = "block";
+    welcome.innerText = "Welcome " + user.email;
     loadUsers();
   } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
+    auth.style.display = "block";
+    app.style.display = "none";
   }
 });
 
 /* USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
-  const usersList = document.getElementById("usersList");
+  usersList.innerHTML = "";
 
-  usersList.innerHTML = "<h3>Select User</h3>";
+  let firstUser = null;
 
-  snap.forEach(d => {
-    if (d.id === me.uid) return;
+  snap.forEach(docSnap => {
+    if (docSnap.id === currentUser.uid) return;
 
-    const u = d.data();
-    if (!u.name) return;
-
+    const data = docSnap.data();
     const div = document.createElement("div");
-    div.innerText = u.name;
+    div.innerText = data.name || data.email;
 
-    div.onclick = () => openChat(d.id, u.name);
+    div.onclick = () => openChat(docSnap.id, data.name, div);
 
     usersList.appendChild(div);
+
+    if (!firstUser) firstUser = { id: docSnap.id, name: data.name, el: div };
   });
+
+  // AUTO SELECT FIRST USER
+  if (firstUser) openChat(firstUser.id, firstUser.name, firstUser.el);
 }
 
-/* CHAT */
-function openChat(uid, name) {
-  selected = uid;
-  document.getElementById("welcome").innerText = "Chat with " + name;
+/* OPEN CHAT */
+function openChat(uid, name, element) {
+  selectedUser = uid;
+  welcome.innerText = "Chat with " + name;
 
-  const id = [me.uid, uid].sort().join("_");
+  document.querySelectorAll("#usersList div").forEach(el => el.classList.remove("active"));
+  element.classList.add("active");
 
-  const q = query(
-    collection(db, "chats", id, "messages"),
-    orderBy("createdAt")
-  );
+  if (unsubscribe) unsubscribe();
 
-  const chatBox = document.getElementById("chatBox");
+  const chatId = [currentUser.uid, uid].sort().join("_");
 
-  onSnapshot(q, snap => {
+  const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt"));
+
+  unsubscribe = onSnapshot(q, snap => {
     chatBox.innerHTML = "";
+    snap.forEach(doc => {
+      const data = doc.data();
 
-    snap.forEach(d => {
-      const m = d.data();
+      const row = document.createElement("div");
+      row.className = "msg-row " + (data.sender === currentUser.uid ? "me" : "other");
 
-      const div = document.createElement("div");
-      div.className = "msg " + (m.sender === me.uid ? "me" : "other");
-      div.innerText = m.text;
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.innerText = data.text;
 
-      chatBox.appendChild(div);
+      row.appendChild(bubble);
+      chatBox.appendChild(row);
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -269,44 +263,46 @@ function openChat(uid, name) {
 }
 
 /* SEND */
-window.send = async () => {
-  if (!selected) return alert("Select user first");
+window.sendMessage = async () => {
+  if (!selectedUser) return;
+  if (!message.value.trim()) return;
 
-  const msgInput = document.getElementById("msg");
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
-  if (!msgInput.value) return;
-
-  const id = [me.uid, selected].sort().join("_");
-
-  await addDoc(collection(db, "chats", id, "messages"), {
-    text: msgInput.value,
-    sender: me.uid,
+  await addDoc(collection(db, "chats", chatId, "messages"), {
+    text: message.value,
+    sender: currentUser.uid,
     createdAt: serverTimestamp()
   });
 
-  msgInput.value = "";
+  message.value = "";
 };
 
 /* LOGOUT */
-window.logout = async () => {
-  await signOut(auth);
-};
+window.logout = () => signOut(auth);
 
 /* PROFILE */
-file.onchange = () => {
+const input = document.getElementById("profileInput");
+const img = document.getElementById("profileImage");
+
+input.onchange = () => {
   const reader = new FileReader();
-
-  reader.onload = async e => {
-    dp.src = e.target.result;
-
-    await setDoc(doc(db, "users", me.uid), {
-      photo: e.target.result
-    }, { merge: true });
+  reader.onload = e => {
+    img.src = e.target.result;
+    img.style.display = "block";
+    localStorage.setItem("pic", e.target.result);
   };
+  reader.readAsDataURL(input.files[0]);
+};
 
-  reader.readAsDataURL(file.files[0]);
+window.onload = () => {
+  const saved = localStorage.getItem("pic");
+  if (saved) {
+    img.src = saved;
+    img.style.display = "block";
+  }
 };
 </script>
 
 </body>
-</html>
+  </html>
