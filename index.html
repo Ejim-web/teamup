@@ -127,7 +127,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ✅ YOUR REAL CONFIG */
+/* ✅ YOUR CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -142,7 +142,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ELEMENTS */
 const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -170,7 +169,7 @@ window.signup = async () => {
       email: cred.user.email
     });
 
-    alert("Account created! Now login.");
+    alert("Account created!");
   } catch (e) {
     alert(e.message);
   }
@@ -204,10 +203,13 @@ async function loadUsers() {
   snap.forEach(d => {
     if (d.id === currentUser.uid) return;
 
-    const div = document.createElement("div");
-    div.innerText = d.data().name;
+    const data = d.data();
+    const displayName = data.name || data.email || "User";
 
-    div.onclick = () => openChat(d.id, d.data().name);
+    const div = document.createElement("div");
+    div.innerText = displayName;
+
+    div.onclick = () => openChat(d.id, displayName);
 
     usersList.appendChild(div);
   });
@@ -220,27 +222,38 @@ function openChat(uid, name) {
   loadMessages();
 }
 
-/* SEND MESSAGE */
+/* ✅ FIXED SEND MESSAGE */
 window.sendMessage = async () => {
-  if (!selectedUser) return alert("Select a user first");
+  try {
+    if (!selectedUser) {
+      alert("Select a user first");
+      return;
+    }
 
-  const text = message.value.trim();
-  if (!text) return;
+    const text = message.value.trim();
+    if (!text) {
+      alert("Type a message");
+      return;
+    }
 
-  const chatId = [currentUser.uid, selectedUser].sort().join("_");
+    const chatId = [currentUser.uid, selectedUser].sort().join("_");
 
-  await setDoc(doc(db, "chats", chatId), {
-    participants: [currentUser.uid, selectedUser]
-  }, { merge: true });
+    await setDoc(doc(db, "chats", chatId), {
+      participants: [currentUser.uid, selectedUser]
+    }, { merge: true });
 
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text,
-    sender: currentUser.uid,
-    participants: [currentUser.uid, selectedUser],
-    createdAt: serverTimestamp()
-  });
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      text,
+      sender: currentUser.uid,
+      createdAt: serverTimestamp()
+    });
 
-  message.value = "";
+    message.value = "";
+
+  } catch (e) {
+    alert("Error: " + e.message);
+    console.error(e);
+  }
 };
 
 /* LOAD MESSAGES */
