@@ -13,6 +13,22 @@
       text-align: center;
     }
 
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 20px auto;
+      border-radius: 50%;
+      background: white;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     input {
       width: 80%;
       padding: 12px;
@@ -73,8 +89,16 @@
 
 <body>
 
+<!-- PROFILE -->
+<input type="file" id="profileInput" hidden>
+
+<div class="logo" onclick="document.getElementById('profileInput').click()">
+  <img id="profileImage" style="display:none;">
+</div>
+
 <h2>TeamUp Global</h2>
 
+<!-- AUTH -->
 <div id="auth">
   <input id="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Password"><br>
@@ -82,6 +106,7 @@
   <button onclick="login()">Login</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none;">
   <p id="welcome"></p>
 
@@ -143,7 +168,7 @@ const message = document.getElementById("message");
 const usersList = document.getElementById("usersList");
 const welcome = document.getElementById("welcome");
 
-/* SIGN UP */
+/* SIGNUP */
 window.signup = async () => {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email.value.trim(), password.value.trim());
@@ -167,13 +192,16 @@ window.login = async () => {
   }
 };
 
-/* AUTH */
+/* AUTH STATE */
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
+
     document.getElementById("auth").style.display = "none";
     document.getElementById("app").style.display = "block";
+
     welcome.innerText = "Welcome " + user.email;
+
     loadUsers();
   } else {
     document.getElementById("auth").style.display = "block";
@@ -189,10 +217,13 @@ async function loadUsers() {
   snap.forEach(docSnap => {
     if (docSnap.id === currentUser.uid) return;
 
-    const div = document.createElement("div");
-    div.innerText = docSnap.data().email;
+    const data = docSnap.data();
+    const userEmail = data.email || "User";
 
-    div.onclick = () => openChat(docSnap.id, docSnap.data().email);
+    const div = document.createElement("div");
+    div.innerText = userEmail;
+
+    div.onclick = () => openChat(docSnap.id, userEmail);
 
     usersList.appendChild(div);
   });
@@ -207,7 +238,7 @@ function openChat(uid, email) {
   loadMessages();
 }
 
-/* SEND */
+/* SEND MESSAGE */
 window.sendMessage = async () => {
   if (!selectedUser) return alert("Select user first");
   if (!message.value.trim()) return;
@@ -249,6 +280,32 @@ function loadMessages() {
 /* LOGOUT */
 window.logout = async () => {
   await signOut(auth);
+
+  selectedUser = null;
+  chatBox.innerHTML = "";
+  usersList.innerHTML = "";
+};
+
+/* PROFILE IMAGE */
+const input = document.getElementById("profileInput");
+const img = document.getElementById("profileImage");
+
+input.onchange = () => {
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.src = e.target.result;
+    img.style.display = "block";
+    localStorage.setItem("pic", e.target.result);
+  };
+  reader.readAsDataURL(input.files[0]);
+};
+
+window.onload = () => {
+  const saved = localStorage.getItem("pic");
+  if (saved) {
+    img.src = saved;
+    img.style.display = "block";
+  }
 };
 </script>
 
