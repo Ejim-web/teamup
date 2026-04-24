@@ -77,12 +77,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
+  storageBucket: "teamup-68a21.firebasestorage.app",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -108,7 +109,7 @@ window.signup = async function() {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-    // ✅ SAVE USER TO FIRESTORE
+    // ✅ Save user to Firestore
     await setDoc(doc(db, "users", userCredential.user.uid), {
       email: email,
       name: email,
