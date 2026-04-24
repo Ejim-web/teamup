@@ -8,11 +8,11 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: #f0f2f5;
+      background: #ece5dd;
     }
 
     header {
-      background: #075E54;
+      background: #075e54;
       color: white;
       padding: 15px;
       text-align: center;
@@ -20,7 +20,7 @@
       font-weight: bold;
     }
 
-    #welcome {
+    .welcome {
       padding: 10px;
       background: #ddd;
       font-weight: bold;
@@ -28,31 +28,27 @@
 
     .form {
       padding: 15px;
+      background: #fff;
     }
 
-    input {
+    .form input {
       width: 100%;
       padding: 12px;
-      margin: 8px 0;
-      border-radius: 20px;
+      margin-bottom: 10px;
+      border-radius: 25px;
       border: none;
       background: #eee;
     }
 
-    button {
+    .form button {
       width: 100%;
       padding: 12px;
-      margin: 5px 0;
+      margin-bottom: 10px;
       border: none;
       border-radius: 25px;
-      background: #25D366;
+      background: #25d366;
       color: white;
       font-size: 16px;
-      font-weight: bold;
-    }
-
-    #usersList {
-      margin-top: 10px;
     }
 
     .user {
@@ -64,27 +60,21 @@
       cursor: pointer;
     }
 
-    .user:hover {
-      background: #f5f5f5;
-    }
-
     .avatar {
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      background: #25D366;
+      background: #25d366;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      margin-right: 12px;
-      font-size: 18px;
+      margin-right: 10px;
     }
 
     .user-info {
-      display: flex;
-      flex-direction: column;
+      flex: 1;
     }
 
     .name {
@@ -95,6 +85,10 @@
       font-size: 12px;
       color: gray;
     }
+
+    #usersList {
+      margin-top: 5px;
+    }
   </style>
 </head>
 
@@ -102,135 +96,130 @@
 
 <header>TeamUp Global</header>
 
-<div id="welcome">Welcome Guest</div>
+<div class="welcome" id="welcomeText">
+  Welcome Guest
+</div>
 
 <div class="form">
   <input type="text" id="name" placeholder="Name">
   <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
 
   <button onclick="signUp()">Sign Up</button>
   <button onclick="login()">Login</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <div id="usersList"></div>
 
+<!-- FIREBASE -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ✅ YOUR FIREBASE CONFIG (UNCHANGED)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.firebasestorage.app",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+// ✅ YOUR REAL CONFIG (already correct)
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.firebasestorage.app",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
+// ===== AUTH =====
+
+window.signUp = async () => {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+
+  if (!email) return alert("Enter email");
+
+  await addDoc(collection(db, "users"), {
+    name: name || "User",
+    email: email
+  });
+
+  localStorage.setItem("userEmail", email);
+  alert("Account created!");
+  location.reload();
+};
+
+window.login = () => {
+  const email = document.getElementById("email").value.trim();
+
+  if (!email) return alert("Enter email");
+
+  localStorage.setItem("userEmail", email);
+  location.reload();
+};
+
+window.logout = () => {
+  localStorage.clear();
+  location.reload();
+};
+
+// ===== LOAD USERS =====
+
+async function loadUsers() {
   const usersList = document.getElementById("usersList");
-  const welcome = document.getElementById("welcome");
-  const form = document.querySelector(".form");
+  const currentEmail = localStorage.getItem("userEmail");
 
-  // ✅ SIGN UP
-  window.signUp = async () => {
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
+  usersList.innerHTML = "Loading users...";
 
-    if (!email) return alert("Enter email");
+  const snap = await getDocs(collection(db, "users"));
 
-    await addDoc(collection(db, "users"), {
-      name,
-      email
-    });
+  usersList.innerHTML = "";
 
-    localStorage.setItem("userEmail", email);
-
-    location.reload();
-  };
-
-  // ✅ LOGIN
-  window.login = async () => {
-    const email = document.getElementById("email").value;
-
-    if (!email) return alert("Enter email");
-
-    localStorage.setItem("userEmail", email);
-
-    location.reload();
-  };
-
-  // ✅ LOAD USERS (FIXED)
-  async function loadUsers() {
-    usersList.innerHTML = "";
-
-    const currentEmail = localStorage.getItem("userEmail");
-
-    const snap = await getDocs(collection(db, "users"));
-
-    snap.forEach(doc => {
-      const data = doc.data();
-
-      // ❌ REMOVE YOURSELF
-      if (data.email === currentEmail) return;
-
-      const div = document.createElement("div");
-      div.className = "user";
-
-      const avatar = document.createElement("div");
-      avatar.className = "avatar";
-
-      const displayName = data.name || data.email;
-
-      avatar.innerText = displayName.charAt(0).toUpperCase();
-
-      const info = document.createElement("div");
-      info.className = "user-info";
-
-      const name = document.createElement("div");
-      name.className = "name";
-      name.innerText = displayName;
-
-      const sub = document.createElement("div");
-      sub.className = "sub";
-      sub.innerText = "Tap to chat";
-
-      info.appendChild(name);
-      info.appendChild(sub);
-
-      div.appendChild(avatar);
-      div.appendChild(info);
-
-      div.onclick = () => {
-        localStorage.setItem("chatUserEmail", data.email);
-        localStorage.setItem("chatUserName", displayName);
-        window.location.href = "chat.html";
-      };
-
-      usersList.appendChild(div);
-    });
+  if (snap.empty) {
+    usersList.innerHTML = "<p style='padding:10px;'>No users found</p>";
+    return;
   }
 
-  // ✅ AUTO LOGIN CHECK
-  const savedEmail = localStorage.getItem("userEmail");
+  snap.forEach(doc => {
+    const data = doc.data();
 
-  if (savedEmail) {
-    welcome.innerText = "Welcome " + savedEmail;
-    form.style.display = "none"; // 🔥 FIX
-    loadUsers();
-  } else {
-    welcome.innerText = "Welcome Guest";
-  }
+    if (data.email === currentEmail) return;
+
+    const initials = (data.name || data.email)
+      .split(" ")
+      .map(w => w[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+
+    const div = document.createElement("div");
+    div.className = "user";
+
+    div.innerHTML = `
+      <div class="avatar">${initials}</div>
+      <div class="user-info">
+        <div class="name">${data.name || data.email}</div>
+        <div class="sub">Tap to chat</div>
+      </div>
+    `;
+
+    div.onclick = () => {
+      localStorage.setItem("chatUserEmail", data.email);
+      localStorage.setItem("chatUserName", data.name || data.email);
+      window.location.href = "chat.html";
+    };
+
+    usersList.appendChild(div);
+  });
+}
+
+// ===== INIT =====
+
+const currentEmail = localStorage.getItem("userEmail");
+
+document.getElementById("welcomeText").innerText =
+  currentEmail ? "Welcome " + currentEmail : "Welcome Guest";
+
+if (currentEmail) loadUsers();
 
 </script>
 
