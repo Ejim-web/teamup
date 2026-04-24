@@ -1,80 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      font-family: Arial;
-      background: #ece5dd;
-      text-align: center;
-      padding-top: 50px;
-    }
-
-    h1 {
-      color: #075e54;
-    }
-
-    input {
-      width: 80%;
-      padding: 12px;
-      margin: 10px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-    }
-
-    button {
-      width: 85%;
-      padding: 12px;
-      margin: 8px;
-      border: none;
-      border-radius: 8px;
-      background: #25D366;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1da851;
-    }
-
-    a {
-      display: block;
-      margin-top: 10px;
-      color: #075e54;
-    }
-  </style>
+  <title>Login</title>
 </head>
-
 <body>
 
-<h1>TeamUp Login</h1>
+<h2>Login</h2>
 
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Password">
+<input type="email" id="email" placeholder="Email"><br><br>
+<input type="password" id="password" placeholder="Password"><br><br>
 
 <button onclick="login()">Login</button>
-<button onclick="signup()">Sign Up</button>
-
-<a href="index.html">Go to App</a>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
-import { 
-  getAuth, 
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import { 
-  getFirestore, 
-  doc, 
-  setDoc 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
@@ -82,47 +22,31 @@ const firebaseConfig = {
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.firebasestorage.app",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const auth = getAuth(app);
 
-window.login = async function() {
+// LOGIN
+window.login = async function () {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
     window.location.href = "index.html";
-  } catch (error) {
-    alert(error.message);
+  } catch (err) {
+    alert(err.message);
   }
 };
 
-window.signup = async function() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-    // ✅ Save user to Firestore
-    await setDoc(doc(db, "users", userCredential.user.uid), {
-      email: email,
-      name: email,
-      createdAt: new Date()
-    });
-
-    alert("Account created successfully!");
+// AUTO REDIRECT IF ALREADY LOGGED IN
+onAuthStateChanged(auth, (user) => {
+  if (user) {
     window.location.href = "index.html";
-
-  } catch (error) {
-    alert(error.message);
   }
-};
+});
 </script>
 
 </body>
