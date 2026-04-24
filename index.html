@@ -48,6 +48,11 @@
       color: white;
       margin-top: 10px;
     }
+
+    .pending {
+      background: #ccc;
+      color: #555;
+    }
   </style>
 </head>
 
@@ -74,40 +79,44 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.appspot.com",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.appspot.com",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+};
 
-  firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  // 🔥 IMPORTANT: Disable auto login
-  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+let currentUserId = null;
 
-  const db = firebase.firestore();
-  let currentUserId = null;
+// ✅ AUTH CHECK (FIXED)
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    currentUserId = user.uid;
+    loadUsers();
+  } else {
+    // FORCE redirect if not logged in
+    window.location.replace("login.html");
+  }
+});
 
-  // ✅ AUTH CHECK
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      currentUserId = user.uid;
-      loadUsers();
-    } else {
-      window.location.href = "index.html";
-    }
-  });
+// ✅ LOAD USERS (FIXED LOADING BUG)
+function loadUsers() {
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "Loading...";
 
-  // ✅ LOAD USERS
-  function loadUsers() {
-    db.collection("users").get()
+  db.collection("users").get()
     .then(snapshot => {
-      const usersDiv = document.getElementById("users");
       usersDiv.innerHTML = "";
+
+      if (snapshot.empty) {
+        usersDiv.innerHTML = "No users found";
+        return;
+      }
 
       snapshot.forEach(doc => {
         if (doc.id === currentUserId) return;
@@ -120,51 +129,51 @@
           <div class="card">
             <b>${name}</b><br>
             <small>${email}</small><br>
-            <button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>
+            <button class="add-btn" onclick="addFriend('${doc.id}')">
+              Add Friend
+            </button>
           </div>
         `;
       });
-
-      if (usersDiv.innerHTML === "") {
-        usersDiv.innerHTML = "No users found";
-      }
     })
     .catch(err => {
-      console.error(err);
-      document.getElementById("users").innerHTML = "Error loading users";
+      console.log(err);
+      usersDiv.innerHTML = "Error loading users";
     });
-  }
+}
 
-  // ✅ ADD FRIEND
-  function addFriend(userId) {
-    db.collection("friendRequests").add({
-      from: currentUserId,
-      to: userId,
-      status: "pending"
-    })
-    .then(() => {
-      alert("Friend request sent");
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Error sending request");
-    });
-  }
+// ✅ ADD FRIEND
+function addFriend(userId) {
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: userId,
+    status: "pending",
+    createdAt: new Date()
+  })
+  .then(() => {
+    alert("Friend request sent");
+  })
+  .catch(err => {
+    console.log(err);
+    alert("Error sending request");
+  });
+}
 
-  // ✅ FIXED LOGOUT (STRONG VERSION)
-  function logout() {
-    firebase.auth().signOut()
+// ✅ LOGOUT (FULL FIX)
+function logout() {
+  firebase.auth().signOut()
     .then(() => {
+      // clear everything and force reload
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = "index.html";
+      window.location.replace("login.html");
     })
     .catch(error => {
-      console.error(error);
+      console.log(error);
       alert("Logout failed");
     });
-  }
+}
 </script>
 
 </body>
-  </html>
+</html>
