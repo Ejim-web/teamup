@@ -30,6 +30,20 @@
       padding: 15px;
       border-radius: 10px;
     }
+
+    #chatBox {
+      display: none;
+      padding: 10px;
+    }
+
+    #messages {
+      background: white;
+      height: 300px;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 
@@ -46,8 +60,15 @@
 <h3 style="padding-left:10px;">All Users</h3>
 <div id="users"></div>
 
-<h3 style="padding-left:10px;">Friends</h3>
+<h3 style="padding-left:10px;">Friends (Click to Chat)</h3>
 <div id="friendsList"></div>
+
+<h3 style="padding-left:10px;">Chat</h3>
+<div id="chatBox">
+  <div id="messages"></div>
+  <input id="msgInput" placeholder="Type message..." style="width:70%; padding:10px;">
+  <button onclick="sendMessage()">Send</button>
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -70,6 +91,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUserId = null;
+let currentChatId = null;
 
 auth.onAuthStateChanged(user => {
   if (user) {
@@ -92,7 +114,7 @@ function logout() {
 }
 
 
-// 🔍 LOAD USERS WITH SMART BUTTONS
+// 🔍 LOAD USERS
 function loadUsers() {
   const div = document.getElementById("users");
 
@@ -166,7 +188,7 @@ function sendRequest(toId) {
 }
 
 
-// 📥 LOAD REQUESTS (FIXED — NO INDEX ISSUE)
+// 📥 LOAD REQUESTS (FIXED)
 function loadRequests() {
   const div = document.getElementById("requests");
 
@@ -208,7 +230,7 @@ function acceptRequest(requestId, fromId) {
 }
 
 
-// 👥 LOAD FRIENDS
+// 👥 LOAD FRIENDS (CLICK TO CHAT)
 function loadFriends() {
   const div = document.getElementById("friendsList");
 
@@ -226,12 +248,79 @@ function loadFriends() {
         const userData = userDoc.data();
 
         div.innerHTML += `
-          <div class="card">
+          <div class="card" onclick="openChat('${friendId}')">
             <p>${userData.name || userData.email}</p>
           </div>
         `;
       }
     });
+}
+
+
+// 💬 OPEN CHAT
+async function openChat(friendId) {
+
+  const ids = [currentUserId, friendId].sort();
+  currentChatId = ids[0] + "_" + ids[1];
+
+  const chatRef = db.collection("chats").doc(currentChatId);
+  const chatDoc = await chatRef.get();
+
+  if (!chatDoc.exists) {
+    await chatRef.set({
+      participants: ids
+    });
+  }
+
+  document.getElementById("chatBox").style.display = "block";
+
+  loadMessages();
+}
+
+
+// 📥 LOAD MESSAGES
+function loadMessages() {
+  const div = document.getElementById("messages");
+
+  db.collection("chats")
+    .doc(currentChatId)
+    .collection("messages")
+    .orderBy("time")
+    .onSnapshot(snapshot => {
+
+      div.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const align = msg.sender === currentUserId ? "right" : "left";
+
+        div.innerHTML += `
+          <p style="text-align:${align};">${msg.text}</p>
+        `;
+      });
+
+      div.scrollTop = div.scrollHeight;
+    });
+}
+
+
+// 📤 SEND MESSAGE
+function sendMessage() {
+  const input = document.getElementById("msgInput");
+  const text = input.value;
+
+  if (!text) return;
+
+  db.collection("chats")
+    .doc(currentChatId)
+    .collection("messages")
+    .add({
+      text: text,
+      sender: currentUserId,
+      time: Date.now()
+    });
+
+  input.value = "";
 }
 </script>
 
