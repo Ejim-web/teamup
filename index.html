@@ -5,18 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body { margin:0; font-family:Arial; background:#ece5dd; }
-    .header { background:#075e54; color:white; padding:15px; text-align:center; font-weight:bold; }
-    input, button {
-      width:90%; padding:12px; margin:8px;
-      border-radius:20px; border:none;
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #ece5dd;
     }
-    button { background:#25d366; color:white; }
+
+    .header {
+      background: #075e54;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    input {
+      width: 90%;
+      padding: 14px;
+      margin: 8px;
+      border-radius: 25px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    button {
+      width: 90%;
+      padding: 14px;
+      border-radius: 25px;
+      border: none;
+      background: #25d366;
+      color: white;
+      margin: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:active {
+      opacity: 0.7;
+    }
+
     #usersList div {
-      padding:12px;
-      background:white;
-      border-bottom:1px solid #ddd;
-      cursor:pointer;
+      padding: 14px;
+      border-bottom: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #chatBox {
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #e5ddd5;
+    }
+
+    .msg {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 10px;
+      max-width: 70%;
+      font-size: 14px;
+    }
+
+    .me {
+      background: #dcf8c6;
+      margin-left: auto;
+    }
+
+    .other {
+      background: white;
+    }
+
+    .time {
+      font-size: 10px;
+      color: gray;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -29,30 +94,50 @@
   <input id="name" placeholder="Name">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+
+  <button id="signupBtn">Sign Up</button>
+  <button id="loginBtn">Login</button>
 </div>
 
 <div id="app" style="display:none;">
   <p id="welcome"></p>
+
   <h3>Users</h3>
   <div id="usersList"></div>
-  <button onclick="logout()">Logout</button>
+
+  <h3 id="chatTitle"></h3>
+  <div id="chatBox"></div>
+
+  <input id="message" placeholder="Type message">
+  <button id="sendBtn">Send</button>
+
+  <button id="logoutBtn">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, onAuthStateChanged, signOut
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, collection, getDocs,
-  doc, setDoc
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  doc,
+  setDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* CONFIG */
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -66,38 +151,73 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const usersList = document.getElementById("usersList");
+/* ELEMENTS */
+const nameInput = document.getElementById("name");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
-const nameInput = document.getElementById("name");
+const usersList = document.getElementById("usersList");
+const chatBox = document.getElementById("chatBox");
+const message = document.getElementById("message");
+const welcome = document.getElementById("welcome");
+const chatTitle = document.getElementById("chatTitle");
+
+const signupBtn = document.getElementById("signupBtn");
+const loginBtn = document.getElementById("loginBtn");
+const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
 let currentUser;
+let selectedUser;
+let unsubscribe;
+
+/* SIGNUP */
+signupBtn.onclick = async () => {
+  try {
+    const cred = await createUserWithEmailAndPassword(
+      auth,
+      email.value.trim(),
+      password.value.trim()
+    );
+
+    await setDoc(doc(db, "users", cred.user.uid), {
+      name: nameInput.value.trim() || cred.user.email,
+      email: cred.user.email
+    });
+
+    alert("Account created!");
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+/* LOGIN */
+loginBtn.onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      email.value.trim(),
+      password.value.trim()
+    );
+  } catch (e) {
+    alert(e.message);
+  }
+};
 
 /* AUTH */
-window.signup = async () => {
-  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
-  await setDoc(doc(db, "users", cred.user.uid), {
-    name: nameInput.value || cred.user.email,
-    email: cred.user.email
-  });
-  alert("Account created");
-};
-
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value);
-};
-
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-    auth.style.display = "none";
-    app.style.display = "block";
-    document.getElementById("welcome").innerText = "Welcome " + user.email;
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    welcome.innerText = "Welcome " + user.email;
     loadUsers();
+  } else {
+    document.getElementById("auth").style.display = "block";
+    document.getElementById("app").style.display = "none";
   }
 });
 
-/* LOAD USERS */
+/* USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
   usersList.innerHTML = "";
@@ -105,20 +225,83 @@ async function loadUsers() {
   snap.forEach(d => {
     if (d.id === currentUser.uid) return;
 
+    const data = d.data();
     const div = document.createElement("div");
-    div.innerText = d.data().name || d.data().email;
 
-    div.onclick = () => {
-      localStorage.setItem("chatUserId", d.id);
-      localStorage.setItem("chatUserName", div.innerText);
-      window.location.href = "chat.html";
-    };
+    div.innerText = data.name || data.email;
+
+    div.onclick = () => openChat(d.id, div.innerText);
 
     usersList.appendChild(div);
   });
 }
 
-window.logout = () => signOut(auth);
+/* CHAT */
+function openChat(uid, name) {
+  selectedUser = uid;
+  chatTitle.innerText = "Chat with " + name;
+  loadMessages();
+}
+
+/* SEND */
+sendBtn.onclick = async () => {
+  if (!selectedUser) return alert("Select user first");
+
+  const text = message.value.trim();
+  if (!text) return;
+
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
+
+  await setDoc(doc(db, "chats", chatId), {
+    participants: [currentUser.uid, selectedUser]
+  }, { merge: true });
+
+  await addDoc(collection(db, "chats", chatId, "messages"), {
+    text,
+    sender: currentUser.uid,
+    createdAt: serverTimestamp()
+  });
+
+  message.value = "";
+};
+
+/* LOAD MESSAGES */
+function loadMessages() {
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
+
+  if (unsubscribe) unsubscribe();
+
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt")
+  );
+
+  unsubscribe = onSnapshot(q, snap => {
+    chatBox.innerHTML = "";
+
+    snap.forEach(doc => {
+      const data = doc.data();
+
+      const div = document.createElement("div");
+      div.className = "msg " + (data.sender === currentUser.uid ? "me" : "other");
+
+      const time = data.createdAt?.toDate().toLocaleTimeString();
+
+      div.innerHTML = `
+        ${data.text}
+        <div class="time">${time || ""}</div>
+      `;
+
+      chatBox.appendChild(div);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+
+/* LOGOUT */
+logoutBtn.onclick = () => signOut(auth);
+
 </script>
 
 </body>
