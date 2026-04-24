@@ -3,201 +3,55 @@
 <head>
   <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #f2f2f2;
-    }
-
-    .header {
-      background: #0f6d5c;
-      color: white;
-      padding: 15px;
-      text-align: center;
-    }
-
-    .logout-btn {
-      background: red;
-      color: white;
-      border: none;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .container {
-      padding: 15px;
-    }
-
-    .card {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 10px;
-    }
-
-    button {
-      padding: 8px;
-      border: none;
-      border-radius: 5px;
-      margin-top: 5px;
-      cursor: pointer;
-    }
-
-    .add { background: #0f6d5c; color: white; }
-    .accept { background: green; color: white; }
-  </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h2>TeamUp Global</h2>
+<h2>TeamUp Global</h2>
 
-  <!-- ✅ FIXED LOGOUT BUTTON -->
-  <button class="logout-btn" id="logoutBtn">Logout</button>
-</div>
+<button id="logoutBtn">Logout</button>
 
-<div class="container">
-
-  <h3>Friend Requests</h3>
-  <div id="requests"></div>
-
-  <h3>All Users</h3>
-  <div id="users"></div>
-
-</div>
-
-<!-- ✅ Firebase Scripts (correct order) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
-const db = firebase.firestore();
 
-let currentUserId = null;
+console.log("Script loaded");
 
-//
-// ✅ AUTH CHECK
-//
+// 🔥 WATCH AUTH STATE
 auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUserId = user.uid;
-    loadUsers();
-    loadRequests();
-  } else {
+  console.log("Auth state:", user);
+
+  if (!user) {
+    console.log("User is logged out, redirecting...");
     window.location.href = "index.html";
   }
 });
 
-//
-// ✅ LOGOUT (FIXED PROPERLY)
-//
+// 🔥 FORCE LOGOUT
 document.getElementById("logoutBtn").addEventListener("click", function () {
+  console.log("Logout clicked");
+
   auth.signOut()
     .then(() => {
-      alert("Logged out successfully");
+      console.log("SignOut successful");
+
+      // Force reload (important)
       window.location.href = "index.html";
     })
     .catch(error => {
-      alert("Logout error: " + error.message);
+      console.error("Logout error:", error);
+      alert(error.message);
     });
 });
-
-//
-// ✅ LOAD USERS
-//
-function loadUsers() {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "";
-
-  db.collection("users").get().then(snapshot => {
-    snapshot.forEach(doc => {
-      if (doc.id !== currentUserId) {
-        const user = doc.data();
-
-        usersDiv.innerHTML += `
-          <div class="card">
-            <p>${user.name || user.email}</p>
-            <button class="add" onclick="sendRequest('${doc.id}')">Add Friend</button>
-          </div>
-        `;
-      }
-    });
-  });
-}
-
-//
-// ✅ SEND REQUEST
-//
-function sendRequest(toUserId) {
-  db.collection("friendRequests").add({
-    from: currentUserId,
-    to: toUserId,
-    status: "pending"
-  })
-  .then(() => {
-    alert("Friend request sent!");
-  })
-  .catch(err => {
-    alert(err.message);
-  });
-}
-
-//
-// ✅ LOAD REQUESTS
-//
-function loadRequests() {
-  const requestsDiv = document.getElementById("requests");
-  requestsDiv.innerHTML = "";
-
-  db.collection("friendRequests")
-    .where("to", "==", currentUserId)
-    .where("status", "==", "pending")
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-
-        requestsDiv.innerHTML += `
-          <div class="card">
-            <p>Request from: ${data.from}</p>
-            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
-          </div>
-        `;
-      });
-    });
-}
-
-//
-// ✅ ACCEPT REQUEST
-//
-function acceptRequest(id) {
-  db.collection("friendRequests").doc(id).update({
-    status: "accepted"
-  })
-  .then(() => {
-    alert("Request accepted");
-    loadRequests();
-  });
-}
 </script>
 
 </body>
