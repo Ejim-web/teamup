@@ -52,7 +52,6 @@
     .pending {
       background: gray;
       color: white;
-      cursor: not-allowed;
     }
 
     .accept {
@@ -90,162 +89,177 @@
   <div id="friends">Coming soon...</div>
 </div>
 
-<!-- ✅ Firebase v8 -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.appspot.com",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.appspot.com",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  let currentUserId = null;
+let currentUserId = null;
 
-  // ✅ AUTH CHECK
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      currentUserId = user.uid;
-      loadUsers();
-      loadRequests();
-    } else {
-      window.location.replace("login.html");
+// ✅ AUTH
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    currentUserId = user.uid;
+    loadUsers();
+    loadRequests();
+  } else {
+    window.location.replace("login.html");
+  }
+});
+
+
+// ✅ LOAD USERS
+function loadUsers() {
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "Loading...";
+
+  db.collection("users").get().then(async snapshot => {
+    usersDiv.innerHTML = "";
+
+    for (const doc of snapshot.docs) {
+      if (doc.id === currentUserId) continue;
+
+      const data = doc.data();
+      const name = data.name || "No Name";
+      const email = data.email || "No Email";
+
+      // check pending
+      const req = await db.collection("friendRequests")
+        .where("from", "==", currentUserId)
+        .where("to", "==", doc.id)
+        .where("status", "==", "pending")
+        .get();
+
+      let button = `
+        <button class="add-btn" onclick="addFriend('${doc.id}')">
+          Add Friend
+        </button>
+      `;
+
+      if (!req.empty) {
+        button = `<button class="pending">Pending ⏳</button>`;
+      }
+
+      usersDiv.innerHTML += `
+        <div class="card">
+          <b>${name}</b><br>
+          <small>${email}</small><br>
+          ${button}
+        </div>
+      `;
     }
+  }).catch(err => {
+    usersDiv.innerHTML = "Error loading users";
+    console.log(err);
   });
+}
 
-  // ✅ LOAD USERS
-  function loadUsers() {
-    const usersDiv = document.getElementById("users");
-    usersDiv.innerHTML = "Loading...";
 
-    db.collection("users").get().then(async snapshot => {
-      usersDiv.innerHTML = "";
+// ✅ SEND REQUEST
+function addFriend(userId) {
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: userId,
+    status: "pending"
+  })
+  .then(() => {
+    alert("Request sent");
+    loadUsers();
+  });
+}
+
+
+// ✅ LOAD REQUESTS WITH USER NAME
+function loadRequests() {
+  const reqDiv = document.getElementById("requests");
+  reqDiv.innerHTML = "Loading...";
+
+  db.collection("friendRequests")
+    .where("to", "==", currentUserId)
+    .where("status", "==", "pending")
+    .get()
+    .then(async snapshot => {
+
+      if (snapshot.empty) {
+        reqDiv.innerHTML = "No requests";
+        return;
+      }
+
+      reqDiv.innerHTML = "";
 
       for (const doc of snapshot.docs) {
-        if (doc.id === currentUserId) continue;
-
         const data = doc.data();
-        const name = data.name || "No Name";
-        const email = data.email || "No Email";
 
-        // check if request already sent
-        const req = await db.collection("friendRequests")
-          .where("from", "==", currentUserId)
-          .where("to", "==", doc.id)
-          .get();
+        // get sender info
+        const userDoc = await db.collection("users").doc(data.from).get();
+        const userData = userDoc.data() || {};
 
-        let button = `
-          <button class="add-btn" onclick="addFriend('${doc.id}')">
-            Add Friend
-          </button>
-        `;
+        const name = userData.name || "Unknown User";
 
-        if (!req.empty) {
-          button = `<button class="pending">Pending ⏳</button>`;
-        }
-
-        usersDiv.innerHTML += `
+        reqDiv.innerHTML += `
           <div class="card">
-            <b>${name}</b><br>
-            <small>${email}</small><br>
-            ${button}
+            <b>${name}</b><br><br>
+            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
+            <button class="reject" onclick="rejectRequest('${doc.id}')">Reject</button>
           </div>
         `;
       }
-    }).catch(err => {
-      usersDiv.innerHTML = "Error loading users";
-      console.log(err);
-    });
-  }
-
-  // ✅ SEND REQUEST
-  function addFriend(userId) {
-    db.collection("friendRequests").add({
-      from: currentUserId,
-      to: userId,
-      status: "pending"
-    })
-    .then(() => {
-      alert("Request sent");
-      loadUsers();
     })
     .catch(err => {
-      alert("Error sending request");
+      reqDiv.innerHTML = "Error loading requests";
       console.log(err);
     });
-  }
+}
 
-  // ✅ LOAD REQUESTS
-  function loadRequests() {
-    const reqDiv = document.getElementById("requests");
-    reqDiv.innerHTML = "";
 
-    db.collection("friendRequests")
-      .where("to", "==", currentUserId)
-      .where("status", "==", "pending")
-      .get()
-      .then(snapshot => {
+// ✅ ACCEPT
+function acceptRequest(id) {
+  db.collection("friendRequests").doc(id).update({
+    status: "accepted"
+  }).then(() => {
+    alert("Friend added");
+    loadRequests();
+    loadUsers();
+  });
+}
 
-        if (snapshot.empty) {
-          reqDiv.innerHTML = "No requests";
-          return;
-        }
 
-        snapshot.forEach(doc => {
-          reqDiv.innerHTML += `
-            <div class="card">
-              <b>New Friend Request</b><br><br>
-              <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
-              <button class="reject" onclick="rejectRequest('${doc.id}')">Reject</button>
-            </div>
-          `;
-        });
-      })
-      .catch(err => {
-        reqDiv.innerHTML = "Error loading requests";
-        console.log(err);
-      });
-  }
+// ✅ REJECT
+function rejectRequest(id) {
+  db.collection("friendRequests").doc(id).delete()
+  .then(() => {
+    loadRequests();
+  });
+}
 
-  // ✅ ACCEPT
-  function acceptRequest(id) {
-    db.collection("friendRequests").doc(id).update({
-      status: "accepted"
-    }).then(() => {
-      alert("Friend added");
-      loadRequests();
-    });
-  }
 
-  // ✅ REJECT
-  function rejectRequest(id) {
-    db.collection("friendRequests").doc(id).delete()
+// ✅ LOGOUT (FIXED PROPERLY)
+function logout() {
+  firebase.auth().signOut()
     .then(() => {
-      loadRequests();
-    });
-  }
-
-  // ✅ LOGOUT
-  function logout() {
-    firebase.auth().signOut()
-    .then(() => {
-      window.location.replace("login.html");
+      alert("Logged out");
+      window.location.href = "login.html";
     })
     .catch(error => {
-      alert("Logout failed");
       console.log(error);
+      alert("Logout failed");
     });
-  }
+}
 </script>
 
 </body>
-  </html>
+</html>
