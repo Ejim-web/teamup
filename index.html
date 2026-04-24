@@ -1,286 +1,186 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Global</title>
+  <title>TeamUp Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: #f2f2f2;
-    }
-
-    header {
-      background: #0f6d5c;
+      background: #0f172a;
       color: white;
-      padding: 15px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .section {
-      padding: 10px;
-    }
-
-    .user, .chat {
-      background: white;
-      padding: 12px;
-      margin: 5px 0;
-      border-radius: 10px;
-      cursor: pointer;
     }
 
     #chatBox {
-      height: 300px;
+      height: 85vh;
       overflow-y: auto;
-      background: #ddd;
       padding: 10px;
-      border-radius: 10px;
     }
 
     .msg {
+      margin: 8px 0;
       padding: 10px;
-      margin: 5px 0;
-      border-radius: 10px;
+      border-radius: 12px;
       max-width: 70%;
+      display: block;
     }
 
     .me {
-      background: #4CAF50;
-      color: white;
+      background: #22c55e;
       margin-left: auto;
+      text-align: right;
     }
 
     .other {
-      background: white;
+      background: #334155;
+      margin-right: auto;
     }
 
-    .inputArea {
+    .name {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .time {
+      font-size: 10px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    #inputArea {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #1e293b;
     }
 
     input {
       flex: 1;
-      padding: 10px;
-      border-radius: 20px;
+      padding: 15px;
       border: none;
+      outline: none;
+      font-size: 16px;
     }
 
     button {
-      padding: 10px;
-      border-radius: 20px;
+      padding: 15px;
+      background: #ff416c;
       border: none;
-      background: #4CAF50;
       color: white;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<header>TeamUp Global</header>
+<div id="chatBox"></div>
 
-<div id="auth" class="section">
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Password"><br><br>
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="app" style="display:none">
-
-  <div class="section">
-    <b id="welcome"></b>
-  </div>
-
-  <div class="section">
-    <h3>Start Chat</h3>
-    <div id="users"></div>
-  </div>
-
-  <div class="section">
-    <h3 id="chatTitle">Select a chat</h3>
-    <div id="chatBox"></div>
-
-    <div class="inputArea">
-      <input id="msgInput" placeholder="Type message">
-      <button onclick="sendMessage()">Send</button>
-    </div>
-
-    <button onclick="logout()">Logout</button>
-  </div>
-
+<div id="inputArea">
+  <input id="messageInput" placeholder="Type message..." />
+  <button onclick="sendMessage()">Send</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
-  getAuth, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import {
-  getFirestore, collection, addDoc,
-  getDocs, query, where,
-  onSnapshot, orderBy, serverTimestamp
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// 🔥 YOUR CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.appspot.com",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUser;
-let currentChatId = null;
-let unsubscribe = null;
+// ✅ YOUR REAL DATA (ALREADY FILLED)
+const chatId = "1s0Xrq7TsGezT9Jjy9bfNBOzGoa2_JJkhG9ImM9Xucxx9sKPgSh5Tk972";
+const currentUserId = "JJkhG9ImM9Xucxx9sKPgSh5Tk972";
+const currentUserName = "You"; // change to your name if you want
 
-window.signup = async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+const chatBox = document.getElementById("chatBox");
 
-  const userCred = await createUserWithEmailAndPassword(auth, email, password);
-
-  await addDoc(collection(db, "users"), {
-    email
-  });
-};
-
-window.login = () => {
-  signInWithEmailAndPassword(
-    auth,
-    document.getElementById("email").value,
-    document.getElementById("password").value
-  );
-};
-
-onAuthStateChanged(auth, async user => {
-  if (user) {
-    currentUser = user;
-
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    document.getElementById("welcome").innerText = user.email;
-
-    loadUsers();
-  } else {
-    document.getElementById("auth").style.display = "block";
-    document.getElementById("app").style.display = "none";
-  }
-});
-
-async function loadUsers() {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "";
-
-  const snapshot = await getDocs(collection(db, "users"));
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-
-    if (data.email === currentUser.email) return;
-
-    const div = document.createElement("div");
-    div.className = "user";
-    div.innerText = data.email;
-
-    div.onclick = () => openChat(data.email);
-
-    usersDiv.appendChild(div);
-  });
-}
-
-async function openChat(otherUser) {
-  document.getElementById("chatTitle").innerText = "Chat with " + otherUser;
-
-  const chatsRef = collection(db, "chats");
-
-  const q = query(
-    chatsRef,
-    where("users", "array-contains", currentUser.email)
-  );
-
-  const snapshot = await getDocs(q);
-
-  let found = null;
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.users.includes(otherUser)) {
-      found = { id: doc.id, ...data };
-    }
-  });
-
-  if (!found) {
-    const newChat = await addDoc(chatsRef, {
-      users: [currentUser.email, otherUser]
-    });
-
-    currentChatId = newChat.id;
-  } else {
-    currentChatId = found.id;
-  }
-
-  loadMessages();
-}
-
-function loadMessages() {
-  if (unsubscribe) unsubscribe();
-
-  const chatBox = document.getElementById("chatBox");
-
-  const q = query(
-    collection(db, "chats", currentChatId, "messages"),
-    orderBy("time")
-  );
-
-  unsubscribe = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "msg " + (data.sender === currentUser.email ? "me" : "other");
-      div.innerText = data.text;
-
-      chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-
-window.sendMessage = async () => {
-  const input = document.getElementById("msgInput");
+// ================= SEND =================
+window.sendMessage = async function () {
+  const input = document.getElementById("messageInput");
   const text = input.value.trim();
 
-  if (!text || !currentChatId) return;
+  if (!text) return;
 
-  await addDoc(collection(db, "chats", currentChatId, "messages"), {
-    text,
-    sender: currentUser.email,
-    time: serverTimestamp()
-  });
+  await addDoc(
+    collection(db, "chats", chatId, "messages"),
+    {
+      text: text,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      timestamp: serverTimestamp()
+    }
+  );
 
   input.value = "";
 };
 
-window.logout = () => {
-  signOut(auth);
-};
+// ================= LISTEN =================
+const q = query(
+  collection(db, "chats", chatId, "messages"),
+  orderBy("timestamp", "asc")
+);
+
+onSnapshot(q, (snapshot) => {
+  chatBox.innerHTML = "";
+
+  snapshot.forEach((doc) => {
+    const msg = doc.data();
+
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    if (msg.senderId === currentUserId) {
+      div.classList.add("me");
+    } else {
+      div.classList.add("other");
+    }
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.innerText = msg.senderName || "User";
+
+    const text = document.createElement("div");
+    text.innerText = msg.text;
+
+    const time = document.createElement("div");
+    time.className = "time";
+
+    if (msg.timestamp) {
+      const date = msg.timestamp.toDate();
+      time.innerText = date.toLocaleTimeString();
+    }
+
+    div.appendChild(name);
+    div.appendChild(text);
+    div.appendChild(time);
+
+    chatBox.appendChild(div);
+  });
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
 </script>
 
 </body>
