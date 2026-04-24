@@ -4,6 +4,10 @@
   <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -12,14 +16,14 @@
     }
 
     header {
-      background: #176b5c;
+      background: #1f6f5e;
       color: white;
-      text-align: center;
       padding: 20px;
+      text-align: center;
     }
 
     button {
-      padding: 10px 15px;
+      padding: 10px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -31,20 +35,20 @@
       margin-top: 10px;
     }
 
-    .section {
+    .container {
       padding: 15px;
     }
 
     .card {
       background: white;
       padding: 15px;
-      margin: 10px 0;
+      margin-bottom: 10px;
       border-radius: 10px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
     .add-btn {
-      background: #176b5c;
+      background: #1f6f5e;
       color: white;
       margin-top: 10px;
     }
@@ -58,101 +62,78 @@
   <button class="logout" onclick="logout()">Logout</button>
 </header>
 
-<div class="section">
+<div class="container">
   <h3>All Users</h3>
   <div id="users"></div>
 </div>
 
-<div class="section">
-  <h3>Friends</h3>
-  <div id="friends"></div>
-</div>
-
-<!-- ✅ Firebase v8 (IMPORTANT) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
 <script>
-  // ✅ Your Firebase config
+  // 🔥 YOUR FIREBASE CONFIG (keep yours)
   const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.appspot.com",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
   };
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-
+  const app = firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
   const db = firebase.firestore();
 
-  let currentUserId = null;
-
-  // ✅ Check login
-  firebase.auth().onAuthStateChanged(user => {
-    if(user){
-      currentUserId = user.uid;
-      loadUsers();
-    } else {
+  // ✅ CHECK LOGIN
+  auth.onAuthStateChanged(user => {
+    if (!user) {
       window.location.href = "index.html";
+    } else {
+      loadUsers(user.uid);
     }
   });
 
-  // ✅ Load all users
-  function loadUsers(){
-    db.collection("users").get().then(snapshot => {
+  // ✅ LOAD USERS
+  function loadUsers(currentUserId) {
+    db.collection("users").onSnapshot(snapshot => {
       const usersDiv = document.getElementById("users");
       usersDiv.innerHTML = "";
 
       snapshot.forEach(doc => {
-        if(doc.id === currentUserId) return;
+        const user = doc.data();
 
-        const data = doc.data();
-
-        const name = data.name || "No Name";
-        const email = data.email || "No Email";
+        // ❌ Don't show yourself
+        if (user.uid === currentUserId) return;
 
         usersDiv.innerHTML += `
           <div class="card">
-            <b>${name}</b><br>
-            <small>${email}</small><br>
-            <button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>
+            <h4>${user.name || "No Name"}</h4>
+            <p>${user.email || "No Email"}</p>
+            <button class="add-btn" onclick="addFriend('${user.uid}')">
+              Add Friend
+            </button>
           </div>
         `;
       });
     });
   }
 
-  // ✅ Add friend request
-  function addFriend(userId){
-    db.collection("friendRequests").add({
-      from: currentUserId,
-      to: userId,
-      status: "pending"
-    })
-    .then(() => {
-      alert("Friend request sent");
-    })
-    .catch(err => {
-      console.log(err);
-      alert("Error sending request");
+  // ✅ ADD FRIEND (simple version)
+  function addFriend(friendId) {
+    const user = auth.currentUser;
+
+    db.collection("friends").add({
+      userId: user.uid,
+      friendId: friendId
     });
+
+    alert("Friend request sent");
   }
 
-  // ✅ Logout
-  function logout(){
-    firebase.auth().signOut()
-    .then(() => {
-      window.location.href = "index.html";
-    })
-    .catch((error) => {
-      alert("Logout failed");
-      console.log(error);
-    });
+  // ✅ LOGOUT FIX
+  function logout() {
+    auth.signOut()
+      .then(() => {
+        window.location.href = "index.html";
+      })
+      .catch(error => {
+        alert("Logout error: " + error.message);
+      });
   }
 </script>
 
