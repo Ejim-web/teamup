@@ -26,26 +26,6 @@
       background: #ddd;
     }
 
-    .upload-box {
-      padding: 10px;
-      background: #eee;
-      display: flex;
-      gap: 10px;
-    }
-
-    .upload-box input {
-      flex: 1;
-    }
-
-    .upload-box button {
-      background: #25d366;
-      border: none;
-      padding: 8px 15px;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
     .user {
       display: flex;
       align-items: center;
@@ -86,29 +66,17 @@
 
 <div class="welcome" id="welcome"></div>
 
-<!-- ✅ IMAGE UPLOAD -->
-<div class="upload-box">
-  <input type="file" id="fileInput" accept="image/*">
-  <button onclick="uploadImage()">Upload</button>
-</div>
-
 <div id="users"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import { 
   getAuth, onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { 
-  getFirestore, collection, getDocs, doc, updateDoc 
+  getFirestore, collection, getDocs 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-import {
-  getStorage, ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
@@ -116,13 +84,13 @@ const firebaseConfig = {
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.appspot.com",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
-const storage = getStorage();
 
 const usersDiv = document.getElementById("users");
 const welcome = document.getElementById("welcome");
@@ -146,10 +114,11 @@ async function loadUsers() {
 
   const snap = await getDocs(collection(db, "users"));
 
-  snap.forEach(docSnap => {
-    if (docSnap.id === currentUser.uid) return;
+  snap.forEach(doc => {
+    if (doc.id === currentUser.uid) return;
 
-    const data = docSnap.data();
+    const data = doc.data();
+
     const name = data.name || data.email;
 
     const photo = data.photo || 
@@ -160,7 +129,7 @@ async function loadUsers() {
 
     div.innerHTML = `
       <img class="avatar" src="${photo}" 
-      onerror="this.src='https://ui-avatars.com/api/?name=${name}'" />
+        onerror="this.src='https://ui-avatars.com/api/?name=${name}'" />
 
       <div>
         <div class="name">${name}</div>
@@ -169,47 +138,13 @@ async function loadUsers() {
     `;
 
     div.onclick = () => {
-      localStorage.setItem("chatUserId", docSnap.id);
+      localStorage.setItem("chatUserId", doc.id);
       localStorage.setItem("chatUserName", name);
       window.location.href = "chat.html";
     };
 
     usersDiv.appendChild(div);
   });
-}
-
-window.uploadImage = async function() {
-  const file = document.getElementById("fileInput").files[0];
-
-  if (!file) {
-    alert("Select an image first");
-    return;
-  }
-
-  if (!currentUser) {
-    alert("User not logged in");
-    return;
-  }
-
-  try {
-    const storageRef = ref(storage, "profiles/" + currentUser.uid);
-
-    await uploadBytes(storageRef, file);
-
-    const url = await getDownloadURL(storageRef);
-
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      photo: url
-    });
-
-    alert("Profile updated!");
-
-    loadUsers();
-
-  } catch (error) {
-    console.error(error);
-    alert("Upload failed");
-  }
 }
 </script>
 
