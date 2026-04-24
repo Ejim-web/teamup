@@ -148,7 +148,7 @@ function loadUsers() {
 }
 
 
-// 📤 SEND REQUEST (NO DUPLICATE)
+// 📤 SEND REQUEST
 function sendRequest(toId) {
   const requestId = currentUserId + "_" + toId;
 
@@ -166,19 +166,20 @@ function sendRequest(toId) {
 }
 
 
-// 📥 LOAD REQUESTS
+// 📥 LOAD REQUESTS (FIXED — NO INDEX ISSUE)
 function loadRequests() {
   const div = document.getElementById("requests");
 
   db.collection("friendRequests")
     .where("to", "==", currentUserId)
-    .where("status", "==", "pending")
     .onSnapshot(async snapshot => {
 
       div.innerHTML = "";
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
+
+        if (data.status !== "pending") continue;
 
         const userDoc = await db.collection("users").doc(data.from).get();
         const userData = userDoc.data();
