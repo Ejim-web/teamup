@@ -1,1 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - TeamUp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <style>
+    body {
+      font-family: Arial;
+      background: #ece5dd;
+      text-align: center;
+      padding: 50px;
+    }
+
+    h2 {
+      color: #075e54;
+    }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 95%;
+      padding: 12px;
+      background: #25d366;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    .link {
+      margin-top: 15px;
+      display: block;
+      color: #075e54;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>TeamUp Login</h2>
+
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+<button onclick="signup()">Sign Up</button>
+
+<span class="link" onclick="goHome()">Go to App</span>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import { 
+  getFirestore, doc, setDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.appspot.com",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+window.login = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Login successful");
+    window.location.href = "index.html";
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.signup = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+    // save user to Firestore
+    await setDoc(doc(db, "users", userCred.user.uid), {
+      email: email,
+      name: email
+    });
+
+    alert("Account created");
+    window.location.href = "index.html";
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.goHome = function () {
+  window.location.href = "index.html";
+};
+</script>
+
+</body>
+</html>
