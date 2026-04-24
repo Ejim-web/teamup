@@ -6,46 +6,39 @@
 
   <style>
     body {
-      margin: 0;
       font-family: Arial;
-      background: #f5f5f5;
+      margin: 0;
+      background: #f2f2f2;
     }
 
-    .header {
-      background: #0f6d5c;
+    header {
+      background: #0f6d5b;
       color: white;
       padding: 15px;
       text-align: center;
     }
 
-    .logout-btn {
-      background: red;
-      color: white;
-      border: none;
+    button {
       padding: 10px;
-      margin-top: 10px;
+      border: none;
       border-radius: 5px;
-      cursor: pointer;
+      margin-top: 5px;
     }
 
-    .container {
-      padding: 15px;
+    .logout {
+      background: red;
+      color: white;
     }
 
     .card {
       background: white;
-      padding: 10px;
-      margin: 10px 0;
+      margin: 10px;
+      padding: 15px;
       border-radius: 10px;
     }
 
-    button {
-      padding: 8px;
-      border: none;
-      border-radius: 5px;
-      margin-top: 5px;
-      cursor: pointer;
-      background: #0f6d5c;
+    .addBtn {
+      background: #0f6d5b;
       color: white;
     }
   </style>
@@ -53,28 +46,24 @@
 
 <body>
 
-<div class="header">
+<header>
   <h2>TeamUp Global</h2>
-  <button class="logout-btn" onclick="logoutUser()">Logout</button>
-</div>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
 
-<div class="container">
+<h3 style="padding-left:10px;">Friend Requests</h3>
+<div id="requests"></div>
 
-  <h3>Friend Requests</h3>
-  <div id="requests"></div>
+<h3 style="padding-left:10px;">All Users</h3>
+<div id="users"></div>
 
-  <h3>Friends</h3>
-  <div id="friendsList"></div>
-
-  <h3>All Users</h3>
-  <div id="users"></div>
-
-</div>
+<h3 style="padding-left:10px;">Friends</h3>
+<div id="friendsList"></div>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -87,49 +76,52 @@ const firebaseConfig = {
   measurementId: "G-EJ59MW0TMC"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUserId = null;
 
-// 🔐 AUTH
 auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.href = "login.html";
-  } else {
+  if (user) {
     currentUserId = user.uid;
 
     loadUsers();
     loadRequests();
     loadFriends();
+
+  } else {
+    window.location.href = "login.html";
   }
 });
 
-// 🚪 LOGOUT
-function logoutUser() {
-  auth.signOut().then(() => {
-    window.location.href = "login.html";
-  });
+
+// 🔴 LOGOUT FIX
+function logout() {
+  auth.signOut()
+    .then(() => {
+      alert("Logged out");
+      window.location.href = "login.html";
+    })
+    .catch(err => alert(err.message));
 }
 
-// 👥 LOAD USERS
+
+// ✅ LOAD USERS
 function loadUsers() {
   const div = document.getElementById("users");
-  div.innerHTML = "";
 
-  db.collection("users").get().then(snapshot => {
+  db.collection("users").onSnapshot(snapshot => {
+    div.innerHTML = "";
+
     snapshot.forEach(doc => {
-      if (doc.id !== currentUserId) {
-        const user = doc.data();
+      const user = doc.data();
 
+      if (doc.id !== currentUserId) {
         div.innerHTML += `
           <div class="card">
             <p>${user.name || user.email}</p>
-            <button onclick="sendRequest('${doc.id}')">Add Friend</button>
+            <button class="addBtn" onclick="sendRequest('${doc.id}')">Add Friend</button>
           </div>
         `;
       }
@@ -137,91 +129,101 @@ function loadUsers() {
   });
 }
 
-// 📩 SEND REQUEST
+
+// ✅ SEND REQUEST (NO DUPLICATES)
 function sendRequest(toId) {
-  db.collection("friendRequests").add({
-    from: currentUserId,
-    to: toId,
-    status: "pending"
-  }).then(() => {
-    alert("Request sent");
+
+  const requestId = currentUserId + "_" + toId;
+
+  db.collection("friendRequests").doc(requestId).get().then(doc => {
+
+    if (doc.exists) {
+      alert("Request already sent");
+    } else {
+      db.collection("friendRequests").doc(requestId).set({
+        from: currentUserId,
+        to: toId,
+        status: "pending"
+      }).then(() => {
+        alert("Request sent");
+      });
+    }
+
   });
 }
 
-// 📥 LOAD REQUESTS
+
+// ✅ LOAD REQUESTS (SHOW NAME)
 function loadRequests() {
   const div = document.getElementById("requests");
 
   db.collection("friendRequests")
     .where("to", "==", currentUserId)
     .where("status", "==", "pending")
-    .onSnapshot(snapshot => {
+    .onSnapshot(async snapshot => {
 
       div.innerHTML = "";
 
-      snapshot.forEach(doc => {
+      for (const doc of snapshot.docs) {
         const data = doc.data();
+
+        const userDoc = await db.collection("users").doc(data.from).get();
+        const userData = userDoc.data();
 
         div.innerHTML += `
           <div class="card">
-            <p>Request from: ${data.from}</p>
+            <p>Request from: ${userData.name || userData.email}</p>
             <button onclick="acceptRequest('${doc.id}', '${data.from}')">Accept</button>
           </div>
         `;
-      });
+      }
     });
 }
 
-// ✅ ACCEPT REQUEST (REAL FRIEND SYSTEM)
-function acceptRequest(requestId, fromUserId) {
 
-  const userA = currentUserId;
-  const userB = fromUserId;
+// ✅ ACCEPT REQUEST
+function acceptRequest(requestId, fromId) {
 
-  const friendId =
-    userA < userB ? userA + "_" + userB : userB + "_" + userA;
+  const friendId = currentUserId + "_" + fromId;
 
-  // Save friendship
   db.collection("friends").doc(friendId).set({
-    users: [userA, userB]
-  });
+    users: [currentUserId, fromId]
+  }).then(() => {
 
-  // Update request
-  db.collection("friendRequests").doc(requestId).update({
-    status: "accepted"
-  });
+    db.collection("friendRequests").doc(requestId).delete();
 
-  alert("Now friends!");
+    alert("Friend added");
+
+  });
 }
 
-// 🤝 LOAD FRIENDS
+
+// ✅ LOAD FRIENDS (SHOW NAME)
 function loadFriends() {
   const div = document.getElementById("friendsList");
 
   db.collection("friends")
     .where("users", "array-contains", currentUserId)
-    .onSnapshot(snapshot => {
+    .onSnapshot(async snapshot => {
 
       div.innerHTML = "";
 
-      snapshot.forEach(doc => {
+      for (const doc of snapshot.docs) {
         const data = doc.data();
         const friendId = data.users.find(id => id !== currentUserId);
 
+        const userDoc = await db.collection("users").doc(friendId).get();
+        const userData = userDoc.data();
+
         div.innerHTML += `
           <div class="card">
-            <p>Friend: ${friendId}</p>
-            <button onclick="startChat('${friendId}')">Chat</button>
+            <p>${userData.name || userData.email}</p>
           </div>
         `;
-      });
+      }
     });
 }
 
-// 💬 CHAT NAVIGATION
-function startChat(friendId) {
-  window.location.href = "chatRoom.html?user=" + friendId;
-}
 </script>
 
 </body>
