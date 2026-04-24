@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login - TeamUp</title>
+  <title>TeamUp Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -9,43 +9,49 @@
       font-family: Arial;
       background: #ece5dd;
       text-align: center;
-      padding: 50px;
+      padding-top: 50px;
     }
 
-    h2 {
+    h1 {
       color: #075e54;
     }
 
     input {
-      width: 90%;
+      width: 80%;
       padding: 12px;
-      margin: 10px 0;
+      margin: 10px;
+      border-radius: 8px;
       border: none;
-      border-radius: 5px;
-    }
-
-    button {
-      width: 95%;
-      padding: 12px;
-      background: #25d366;
-      color: white;
-      border: none;
-      border-radius: 5px;
       font-size: 16px;
     }
 
-    .link {
-      margin-top: 15px;
-      display: block;
-      color: #075e54;
+    button {
+      width: 85%;
+      padding: 12px;
+      margin: 8px;
+      border: none;
+      border-radius: 8px;
+      background: #25D366;
+      color: white;
+      font-size: 16px;
       cursor: pointer;
+    }
+
+    button:hover {
+      background: #1da851;
+    }
+
+    a {
+      display: block;
+      margin-top: 10px;
+      color: #075e54;
     }
   </style>
 </head>
 
 <body>
 
-<h2>TeamUp Login</h2>
+<h1>TeamUp Login</h1>
 
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="password" placeholder="Password">
@@ -53,20 +59,25 @@
 <button onclick="login()">Login</button>
 <button onclick="signup()">Sign Up</button>
 
-<span class="link" onclick="goHome()">Go to App</span>
+<a href="index.html">Go to App</a>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import { 
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword 
+  getAuth, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { 
-  getFirestore, doc, setDoc 
+  getFirestore, 
+  doc, 
+  setDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  apiKey: "YOUR_API_KEY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.appspot.com",
@@ -78,41 +89,38 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-window.login = async function () {
+window.login = async function() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    alert("Login successful");
     window.location.href = "index.html";
-  } catch (err) {
-    alert(err.message);
+  } catch (error) {
+    alert(error.message);
   }
 };
 
-window.signup = async function () {
+window.signup = async function() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-    // save user to Firestore
-    await setDoc(doc(db, "users", userCred.user.uid), {
+    // ✅ SAVE USER TO FIRESTORE
+    await setDoc(doc(db, "users", userCredential.user.uid), {
       email: email,
-      name: email
+      name: email,
+      createdAt: new Date()
     });
 
-    alert("Account created");
+    alert("Account created successfully!");
     window.location.href = "index.html";
-  } catch (err) {
-    alert(err.message);
-  }
-};
 
-window.goHome = function () {
-  window.location.href = "index.html";
+  } catch (error) {
+    alert(error.message);
+  }
 };
 </script>
 
