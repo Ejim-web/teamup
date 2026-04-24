@@ -15,20 +15,17 @@
       background: #176b5c;
       color: white;
       text-align: center;
-      padding: 20px;
-    }
-
-    button {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      padding: 25px;
     }
 
     .logout {
       background: red;
       color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
       margin-top: 10px;
+      cursor: pointer;
     }
 
     .section {
@@ -39,30 +36,46 @@
       background: white;
       padding: 15px;
       margin: 10px 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
     }
 
     .add-btn {
       background: #176b5c;
       color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
       margin-top: 10px;
+      cursor: pointer;
     }
 
     .pending {
       background: gray;
       color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-top: 10px;
     }
 
     .accept {
       background: green;
       color: white;
-      margin-right: 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      margin-right: 10px;
+      cursor: pointer;
     }
 
     .reject {
       background: red;
       color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -84,12 +97,7 @@
   <div id="users">Loading...</div>
 </div>
 
-<div class="section">
-  <h3>Friends</h3>
-  <div id="friends">Coming soon...</div>
-</div>
-
-<!-- Firebase v8 -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -99,59 +107,92 @@ const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUserId = null;
+let requestsMap = {};
 
 // ✅ AUTH
 firebase.auth().onAuthStateChanged(user => {
-  if (user) {
+  if(user){
     currentUserId = user.uid;
-    loadUsers();
     loadRequests();
+    loadUsers();
   } else {
-    window.location.replace("login.html");
+    window.location.href = "index.html";
   }
 });
 
+// ✅ LOAD REQUESTS
+function loadRequests(){
+  db.collection("friendRequests").onSnapshot(snapshot => {
+    const reqDiv = document.getElementById("requests");
+    reqDiv.innerHTML = "";
+    requestsMap = {};
+
+    let hasRequest = false;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      // Save all requests
+      requestsMap[data.from + "_" + data.to] = data.status;
+
+      // Incoming requests
+      if(data.to === currentUserId && data.status === "pending"){
+        hasRequest = true;
+
+        db.collection("users").doc(data.from).get().then(userDoc => {
+          const user = userDoc.data();
+
+          reqDiv.innerHTML += `
+            <div class="card">
+              <b>${user?.name || "Unknown User"}</b><br><br>
+              <button class="accept" onclick="accept('${doc.id}')">Accept</button>
+              <button class="reject" onclick="reject('${doc.id}')">Reject</button>
+            </div>
+          `;
+        });
+      }
+    });
+
+    if(!hasRequest){
+      reqDiv.innerHTML = "No requests";
+    }
+
+    loadUsers(); // refresh UI
+  });
+}
 
 // ✅ LOAD USERS
-function loadUsers() {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "Loading...";
-
-  db.collection("users").get().then(async snapshot => {
+function loadUsers(){
+  db.collection("users").get().then(snapshot => {
+    const usersDiv = document.getElementById("users");
     usersDiv.innerHTML = "";
 
-    for (const doc of snapshot.docs) {
-      if (doc.id === currentUserId) continue;
+    snapshot.forEach(doc => {
+      if(doc.id === currentUserId) return;
 
       const data = doc.data();
       const name = data.name || "No Name";
       const email = data.email || "No Email";
 
-      // check pending
-      const req = await db.collection("friendRequests")
-        .where("from", "==", currentUserId)
-        .where("to", "==", doc.id)
-        .where("status", "==", "pending")
-        .get();
+      const sent = requestsMap[currentUserId + "_" + doc.id];
+      const received = requestsMap[doc.id + "_" + currentUserId];
 
-      let button = `
-        <button class="add-btn" onclick="addFriend('${doc.id}')">
-          Add Friend
-        </button>
-      `;
+      let button = "";
 
-      if (!req.empty) {
-        button = `<button class="pending">Pending ⏳</button>`;
+      if(sent === "pending"){
+        button = `<div class="pending">Pending ⏳</div>`;
+      }
+      else if(received === "pending"){
+        button = `<div class="pending">Pending ⏳</div>`;
+      }
+      else{
+        button = `<button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>`;
       }
 
       usersDiv.innerHTML += `
@@ -161,103 +202,44 @@ function loadUsers() {
           ${button}
         </div>
       `;
-    }
-  }).catch(err => {
-    usersDiv.innerHTML = "Error loading users";
-    console.log(err);
+    });
   });
 }
 
+// ✅ SEND REQUEST (NO DUPLICATE)
+function addFriend(userId){
+  const id = currentUserId + "_" + userId;
 
-// ✅ SEND REQUEST
-function addFriend(userId) {
-  db.collection("friendRequests").add({
+  db.collection("friendRequests").doc(id).set({
     from: currentUserId,
     to: userId,
     status: "pending"
   })
-  .then(() => {
-    alert("Request sent");
-    loadUsers();
-  });
+  .then(() => alert("Friend request sent"));
 }
-
-
-// ✅ LOAD REQUESTS WITH USER NAME
-function loadRequests() {
-  const reqDiv = document.getElementById("requests");
-  reqDiv.innerHTML = "Loading...";
-
-  db.collection("friendRequests")
-    .where("to", "==", currentUserId)
-    .where("status", "==", "pending")
-    .get()
-    .then(async snapshot => {
-
-      if (snapshot.empty) {
-        reqDiv.innerHTML = "No requests";
-        return;
-      }
-
-      reqDiv.innerHTML = "";
-
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-
-        // get sender info
-        const userDoc = await db.collection("users").doc(data.from).get();
-        const userData = userDoc.data() || {};
-
-        const name = userData.name || "Unknown User";
-
-        reqDiv.innerHTML += `
-          <div class="card">
-            <b>${name}</b><br><br>
-            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
-            <button class="reject" onclick="rejectRequest('${doc.id}')">Reject</button>
-          </div>
-        `;
-      }
-    })
-    .catch(err => {
-      reqDiv.innerHTML = "Error loading requests";
-      console.log(err);
-    });
-}
-
 
 // ✅ ACCEPT
-function acceptRequest(id) {
+function accept(id){
   db.collection("friendRequests").doc(id).update({
     status: "accepted"
-  }).then(() => {
-    alert("Friend added");
-    loadRequests();
-    loadUsers();
   });
 }
-
 
 // ✅ REJECT
-function rejectRequest(id) {
-  db.collection("friendRequests").doc(id).delete()
-  .then(() => {
-    loadRequests();
-  });
+function reject(id){
+  db.collection("friendRequests").doc(id).delete();
 }
 
-
-// ✅ LOGOUT (FIXED PROPERLY)
-function logout() {
+// ✅ LOGOUT FIXED
+function logout(){
   firebase.auth().signOut()
-    .then(() => {
-      alert("Logged out");
-      window.location.href = "login.html";
-    })
-    .catch(error => {
-      console.log(error);
-      alert("Logout failed");
-    });
+  .then(() => {
+    window.location.replace("index.html");
+  })
+  .catch(err => {
+    alert("Logout failed");
+    console.log(err);
+  });
 }
 </script>
 
