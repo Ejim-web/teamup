@@ -59,95 +59,170 @@
 </div>
 
 <div class="container">
+
+  <h3>Friend Requests</h3>
+  <div id="requests"></div>
+
+  <h3>Friends</h3>
+  <div id="friendsList"></div>
+
   <h3>All Users</h3>
   <div id="users"></div>
+
 </div>
 
-<!-- ✅ Firebase (COMPAT VERSION - STABLE) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
-  // 🔥 Your config
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.firebasestorage.app",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.firebasestorage.app",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
+};
 
-  // ✅ Initialize once
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUserId = null;
+
+// 🔐 AUTH
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = "login.html";
+  } else {
+    currentUserId = user.uid;
+
+    loadUsers();
+    loadRequests();
+    loadFriends();
   }
+});
 
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  // ✅ Check login state
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "login.html";
-    } else {
-      loadUsers(user.uid);
-    }
+// 🚪 LOGOUT
+function logoutUser() {
+  auth.signOut().then(() => {
+    window.location.href = "login.html";
   });
+}
 
-  // ✅ LOGOUT (FIXED)
-  function logoutUser() {
-    auth.signOut()
-      .then(() => {
-        alert("Logged out successfully");
-        window.location.href = "login.html";
-      })
-      .catch(error => {
-        alert("Logout error: " + error.message);
-      });
-  }
+// 👥 LOAD USERS
+function loadUsers() {
+  const div = document.getElementById("users");
+  div.innerHTML = "";
 
-  // 👥 Load users
-  function loadUsers(currentUserId) {
-    db.collection("users").get().then(snapshot => {
-      let html = "";
-
-      snapshot.forEach(doc => {
+  db.collection("users").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      if (doc.id !== currentUserId) {
         const user = doc.data();
 
-        if (doc.id !== currentUserId) {
-          html += `
-            <div class="card">
-              <p>${user.name || user.email}</p>
-              <button onclick="sendRequest('${doc.id}')">Add Friend</button>
-            </div>
-          `;
-        }
+        div.innerHTML += `
+          <div class="card">
+            <p>${user.name || user.email}</p>
+            <button onclick="sendRequest('${doc.id}')">Add Friend</button>
+          </div>
+        `;
+      }
+    });
+  });
+}
+
+// 📩 SEND REQUEST
+function sendRequest(toId) {
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: toId,
+    status: "pending"
+  }).then(() => {
+    alert("Request sent");
+  });
+}
+
+// 📥 LOAD REQUESTS
+function loadRequests() {
+  const div = document.getElementById("requests");
+
+  db.collection("friendRequests")
+    .where("to", "==", currentUserId)
+    .where("status", "==", "pending")
+    .onSnapshot(snapshot => {
+
+      div.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+
+        div.innerHTML += `
+          <div class="card">
+            <p>Request from: ${data.from}</p>
+            <button onclick="acceptRequest('${doc.id}', '${data.from}')">Accept</button>
+          </div>
+        `;
       });
-
-      document.getElementById("users").innerHTML = html;
     });
-  }
+}
 
-  // 📩 Send request
-  function sendRequest(toUserId) {
-    const currentUser = auth.currentUser;
+// ✅ ACCEPT REQUEST (REAL FRIEND SYSTEM)
+function acceptRequest(requestId, fromUserId) {
 
-    db.collection("friendRequests").add({
-      from: currentUser.uid,
-      to: toUserId,
-      status: "pending"
-    })
-    .then(() => {
-      alert("Friend request sent!");
-    })
-    .catch(err => {
-      alert(err.message);
+  const userA = currentUserId;
+  const userB = fromUserId;
+
+  const friendId =
+    userA < userB ? userA + "_" + userB : userB + "_" + userA;
+
+  // Save friendship
+  db.collection("friends").doc(friendId).set({
+    users: [userA, userB]
+  });
+
+  // Update request
+  db.collection("friendRequests").doc(requestId).update({
+    status: "accepted"
+  });
+
+  alert("Now friends!");
+}
+
+// 🤝 LOAD FRIENDS
+function loadFriends() {
+  const div = document.getElementById("friendsList");
+
+  db.collection("friends")
+    .where("users", "array-contains", currentUserId)
+    .onSnapshot(snapshot => {
+
+      div.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const friendId = data.users.find(id => id !== currentUserId);
+
+        div.innerHTML += `
+          <div class="card">
+            <p>Friend: ${friendId}</p>
+            <button onclick="startChat('${friendId}')">Chat</button>
+          </div>
+        `;
+      });
     });
-  }
+}
+
+// 💬 CHAT NAVIGATION
+function startChat(friendId) {
+  window.location.href = "chatRoom.html?user=" + friendId;
+}
 </script>
 
 </body>
-  </html>
+</html>
