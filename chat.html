@@ -5,24 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body { font-family: Arial; margin: 0; background: #f2f2f2; }
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f2f2f2;
+    }
 
-    header {
-      background: #0f6d5b;
+    .header {
+      background: #0f6d5c;
       color: white;
       padding: 15px;
       text-align: center;
     }
 
-    button {
-      padding: 10px;
+    .logout {
+      background: red;
       border: none;
+      padding: 10px 20px;
+      color: white;
+      margin-top: 10px;
       border-radius: 5px;
-      margin-top: 5px;
     }
-
-    .logout { background: red; color: white; }
-    .addBtn { background: #0f6d5b; color: white; }
 
     .card {
       background: white;
@@ -31,49 +34,44 @@
       border-radius: 10px;
     }
 
-    #chatBox {
-      display: none;
-      padding: 10px;
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #0f6d5c;
+      color: white;
     }
 
-    #messages {
-      background: white;
-      height: 300px;
-      overflow: auto;
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 10px;
+    .pending {
+      background: gray;
+    }
+
+    .accept {
+      background: orange;
     }
   </style>
 </head>
 
 <body>
 
-<header>
+<div class="header">
   <h2>TeamUp Global</h2>
   <button class="logout" onclick="logout()">Logout</button>
-</header>
-
-<h3 style="padding-left:10px;">Friend Requests</h3>
-<div id="requests"></div>
-
-<h3 style="padding-left:10px;">All Users</h3>
-<div id="users"></div>
-
-<h3 style="padding-left:10px;">Friends (Click to Chat)</h3>
-<div id="friendsList"></div>
-
-<h3 style="padding-left:10px;">Chat</h3>
-<div id="chatBox">
-  <div id="messages"></div>
-  <input id="msgInput" placeholder="Type message..." style="width:70%; padding:10px;">
-  <button onclick="sendMessage()">Send</button>
 </div>
 
+<h3 style="padding:10px;">Friend Requests</h3>
+<div id="requests"></div>
+
+<h3 style="padding:10px;">All Users</h3>
+<div id="users"></div>
+
+<h3 style="padding:10px;">Friends (Click to Chat)</h3>
+<div id="friends"></div>
+
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -90,238 +88,206 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUserId = null;
-let currentChatId = null;
+let currentUser;
 
 auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUserId = user.uid;
-
+  if (!user) {
+    window.location.href = "login.html";
+  } else {
+    currentUser = user;
     loadUsers();
     loadRequests();
     loadFriends();
-  } else {
-    window.location.href = "login.html";
   }
 });
 
-
-// 🔴 LOGOUT
 function logout() {
-  auth.signOut()
-    .then(() => window.location.href = "login.html")
-    .catch(err => alert(err.message));
+  auth.signOut().then(() => {
+    window.location.href = "login.html";
+  });
 }
 
+/* ================= USERS ================= */
 
-// 🔍 LOAD USERS
 function loadUsers() {
-  const div = document.getElementById("users");
+  db.collection("users").get().then(snapshot => {
+    const usersDiv = document.getElementById("users");
+    usersDiv.innerHTML = "";
 
-  db.collection("users").onSnapshot(async snapshot => {
-    div.innerHTML = "";
-
-    for (const doc of snapshot.docs) {
-      if (doc.id === currentUserId) continue;
-
+    snapshot.forEach(doc => {
       const user = doc.data();
-      let button = "";
+      const uid = doc.id;
 
-      // check friends
-      const friendsSnap = await db.collection("friends")
-        .where("users", "array-contains", currentUserId)
-        .get();
+      if (uid === currentUser.uid) return;
+
+      checkRelationship(uid, user.name || user.email);
+    });
+  });
+}
+
+/* ================= CHECK RELATION ================= */
+
+function checkRelationship(otherUid, name) {
+
+  // Check if already friends
+  db.collection("friends")
+    .where("users", "array-contains", currentUser.uid)
+    .get()
+    .then(snapshot => {
 
       let isFriend = false;
 
-      friendsSnap.forEach(f => {
-        if (f.data().users.includes(doc.id)) {
+      snapshot.forEach(doc => {
+        if (doc.data().users.includes(otherUid)) {
           isFriend = true;
         }
       });
 
       if (isFriend) {
-        button = `<button disabled>Friends ✅</button>`;
-      } else {
-
-        const requestId = currentUserId + "_" + doc.id;
-        const reverseId = doc.id + "_" + currentUserId;
-
-        const sent = await db.collection("friendRequests").doc(requestId).get();
-        const received = await db.collection("friendRequests").doc(reverseId).get();
-
-        if (sent.exists) {
-          button = `<button disabled>Pending ⏳</button>`;
-        } else if (received.exists) {
-          button = `<button onclick="acceptRequest('${reverseId}', '${doc.id}')">Accept</button>`;
-        } else {
-          button = `<button class="addBtn" onclick="sendRequest('${doc.id}')">Add Friend</button>`;
-        }
+        return;
       }
 
-      div.innerHTML += `
-        <div class="card">
-          <p>${user.name || user.email}</p>
-          ${button}
-        </div>
-      `;
-    }
-  });
-}
+      // Check if I sent request
+      db.collection("friendRequests")
+        .where("from", "==", currentUser.uid)
+        .where("to", "==", otherUid)
+        .get()
+        .then(sentSnap => {
 
+          if (!sentSnap.empty) {
+            renderUser(name, otherUid, "pending");
+            return;
+          }
 
-// 📤 SEND REQUEST
-function sendRequest(toId) {
-  const requestId = currentUserId + "_" + toId;
+          // Check if THEY sent request
+          db.collection("friendRequests")
+            .where("from", "==", otherUid)
+            .where("to", "==", currentUser.uid)
+            .get()
+            .then(receivedSnap => {
 
-  db.collection("friendRequests").doc(requestId).get().then(doc => {
-    if (doc.exists) {
-      alert("Already sent");
-    } else {
-      db.collection("friendRequests").doc(requestId).set({
-        from: currentUserId,
-        to: toId,
-        status: "pending"
-      }).then(() => alert("Request sent"));
-    }
-  });
-}
+              if (!receivedSnap.empty) {
+                renderUser(name, otherUid, "accept", receivedSnap.docs[0].id);
+              } else {
+                renderUser(name, otherUid, "add");
+              }
 
+            });
 
-// 📥 LOAD REQUESTS (FIXED)
-function loadRequests() {
-  const div = document.getElementById("requests");
+        });
 
-  db.collection("friendRequests")
-    .where("to", "==", currentUserId)
-    .onSnapshot(async snapshot => {
-
-      div.innerHTML = "";
-
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-
-        if (data.status !== "pending") continue;
-
-        const userDoc = await db.collection("users").doc(data.from).get();
-        const userData = userDoc.data();
-
-        div.innerHTML += `
-          <div class="card">
-            <p>Request from: ${userData.name || userData.email}</p>
-            <button onclick="acceptRequest('${doc.id}', '${data.from}')">Accept</button>
-          </div>
-        `;
-      }
     });
 }
 
+/* ================= RENDER USER ================= */
 
-// ✅ ACCEPT REQUEST
-function acceptRequest(requestId, fromId) {
-  const friendId = currentUserId + "_" + fromId;
+function renderUser(name, uid, type, requestId = null) {
+  const usersDiv = document.getElementById("users");
 
-  db.collection("friends").doc(friendId).set({
-    users: [currentUserId, fromId]
-  }).then(() => {
-    db.collection("friendRequests").doc(requestId).delete();
-    alert("Friend added");
-  });
-}
+  let button = "";
 
-
-// 👥 LOAD FRIENDS (CLICK TO CHAT)
-function loadFriends() {
-  const div = document.getElementById("friendsList");
-
-  db.collection("friends")
-    .where("users", "array-contains", currentUserId)
-    .onSnapshot(async snapshot => {
-
-      div.innerHTML = "";
-
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        const friendId = data.users.find(id => id !== currentUserId);
-
-        const userDoc = await db.collection("users").doc(friendId).get();
-        const userData = userDoc.data();
-
-        div.innerHTML += `
-          <div class="card" onclick="openChat('${friendId}')">
-            <p>${userData.name || userData.email}</p>
-          </div>
-        `;
-      }
-    });
-}
-
-
-// 💬 OPEN CHAT
-async function openChat(friendId) {
-
-  const ids = [currentUserId, friendId].sort();
-  currentChatId = ids[0] + "_" + ids[1];
-
-  const chatRef = db.collection("chats").doc(currentChatId);
-  const chatDoc = await chatRef.get();
-
-  if (!chatDoc.exists) {
-    await chatRef.set({
-      participants: ids
-    });
+  if (type === "add") {
+    button = `<button onclick="addFriend('${uid}')">Add Friend</button>`;
   }
 
-  document.getElementById("chatBox").style.display = "block";
+  if (type === "pending") {
+    button = `<button class="pending">Pending ⏳</button>`;
+  }
 
-  loadMessages();
+  if (type === "accept") {
+    button = `<button class="accept" onclick="acceptRequest('${requestId}', '${uid}')">Accept</button>`;
+  }
+
+  usersDiv.innerHTML += `
+    <div class="card">
+      ${name}<br><br>
+      ${button}
+    </div>
+  `;
 }
 
+/* ================= ADD FRIEND ================= */
 
-// 📥 LOAD MESSAGES
-function loadMessages() {
-  const div = document.getElementById("messages");
+function addFriend(uid) {
+  db.collection("friendRequests").add({
+    from: currentUser.uid,
+    to: uid,
+    status: "pending"
+  }).then(() => {
+    alert("Request sent");
+    loadUsers();
+  });
+}
 
-  db.collection("chats")
-    .doc(currentChatId)
-    .collection("messages")
-    .orderBy("time")
+/* ================= LOAD REQUESTS ================= */
+
+function loadRequests() {
+  db.collection("friendRequests")
+    .where("to", "==", currentUser.uid)
+    .where("status", "==", "pending")
     .onSnapshot(snapshot => {
 
+      const div = document.getElementById("requests");
       div.innerHTML = "";
 
       snapshot.forEach(doc => {
-        const msg = doc.data();
-        const align = msg.sender === currentUserId ? "right" : "left";
+        const data = doc.data();
 
         div.innerHTML += `
-          <p style="text-align:${align};">${msg.text}</p>
+          <div class="card">
+            Request from: ${data.from}<br><br>
+            <button onclick="acceptRequest('${doc.id}', '${data.from}')">Accept</button>
+          </div>
         `;
       });
-
-      div.scrollTop = div.scrollHeight;
     });
 }
 
+/* ================= ACCEPT ================= */
 
-// 📤 SEND MESSAGE
-function sendMessage() {
-  const input = document.getElementById("msgInput");
-  const text = input.value;
+function acceptRequest(requestId, otherUid) {
 
-  if (!text) return;
+  db.collection("friends").add({
+    users: [currentUser.uid, otherUid]
+  });
 
-  db.collection("chats")
-    .doc(currentChatId)
-    .collection("messages")
-    .add({
-      text: text,
-      sender: currentUserId,
-      time: Date.now()
-    });
+  db.collection("friendRequests").doc(requestId).delete();
 
-  input.value = "";
+  loadUsers();
+  loadFriends();
 }
+
+/* ================= FRIENDS ================= */
+
+function loadFriends() {
+  db.collection("friends")
+    .where("users", "array-contains", currentUser.uid)
+    .onSnapshot(snapshot => {
+
+      const div = document.getElementById("friends");
+      div.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const users = doc.data().users;
+        const friendId = users.find(u => u !== currentUser.uid);
+
+        div.innerHTML += `
+          <div class="card" onclick="openChat('${doc.id}', '${friendId}')">
+            Friend: ${friendId}
+          </div>
+        `;
+      });
+    });
+}
+
+/* ================= CHAT ================= */
+
+function openChat(chatId, friendId) {
+  localStorage.setItem("chatId", chatId);
+  localStorage.setItem("friendId", friendId);
+  window.location.href = "messages.html";
+}
+
 </script>
 
 </body>
