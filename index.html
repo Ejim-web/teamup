@@ -8,11 +8,11 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: #f2f2f2;
+      background: #f0f2f5;
     }
 
-    .header {
-      background: #075e54;
+    header {
+      background: #075E54;
       color: white;
       padding: 15px;
       text-align: center;
@@ -20,8 +20,8 @@
       font-weight: bold;
     }
 
-    .welcome {
-      padding: 15px;
+    #welcome {
+      padding: 10px;
       background: #ddd;
       font-weight: bold;
     }
@@ -34,45 +34,57 @@
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      border-radius: 25px;
+      border-radius: 20px;
       border: none;
-      background: #e0e0e0;
+      background: #eee;
     }
 
     button {
       width: 100%;
       padding: 12px;
-      margin: 8px 0;
-      border-radius: 25px;
+      margin: 5px 0;
       border: none;
-      background: #25d366;
+      border-radius: 25px;
+      background: #25D366;
       color: white;
       font-size: 16px;
+      font-weight: bold;
+    }
+
+    #usersList {
+      margin-top: 10px;
     }
 
     .user {
       display: flex;
       align-items: center;
-      padding: 15px;
-      border-bottom: 1px solid #ccc;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
       background: white;
+      cursor: pointer;
+    }
+
+    .user:hover {
+      background: #f5f5f5;
     }
 
     .avatar {
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      background: #25d366;
+      background: #25D366;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-right: 10px;
       font-weight: bold;
+      margin-right: 12px;
+      font-size: 18px;
     }
 
     .user-info {
-      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .name {
@@ -80,17 +92,17 @@
     }
 
     .sub {
+      font-size: 12px;
       color: gray;
-      font-size: 13px;
     }
   </style>
 </head>
 
 <body>
 
-<div class="header">TeamUp Global</div>
+<header>TeamUp Global</header>
 
-<div class="welcome" id="welcome">Welcome Guest</div>
+<div id="welcome">Welcome Guest</div>
 
 <div class="form">
   <input type="text" id="name" placeholder="Name">
@@ -106,18 +118,13 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-  import {
     getFirestore,
     collection,
     addDoc,
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+  // ✅ YOUR FIREBASE CONFIG (UNCHANGED)
   const firebaseConfig = {
     apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
     authDomain: "teamup-68a21.firebaseapp.com",
@@ -129,93 +136,70 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
   const db = getFirestore(app);
 
-  const welcome = document.getElementById("welcome");
   const usersList = document.getElementById("usersList");
-
-  // ✅ LOAD CURRENT USER
-  const savedEmail = localStorage.getItem("userEmail");
-  if (savedEmail) {
-    welcome.innerText = "Welcome " + savedEmail;
-    loadUsers();
-  }
+  const welcome = document.getElementById("welcome");
+  const form = document.querySelector(".form");
 
   // ✅ SIGN UP
   window.signUp = async () => {
     const name = document.getElementById("name").value;
     const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
 
-    if (!name || !email || !password) {
-      alert("Fill all fields");
-      return;
-    }
+    if (!email) return alert("Enter email");
 
-    try {
-      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    await addDoc(collection(db, "users"), {
+      name,
+      email
+    });
 
-      // SAVE USER TO FIRESTORE
-      await addDoc(collection(db, "users"), {
-        name: name,
-        email: email,
-        photo: ""
-      });
+    localStorage.setItem("userEmail", email);
 
-      // SAVE LOGIN
-      localStorage.setItem("userEmail", email);
-
-      alert("Signup successful");
-      location.reload();
-
-    } catch (err) {
-      alert(err.message);
-    }
+    location.reload();
   };
 
   // ✅ LOGIN
   window.login = async () => {
     const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
+    if (!email) return alert("Enter email");
 
-      localStorage.setItem("userEmail", email);
+    localStorage.setItem("userEmail", email);
 
-      alert("Login successful");
-      location.reload();
-
-    } catch (err) {
-      alert(err.message);
-    }
+    location.reload();
   };
 
-  // ✅ LOAD USERS
+  // ✅ LOAD USERS (FIXED)
   async function loadUsers() {
     usersList.innerHTML = "";
+
+    const currentEmail = localStorage.getItem("userEmail");
 
     const snap = await getDocs(collection(db, "users"));
 
     snap.forEach(doc => {
       const data = doc.data();
 
-      if (data.email === localStorage.getItem("userEmail")) return;
+      // ❌ REMOVE YOURSELF
+      if (data.email === currentEmail) return;
 
       const div = document.createElement("div");
       div.className = "user";
 
       const avatar = document.createElement("div");
       avatar.className = "avatar";
-      avatar.innerText = (data.name || data.email)[0].toUpperCase();
+
+      const displayName = data.name || data.email;
+
+      avatar.innerText = displayName.charAt(0).toUpperCase();
 
       const info = document.createElement("div");
       info.className = "user-info";
 
       const name = document.createElement("div");
       name.className = "name";
-      name.innerText = data.name || data.email;
+      name.innerText = displayName;
 
       const sub = document.createElement("div");
       sub.className = "sub";
@@ -227,17 +211,28 @@
       div.appendChild(avatar);
       div.appendChild(info);
 
-      // 👉 OPEN CHAT
       div.onclick = () => {
         localStorage.setItem("chatUserEmail", data.email);
-        localStorage.setItem("chatUserName", data.name);
+        localStorage.setItem("chatUserName", displayName);
         window.location.href = "chat.html";
       };
 
       usersList.appendChild(div);
     });
   }
+
+  // ✅ AUTO LOGIN CHECK
+  const savedEmail = localStorage.getItem("userEmail");
+
+  if (savedEmail) {
+    welcome.innerText = "Welcome " + savedEmail;
+    form.style.display = "none"; // 🔥 FIX
+    loadUsers();
+  } else {
+    welcome.innerText = "Welcome Guest";
+  }
+
 </script>
 
 </body>
-  </html>
+</html>
