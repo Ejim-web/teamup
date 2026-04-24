@@ -12,7 +12,7 @@
     }
 
     .header {
-      background: #0f6d5f;
+      background: #0f6d5c;
       color: white;
       padding: 15px;
       text-align: center;
@@ -22,30 +22,31 @@
       background: red;
       color: white;
       border: none;
-      padding: 10px 15px;
+      padding: 10px;
       margin-top: 10px;
-      cursor: pointer;
       border-radius: 5px;
+      cursor: pointer;
     }
 
     .container {
       padding: 15px;
     }
 
-    .user-card {
+    .card {
       background: white;
       padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 8px;
+      margin: 10px 0;
+      border-radius: 10px;
     }
 
     button {
-      background: #0f6d5f;
-      color: white;
+      padding: 8px;
       border: none;
-      padding: 8px 12px;
       border-radius: 5px;
+      margin-top: 5px;
       cursor: pointer;
+      background: #0f6d5c;
+      color: white;
     }
   </style>
 </head>
@@ -54,21 +55,21 @@
 
 <div class="header">
   <h2>TeamUp Global</h2>
-  <button class="logout-btn" onclick="logout()">Logout</button>
+  <button class="logout-btn" onclick="logoutUser()">Logout</button>
 </div>
 
 <div class="container">
   <h3>All Users</h3>
-  <div id="usersList"></div>
+  <div id="users"></div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<!-- ✅ Firebase (COMPAT VERSION - STABLE) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
-  // ✅ YOUR CONFIG (correct one)
+  // 🔥 Your config
   const firebaseConfig = {
     apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
     authDomain: "teamup-68a21.firebaseapp.com",
@@ -79,7 +80,7 @@
     measurementId: "G-EJ59MW0TMC"
   };
 
-  // ✅ Initialize Firebase ONLY ONCE
+  // ✅ Initialize once
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
@@ -87,28 +88,28 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // ✅ CHECK LOGIN STATE
+  // ✅ Check login state
   auth.onAuthStateChanged(user => {
     if (!user) {
-      window.location.href = "index.html";
+      window.location.href = "login.html";
     } else {
       loadUsers(user.uid);
     }
   });
 
   // ✅ LOGOUT (FIXED)
-  function logout() {
+  function logoutUser() {
     auth.signOut()
       .then(() => {
         alert("Logged out successfully");
-        window.location.href = "index.html";
+        window.location.href = "login.html";
       })
       .catch(error => {
         alert("Logout error: " + error.message);
       });
   }
 
-  // ✅ LOAD USERS
+  // 👥 Load users
   function loadUsers(currentUserId) {
     db.collection("users").get().then(snapshot => {
       let html = "";
@@ -116,40 +117,37 @@
       snapshot.forEach(doc => {
         const user = doc.data();
 
-        if (user.uid !== currentUserId) {
+        if (doc.id !== currentUserId) {
           html += `
-            <div class="user-card">
+            <div class="card">
               <p>${user.name || user.email}</p>
-              <button onclick="addFriend('${user.uid}')">Add Friend</button>
+              <button onclick="sendRequest('${doc.id}')">Add Friend</button>
             </div>
           `;
         }
       });
 
-      document.getElementById("usersList").innerHTML = html;
+      document.getElementById("users").innerHTML = html;
     });
   }
 
-  // ✅ ADD FRIEND
-  function addFriend(toUserId) {
+  // 📩 Send request
+  function sendRequest(toUserId) {
     const currentUser = auth.currentUser;
-
-    if (!currentUser) {
-      alert("Not logged in");
-      return;
-    }
 
     db.collection("friendRequests").add({
       from: currentUser.uid,
       to: toUserId,
       status: "pending"
-    }).then(() => {
+    })
+    .then(() => {
       alert("Friend request sent!");
-    }).catch(err => {
+    })
+    .catch(err => {
       alert(err.message);
     });
   }
 </script>
 
 </body>
-</html>
+  </html>
