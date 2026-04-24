@@ -7,12 +7,12 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #e5ddd5;
+      font-family: Arial;
+      background: #f2f2f2;
     }
 
-    header {
-      background: #075E54;
+    .header {
+      background: #075e54;
       color: white;
       padding: 15px;
       text-align: center;
@@ -21,47 +21,58 @@
     }
 
     .welcome {
-      padding: 10px;
-      background: #d9d9d9;
+      padding: 15px;
+      background: #ddd;
       font-weight: bold;
     }
 
-    .upload-box {
-      padding: 10px;
-      background: #fff;
-      display: flex;
-      gap: 10px;
+    .form {
+      padding: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 25px;
+      border: none;
+      background: #e0e0e0;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 25px;
+      border: none;
+      background: #25d366;
+      color: white;
+      font-size: 16px;
     }
 
     .user {
       display: flex;
       align-items: center;
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    .user:hover {
-      background: #f5f5f5;
+      padding: 15px;
+      border-bottom: 1px solid #ccc;
+      background: white;
     }
 
     .avatar {
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      margin-right: 12px;
-      object-fit: cover;
+      background: #25d366;
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      margin-right: 10px;
       font-weight: bold;
     }
 
     .user-info {
-      display: flex;
-      flex-direction: column;
+      flex: 1;
     }
 
     .name {
@@ -69,143 +80,164 @@
     }
 
     .sub {
-      font-size: 12px;
       color: gray;
+      font-size: 13px;
     }
   </style>
 </head>
 
 <body>
 
-<header>TeamUp Global</header>
+<div class="header">TeamUp Global</div>
 
-<div class="welcome" id="welcome"></div>
+<div class="welcome" id="welcome">Welcome Guest</div>
 
-<div class="upload-box">
-  <input type="file" id="fileInput" accept="image/*">
-  <button onclick="uploadImage()">Upload</button>
+<div class="form">
+  <input type="text" id="name" placeholder="Name">
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button onclick="signUp()">Sign Up</button>
+  <button onclick="login()">Login</button>
 </div>
 
 <div id="usersList"></div>
 
 <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-  authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+    measurementId: "G-EJ59MW0TMC"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-/* UI */
-const usersList = document.getElementById("usersList");
-const welcome = document.getElementById("welcome");
+  const welcome = document.getElementById("welcome");
+  const usersList = document.getElementById("usersList");
 
-/* FIX WELCOME NULL */
-let currentUserEmail = localStorage.getItem("userEmail");
-
-if (!currentUserEmail) {
-  currentUserEmail = "Guest";
-}
-
-welcome.innerText = "Welcome " + currentUserEmail;
-
-/* COLOR */
-function getColor(name) {
-  const colors = ["#25D366","#34B7F1","#FF6B6B","#FFA500","#6A5ACD","#20B2AA"];
-  return colors[name.charCodeAt(0) % colors.length];
-}
-
-/* LOAD USERS */
-async function loadUsers() {
-  const snap = await getDocs(collection(db, "users"));
-  usersList.innerHTML = "";
-
-  snap.forEach(docSnap => {
-    const data = docSnap.data();
-
-    if (data.email === currentUserEmail) return;
-
-    const name = data.name || data.email;
-    const initials = name.split(" ").map(n => n[0]).join("").toUpperCase();
-
-    const div = document.createElement("div");
-    div.className = "user";
-
-    let avatarHTML;
-
-    if (data.photo) {
-      avatarHTML = `<img src="${data.photo}" class="avatar">`;
-    } else {
-      avatarHTML = `
-        <div class="avatar" style="background:${getColor(name)}">
-          ${initials}
-        </div>`;
-    }
-
-    div.innerHTML = `
-      ${avatarHTML}
-      <div class="user-info">
-        <div class="name">${name}</div>
-        <div class="sub">Tap to chat</div>
-      </div>
-    `;
-
-    div.onclick = () => {
-      localStorage.setItem("chatUserId", docSnap.id);
-      localStorage.setItem("chatUserName", name);
-      window.location.href = "chat.html";
-    };
-
-    usersList.appendChild(div);
-  });
-}
-
-loadUsers();
-
-/* IMAGE UPLOAD */
-window.uploadImage = async function () {
-  const file = document.getElementById("fileInput").files[0];
-
-  if (!file) {
-    alert("Select image first");
-    return;
+  // ✅ LOAD CURRENT USER
+  const savedEmail = localStorage.getItem("userEmail");
+  if (savedEmail) {
+    welcome.innerText = "Welcome " + savedEmail;
+    loadUsers();
   }
 
-  const fileRef = ref(storage, "profiles/" + Date.now());
+  // ✅ SIGN UP
+  window.signUp = async () => {
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-  await uploadBytes(fileRef, file);
+    if (!name || !email || !password) {
+      alert("Fill all fields");
+      return;
+    }
 
-  const url = await getDownloadURL(fileRef);
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-  /* SAVE TO FIRESTORE */
-  const snap = await getDocs(collection(db, "users"));
-
-  for (const d of snap.docs) {
-    if (d.data().email === currentUserEmail) {
-      await updateDoc(doc(db, "users", d.id), {
-        photo: url
+      // SAVE USER TO FIRESTORE
+      await addDoc(collection(db, "users"), {
+        name: name,
+        email: email,
+        photo: ""
       });
+
+      // SAVE LOGIN
+      localStorage.setItem("userEmail", email);
+
+      alert("Signup successful");
+      location.reload();
+
+    } catch (err) {
+      alert(err.message);
     }
+  };
+
+  // ✅ LOGIN
+  window.login = async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+
+      localStorage.setItem("userEmail", email);
+
+      alert("Login successful");
+      location.reload();
+
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // ✅ LOAD USERS
+  async function loadUsers() {
+    usersList.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "users"));
+
+    snap.forEach(doc => {
+      const data = doc.data();
+
+      if (data.email === localStorage.getItem("userEmail")) return;
+
+      const div = document.createElement("div");
+      div.className = "user";
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.innerText = (data.name || data.email)[0].toUpperCase();
+
+      const info = document.createElement("div");
+      info.className = "user-info";
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.innerText = data.name || data.email;
+
+      const sub = document.createElement("div");
+      sub.className = "sub";
+      sub.innerText = "Tap to chat";
+
+      info.appendChild(name);
+      info.appendChild(sub);
+
+      div.appendChild(avatar);
+      div.appendChild(info);
+
+      // 👉 OPEN CHAT
+      div.onclick = () => {
+        localStorage.setItem("chatUserEmail", data.email);
+        localStorage.setItem("chatUserName", data.name);
+        window.location.href = "chat.html";
+      };
+
+      usersList.appendChild(div);
+    });
   }
-
-  alert("Profile updated!");
-  location.reload();
-};
-
 </script>
 
 </body>
-</html>
+  </html>
