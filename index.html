@@ -2,81 +2,155 @@
 <html>
 <head>
   <title>TeamUp Global</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f2f2f2;
+    }
+
+    header {
+      background: #176b5c;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .logout {
+      background: red;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .section {
+      padding: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .add-btn {
+      background: #176b5c;
+      color: white;
+      margin-top: 10px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>TeamUp Global</h2>
-<button onclick="logout()">Logout</button>
+<header>
+  <h2>TeamUp Global</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
 
-<h3>All Users</h3>
-<div id="users"></div>
+<div class="section">
+  <h3>All Users</h3>
+  <div id="users"></div>
+</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<div class="section">
+  <h3>Friends</h3>
+  <div id="friends"></div>
+</div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-  authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
-};
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.appspot.com",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+    measurementId: "G-EJ59MW0TMC"
+  };
 
-// CHECK LOGIN
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-  } else {
-    loadUsers(user.uid);
-  }
-});
+  firebase.initializeApp(firebaseConfig);
 
-// LOAD USERS
-async function loadUsers(currentUserId) {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "Loading...";
+  const db = firebase.firestore();
+  let currentUserId = null;
 
-  const snapshot = await getDocs(collection(db, "users"));
-
-  usersDiv.innerHTML = "";
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-
-    if (data.uid === currentUserId) return;
-
-    const name = data.name ? data.name : data.email;
-    const email = data.email ? data.email : "";
-
-    usersDiv.innerHTML += `
-      <div>
-        <h4>${name}</h4>
-        <p>${email}</p>
-        <button onclick="openChat('${data.uid}')">Chat</button>
-      </div>
-      <hr>
-    `;
+  // ✅ AUTH CHECK (FIXED)
+  firebase.auth().onAuthStateChanged(user => {
+    if(user){
+      currentUserId = user.uid;
+      loadUsers();
+    } else {
+      window.location.href = "login.html"; // ✅ correct page
+    }
   });
-}
 
-// OPEN CHAT
-window.openChat = function(uid) {
-  localStorage.setItem("chatUser", uid);
-  window.location.href = "chat.html";
-};
+  // ✅ LOAD USERS
+  function loadUsers(){
+    db.collection("users").get().then(snapshot => {
+      const usersDiv = document.getElementById("users");
+      usersDiv.innerHTML = "";
 
-// LOGOUT
-window.logout = async function () {
-  await signOut(auth);
-  window.location.href = "login.html";
-};
+      snapshot.forEach(doc => {
+        if(doc.id === currentUserId) return;
+
+        const data = doc.data();
+
+        const name = data.name || "No Name";
+        const email = data.email || "No Email";
+
+        usersDiv.innerHTML += `
+          <div class="card">
+            <b>${name}</b><br>
+            <small>${email}</small><br>
+            <button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>
+          </div>
+        `;
+      });
+    });
+  }
+
+  // ✅ ADD FRIEND
+  function addFriend(userId){
+    db.collection("friendRequests").add({
+      from: currentUserId,
+      to: userId,
+      status: "pending"
+    })
+    .then(() => {
+      alert("Friend request sent");
+    })
+    .catch(err => {
+      console.log(err);
+      alert("Error sending request");
+    });
+  }
+
+  // ✅ LOGOUT (FIXED)
+  function logout(){
+    firebase.auth().signOut()
+    .then(() => {
+      window.location.href = "login.html"; // ✅ correct page
+    })
+    .catch((error) => {
+      alert("Logout failed");
+      console.log(error);
+    });
+  }
 </script>
 
 </body>
