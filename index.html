@@ -11,208 +11,174 @@
       background: #f5f5f5;
     }
 
-    .header {
-      background: #0f6d5b;
+    header {
+      background: #0b6b57;
       color: white;
       padding: 15px;
       text-align: center;
-      font-size: 20px;
-    }
-
-    .section {
-      padding: 10px;
-    }
-
-    .user {
-      background: white;
-      padding: 12px;
-      margin-bottom: 8px;
-      border-radius: 8px;
     }
 
     button {
-      margin-top: 5px;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border: none;
       border-radius: 5px;
-      background: #0f6d5b;
-      color: white;
       cursor: pointer;
     }
 
-    .logout-btn {
+    .logout {
       background: red;
+      color: white;
+      margin-top: 10px;
     }
 
-    .requests {
-      background: #fff3cd;
+    .card {
+      background: white;
+      margin: 10px;
       padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+
+    .add {
+      background: #0b6b57;
+      color: white;
+    }
+
+    .accept {
+      background: green;
+      color: white;
+    }
+
+    .reject {
+      background: red;
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
-<div class="header">
-  TeamUp Global
-  <br>
-  <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
+<header>
+  <h2>TeamUp Global</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
 
-<div class="section">
-  <h3>Friend Requests</h3>
-  <div id="requests"></div>
-</div>
+<h3 style="padding:10px;">Friend Requests</h3>
+<div id="friendRequests"></div>
 
-<div class="section">
-  <h3>All Users</h3>
-  <div id="users"></div>
-</div>
+<h3 style="padding:10px;">All Users</h3>
+<div id="usersList"></div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { 
-    getAuth, 
-    onAuthStateChanged, 
-    signOut 
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  import { 
-    getFirestore, 
-    collection, 
-    onSnapshot, 
-    addDoc, 
-    query, 
-    where, 
-    doc, 
-    updateDoc, 
-    deleteDoc, 
-    arrayUnion 
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.firebasestorage.app",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
+};
 
-  // 🔥 YOUR CONFIG
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.firebasestorage.app",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+let currentUserId = null;
 
-  let currentUser;
+// CHECK LOGIN
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = "index.html";
+  } else {
+    currentUserId = user.uid;
+    loadUsers();
+    loadRequests();
+  }
+});
 
-  // ✅ AUTH CHECK
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-      loadUsers();
-      loadRequests();
-    } else {
-      window.location.href = "login.html";
-    }
+// LOGOUT
+function logout() {
+  auth.signOut().then(() => {
+    window.location.href = "index.html";
+  });
+}
+
+// LOAD USERS
+function loadUsers() {
+  db.collection("users").onSnapshot(snapshot => {
+    const list = document.getElementById("usersList");
+    list.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+
+      if (user.uid !== currentUserId) {
+        list.innerHTML += `
+          <div class="card">
+            <p>${user.name || user.email}</p>
+            <button class="add" onclick="sendRequest('${user.uid}')">
+              Add Friend
+            </button>
+          </div>
+        `;
+      }
+    });
+  });
+}
+
+// SEND REQUEST
+function sendRequest(toId) {
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: toId,
+    status: "pending"
   });
 
-  // 🔴 LOGOUT
-  window.logout = async function() {
-    await signOut(auth);
-    window.location.href = "login.html";
-  }
+  alert("Friend request sent!");
+}
 
-  // 👥 LOAD USERS
-  function loadUsers() {
-    const usersRef = collection(db, "users");
+// LOAD FRIEND REQUESTS
+function loadRequests() {
+  db.collection("friendRequests")
+    .where("to", "==", currentUserId)
+    .where("status", "==", "pending")
+    .onSnapshot(snapshot => {
 
-    onSnapshot(usersRef, (snapshot) => {
-      let html = "";
+      const container = document.getElementById("friendRequests");
+      container.innerHTML = "";
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
+      snapshot.forEach(doc => {
+        const data = doc.data();
 
-        if (docSnap.id !== currentUser.uid) {
-          html += `
-            <div class="user">
-              ${data.name || data.email}
-              <br>
-              <button onclick="sendRequest('${docSnap.id}')">Add Friend</button>
-            </div>
-          `;
-        }
-      });
-
-      document.getElementById("users").innerHTML = html;
-    });
-  }
-
-  // 📤 SEND REQUEST
-  window.sendRequest = async function(toUserId) {
-    await addDoc(collection(db, "friendRequests"), {
-      from: currentUser.uid,
-      to: toUserId,
-      status: "pending",
-      time: Date.now()
-    });
-
-    alert("Friend request sent!");
-  }
-
-  // 📥 LOAD REQUESTS
-  function loadRequests() {
-    const q = query(
-      collection(db, "friendRequests"),
-      where("to", "==", currentUser.uid),
-      where("status", "==", "pending")
-    );
-
-    onSnapshot(q, (snapshot) => {
-      let html = "";
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-
-        html += `
-          <div class="requests">
-            Request from: ${data.from}
-            <br><br>
-            <button onclick="acceptRequest('${docSnap.id}', '${data.from}')">Accept</button>
-            <button onclick="rejectRequest('${docSnap.id}')">Reject</button>
+        container.innerHTML += `
+          <div class="card">
+            <p>Request from: ${data.from}</p>
+            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
+            <button class="reject" onclick="rejectRequest('${doc.id}')">Reject</button>
           </div>
         `;
       });
-
-      document.getElementById("requests").innerHTML = html;
     });
-  }
+}
 
-  // ✅ ACCEPT REQUEST
-  window.acceptRequest = async function(id, senderId) {
-    await updateDoc(doc(db, "friendRequests", id), {
-      status: "accepted"
-    });
+// ACCEPT
+function acceptRequest(id) {
+  db.collection("friendRequests").doc(id).update({
+    status: "accepted"
+  });
+}
 
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      friends: arrayUnion(senderId)
-    });
-
-    await updateDoc(doc(db, "users", senderId), {
-      friends: arrayUnion(currentUser.uid)
-    });
-
-    alert("Friend added!");
-  }
-
-  // ❌ REJECT REQUEST
-  window.rejectRequest = async function(id) {
-    await deleteDoc(doc(db, "friendRequests", id));
-  }
-
+// REJECT
+function rejectRequest(id) {
+  db.collection("friendRequests").doc(id).update({
+    status: "rejected"
+  });
+}
 </script>
 
 </body>
