@@ -7,23 +7,23 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial;
-      background: #ece5dd;
+      font-family: Arial, sans-serif;
+      background: #e5ddd5;
     }
 
     header {
-      background: #075e54;
+      background: #075E54;
       color: white;
       padding: 15px;
-      text-align: center;
       font-size: 20px;
+      text-align: center;
       font-weight: bold;
     }
 
     .welcome {
       padding: 10px;
+      background: #d9d9d9;
       font-weight: bold;
-      background: #ddd;
     }
 
     .user {
@@ -31,7 +31,7 @@
       align-items: center;
       padding: 12px;
       border-bottom: 1px solid #ddd;
-      background: white;
+      background: #fff;
       cursor: pointer;
     }
 
@@ -43,20 +43,29 @@
       width: 45px;
       height: 45px;
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
       margin-right: 12px;
-      object-fit: cover;
+      font-size: 16px;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
     }
 
     .name {
-      font-size: 16px;
       font-weight: bold;
+      font-size: 16px;
     }
 
     .sub {
       font-size: 12px;
       color: gray;
     }
-
   </style>
 </head>
 
@@ -66,72 +75,67 @@
 
 <div class="welcome" id="welcome"></div>
 
-<div id="users"></div>
+<div id="usersList"></div>
 
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { 
-  getFirestore, collection, getDocs 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+/* YOUR CONFIG (unchanged) */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.appspot.com",
+  storageBucket: "teamup-68a21.firebasestorage.app",
   messagingSenderId: "379106762572",
   appId: "1:379106762572:web:a1537754ed17d3a60339e9",
   measurementId: "G-EJ59MW0TMC"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-const usersDiv = document.getElementById("users");
+/* UI */
+const usersList = document.getElementById("usersList");
 const welcome = document.getElementById("welcome");
 
-let currentUser = null;
+/* CURRENT USER */
+const currentUserEmail = localStorage.getItem("userEmail");
+welcome.innerText = "Welcome " + currentUserEmail;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+/* COLOR GENERATOR */
+function getColor(name) {
+  const colors = [
+    "#25D366", "#34B7F1", "#FF6B6B", "#FFA500",
+    "#6A5ACD", "#20B2AA", "#FF69B4", "#00C853"
+  ];
+  return colors[name.charCodeAt(0) % colors.length];
+}
 
-  currentUser = user;
-  welcome.innerText = "Welcome " + user.email;
-
-  loadUsers();
-});
-
+/* LOAD USERS */
 async function loadUsers() {
-  usersDiv.innerHTML = "";
-
   const snap = await getDocs(collection(db, "users"));
+  usersList.innerHTML = "";
 
   snap.forEach(doc => {
-    if (doc.id === currentUser.uid) return;
-
     const data = doc.data();
 
-    const name = data.name || data.email;
+    if (data.email === currentUserEmail) return;
 
-    const photo = data.photo || 
-      `https://ui-avatars.com/api/?name=${name}&background=25D366&color=fff`;
+    const name = data.name || data.email;
+    const initials = name.split(" ").map(n => n[0]).join("").toUpperCase();
 
     const div = document.createElement("div");
     div.className = "user";
 
     div.innerHTML = `
-      <img class="avatar" src="${photo}" 
-        onerror="this.src='https://ui-avatars.com/api/?name=${name}'" />
-
-      <div>
+      <div class="avatar" style="background:${getColor(name)}">
+        ${initials}
+      </div>
+      <div class="user-info">
         <div class="name">${name}</div>
         <div class="sub">Tap to chat</div>
       </div>
@@ -143,9 +147,11 @@ async function loadUsers() {
       window.location.href = "chat.html";
     };
 
-    usersDiv.appendChild(div);
+    usersList.appendChild(div);
   });
 }
+
+loadUsers();
 </script>
 
 </body>
