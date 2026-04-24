@@ -1,101 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Global</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body { margin:0; font-family: Arial; background:#f2f2f2; }
-    .header { background:#1f7a63; color:white; padding:20px; text-align:center; }
-    .logout-btn { background:red; color:white; padding:10px; border:none; border-radius:5px; }
-    .container { padding:15px; }
-    .card { background:white; padding:15px; margin:10px 0; border-radius:10px; }
-  </style>
+  <title>Chat</title>
 </head>
-
 <body>
 
-<div class="header">
-  <h2>TeamUp Global</h2>
-  <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
+<h2>Chat Page</h2>
+<button onclick="back()">Back</button>
 
-<div class="container">
-  <h3>All Users</h3>
-  <div id="users"></div>
-</div>
-
-<!-- ✅ FIREBASE v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<p>Chat with user ID:</p>
+<p id="chatUser"></p>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-  authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
-};
+document.getElementById("chatUser").innerText = localStorage.getItem("chatUser");
 
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-
-// ✅ CHECK LOGIN STATE
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    console.log("No user → redirect");
-    window.location.href = "index.html";
-  } else {
-    console.log("Logged in:", user.uid);
-    currentUser = user.uid;
-    loadUsers();
-  }
-});
-
-// ✅ LOAD USERS
-function loadUsers() {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "Loading...";
-
-  db.collection("users").get().then(snapshot => {
-    usersDiv.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-
-      if (data.uid === currentUser) return;
-
-      usersDiv.innerHTML += `
-        <div class="card">
-          <h4>${data.name || "No Name"}</h4>
-          <p>${data.email || "No Email"}</p>
-        </div>
-      `;
-    });
-
-    if (usersDiv.innerHTML === "") {
-      usersDiv.innerHTML = "No users found";
-    }
-  }).catch(err => {
-    usersDiv.innerHTML = "Error loading users";
-    console.log(err);
-  });
-}
-
-// ✅ LOGOUT FIX
-function logout() {
-  auth.signOut().then(() => {
-    window.location.href = "index.html";
-  }).catch(err => {
-    alert(err.message);
-  });
+function back() {
+  window.location.href = "index.html";
 }
 </script>
 
