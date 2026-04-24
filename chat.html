@@ -1,55 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login - TeamUp Global</title>
+  <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      font-family: Arial;
-      background: #0f6d5c;
-      color: white;
-      text-align: center;
-      padding: 30px;
-    }
+    body { font-family: Arial; margin:0; background:#f4f4f4; }
 
-    input {
-      width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 5px;
+    header {
+      background:#0f6d5c;
+      color:white;
+      padding:20px;
+      text-align:center;
     }
 
     button {
-      width: 95%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 5px;
-      background: #ff4b2b;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
+      padding:10px;
+      border:none;
+      border-radius:5px;
+      margin-top:5px;
+      cursor:pointer;
+    }
+
+    .add { background:#0f6d5c; color:white; }
+    .accept { background:green; color:white; }
+
+    .card {
+      background:white;
+      margin:10px;
+      padding:15px;
+      border-radius:10px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>TeamUp Global</h2>
+<header>
+  <h2>TeamUp Global</h2>
+  <button onclick="logout()" style="background:red;color:white;">Logout</button>
+</header>
 
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Password">
+<h3 style="padding:10px;">Friend Requests</h3>
+<div id="requests"></div>
 
-<button onclick="signup()">Sign Up</button>
-<button onclick="login()">Login</button>
+<h3 style="padding:10px;">All Users</h3>
+<div id="users"></div>
+
+<h3 style="padding:10px;">Friends</h3>
+<div id="friends"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, addDoc, query, where,
+  onSnapshot, deleteDoc, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// ✅ YOUR CONFIG (ALREADY CORRECT)
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -64,53 +73,150 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// SIGN UP
-window.signup = async function(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+let currentUser;
 
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCred.user;
-
-    // ✅ SAVE USER TO FIRESTORE
-    await setDoc(doc(db, "users", user.uid), {
-      email: user.email
-    });
-
-    alert("Signup successful");
-    window.location.href = "chat.html";
-
-  } catch (error) {
-    alert(error.message);
+// AUTH
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+  } else {
+    currentUser = user;
+    loadUsers();
+    loadRequests();
+    loadFriends();
   }
+});
+
+// LOGOUT
+window.logout = async function(){
+  await signOut(auth);
+  window.location.href = "login.html";
 };
 
-// LOGIN
-window.login = async function(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+// ✅ LOAD USERS (FIXED: no undefined)
+async function loadUsers(){
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
 
-  try {
-    const userCred = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCred.user;
+  const snapshot = await getDocs(collection(db,"users"));
 
-    // ✅ ENSURE USER EXISTS IN FIRESTORE
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
+  snapshot.forEach(docSnap=>{
+    const data = docSnap.data();
 
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        email: user.email
-      });
+    // ❌ Skip broken users
+    if(!data.email) return;
+
+    if(docSnap.id !== currentUser.uid){
+
+      const card = document.createElement("div");
+      card.className="card";
+
+      card.innerHTML = `
+        <b>${data.email}</b><br>
+        <button class="add" onclick="sendRequest('${docSnap.id}','${data.email}')">Add Friend</button>
+      `;
+
+      usersDiv.appendChild(card);
     }
+  });
+}
 
-    window.location.href = "chat.html";
+// SEND REQUEST (NO DUPLICATE)
+window.sendRequest = async function(toId, toEmail){
 
-  } catch (error) {
-    alert(error.message);
+  const q = query(
+    collection(db,"friendRequests"),
+    where("from","==",currentUser.uid),
+    where("to","==",toId)
+  );
+
+  const existing = await getDocs(q);
+
+  if(!existing.empty){
+    alert("Request already sent");
+    return;
   }
+
+  await addDoc(collection(db,"friendRequests"),{
+    from: currentUser.uid,
+    fromEmail: currentUser.email,
+    to: toId,
+    toEmail: toEmail,
+    status: "pending"
+  });
+
+  alert("Request sent");
 };
+
+// LOAD REQUESTS
+function loadRequests(){
+  const reqDiv = document.getElementById("requests");
+
+  const q = query(
+    collection(db,"friendRequests"),
+    where("to","==",currentUser.uid),
+    where("status","==","pending")
+  );
+
+  onSnapshot(q,(snapshot)=>{
+    reqDiv.innerHTML="";
+
+    snapshot.forEach(docSnap=>{
+      const data = docSnap.data();
+
+      const card = document.createElement("div");
+      card.className="card";
+
+      card.innerHTML = `
+        Request from: <b>${data.fromEmail}</b><br>
+        <button class="accept" onclick="acceptRequest('${docSnap.id}','${data.from}')">Accept</button>
+      `;
+
+      reqDiv.appendChild(card);
+    });
+  });
+}
+
+// ACCEPT REQUEST
+window.acceptRequest = async function(id, fromId){
+
+  await addDoc(collection(db,"friends"),{
+    users:[currentUser.uid, fromId]
+  });
+
+  await deleteDoc(doc(db,"friendRequests",id));
+};
+
+// LOAD FRIENDS
+function loadFriends(){
+  const friendsDiv = document.getElementById("friends");
+
+  const q = query(
+    collection(db,"friends"),
+    where("users","array-contains",currentUser.uid)
+  );
+
+  onSnapshot(q, async(snapshot)=>{
+    friendsDiv.innerHTML="";
+
+    for(const d of snapshot.docs){
+      const users = d.data().users;
+      const friendId = users.find(u=>u !== currentUser.uid);
+
+      const userDoc = await getDoc(doc(db,"users",friendId));
+
+      // ❌ Skip if broken
+      if(!userDoc.exists() || !userDoc.data().email) continue;
+
+      const card = document.createElement("div");
+      card.className="card";
+
+      card.innerHTML = `<b>${userDoc.data().email}</b>`;
+
+      friendsDiv.appendChild(card);
+    }
+  });
+}
 </script>
 
 </body>
