@@ -48,6 +48,18 @@
       color: white;
       margin-top: 10px;
     }
+
+    .pending {
+      background: #ddd;
+      color: #555;
+      margin-top: 10px;
+    }
+
+    .accept {
+      background: green;
+      color: white;
+      margin-top: 10px;
+    }
   </style>
 </head>
 
@@ -57,6 +69,11 @@
   <h2>TeamUp Global</h2>
   <button class="logout" onclick="logout()">Logout</button>
 </header>
+
+<div class="section">
+  <h3>Friend Requests</h3>
+  <div id="requests"></div>
+</div>
 
 <div class="section">
   <h3>All Users</h3>
@@ -74,83 +91,158 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-    authDomain: "teamup-68a21.firebaseapp.com",
-    projectId: "teamup-68a21",
-    storageBucket: "teamup-68a21.appspot.com",
-    messagingSenderId: "379106762572",
-    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-    measurementId: "G-EJ59MW0TMC"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.appspot.com",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+};
 
-  firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  const db = firebase.firestore();
-  let currentUserId = null;
+let currentUserId = null;
 
-  // ✅ AUTH CHECK (FIXED)
-  firebase.auth().onAuthStateChanged(user => {
-    if(user){
-      currentUserId = user.uid;
-      loadUsers();
-    } else {
-      window.location.href = "login.html"; // ✅ correct page
-    }
-  });
+firebase.auth().onAuthStateChanged(user => {
+  if(user){
+    currentUserId = user.uid;
+    loadUsers();
+    loadRequests();
+    loadFriends();
+  } else {
+    window.location.href = "login.html";
+  }
+});
 
-  // ✅ LOAD USERS
-  function loadUsers(){
-    db.collection("users").get().then(snapshot => {
-      const usersDiv = document.getElementById("users");
-      usersDiv.innerHTML = "";
+// 🔥 LOAD USERS
+function loadUsers(){
+  db.collection("users").get().then(snapshot => {
+    const usersDiv = document.getElementById("users");
+    usersDiv.innerHTML = "";
 
-      snapshot.forEach(doc => {
-        if(doc.id === currentUserId) return;
+    snapshot.forEach(doc => {
+      if(doc.id === currentUserId) return;
 
-        const data = doc.data();
+      const data = doc.data();
+      const name = data.name || data.email || "No Name";
 
-        const name = data.name || "No Name";
-        const email = data.email || "No Email";
+      // check if request already sent
+      db.collection("friendRequests")
+      .where("from","==",currentUserId)
+      .where("to","==",doc.id)
+      .get()
+      .then(res => {
+
+        let btn = `<button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>`;
+
+        if(!res.empty){
+          btn = `<button class="pending">Pending ⏳</button>`;
+        }
 
         usersDiv.innerHTML += `
           <div class="card">
             <b>${name}</b><br>
-            <small>${email}</small><br>
-            <button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>
+            ${btn}
           </div>
         `;
       });
     });
-  }
+  });
+}
 
-  // ✅ ADD FRIEND
-  function addFriend(userId){
-    db.collection("friendRequests").add({
-      from: currentUserId,
-      to: userId,
-      status: "pending"
-    })
-    .then(() => {
-      alert("Friend request sent");
-    })
-    .catch(err => {
-      console.log(err);
-      alert("Error sending request");
-    });
-  }
+// 🔥 SEND REQUEST
+function addFriend(userId){
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: userId,
+    status: "pending"
+  }).then(() => {
+    loadUsers();
+  });
+}
 
-  // ✅ LOGOUT (FIXED)
-  function logout(){
-    firebase.auth().signOut()
-    .then(() => {
-      window.location.href = "login.html"; // ✅ correct page
-    })
-    .catch((error) => {
-      alert("Logout failed");
-      console.log(error);
+// 🔥 LOAD REQUESTS
+function loadRequests(){
+  db.collection("friendRequests")
+  .where("to","==",currentUserId)
+  .where("status","==","pending")
+  .get()
+  .then(snapshot => {
+
+    const div = document.getElementById("requests");
+    div.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      db.collection("users").doc(data.from).get().then(userDoc => {
+        const user = userDoc.data();
+
+        div.innerHTML += `
+          <div class="card">
+            <b>${user.name || user.email}</b><br>
+            <button class="accept" onclick="acceptRequest('${doc.id}','${data.from}')">Accept</button>
+          </div>
+        `;
+      });
     });
-  }
+  });
+}
+
+// 🔥 ACCEPT REQUEST
+function acceptRequest(requestId, friendId){
+  db.collection("friendRequests").doc(requestId).update({
+    status: "accepted"
+  });
+
+  db.collection("friends").add({
+    users: [currentUserId, friendId]
+  });
+
+  loadRequests();
+  loadFriends();
+}
+
+// 🔥 LOAD FRIENDS
+function loadFriends(){
+  db.collection("friends").get().then(snapshot => {
+    const div = document.getElementById("friends");
+    div.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const users = doc.data().users;
+
+      if(users.includes(currentUserId)){
+        const friendId = users.find(id => id !== currentUserId);
+
+        db.collection("users").doc(friendId).get().then(userDoc => {
+          const user = userDoc.data();
+
+          div.innerHTML += `
+            <div class="card">
+              <b>${user.name || user.email}</b><br>
+              <button onclick="openChat('${friendId}')">Chat</button>
+            </div>
+          `;
+        });
+      }
+    });
+  });
+}
+
+// 🔥 CHAT
+function openChat(uid){
+  window.location.href = "chat.html?uid=" + uid;
+}
+
+// 🔥 LOGOUT
+function logout(){
+  firebase.auth().signOut().then(() => {
+    window.location.href = "login.html";
+  });
+}
 </script>
 
 </body>
