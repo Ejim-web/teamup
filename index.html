@@ -21,8 +21,9 @@
     button {
       padding: 10px 15px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      font-weight: bold;
     }
 
     .logout {
@@ -38,9 +39,9 @@
     .card {
       background: white;
       padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin: 12px 0;
+      border-radius: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
     }
 
     .add-btn {
@@ -50,15 +51,20 @@
     }
 
     .pending {
-      background: #ddd;
+      background: #ccc;
       color: #555;
       margin-top: 10px;
     }
 
-    .accept {
+    .accept-btn {
       background: green;
       color: white;
-      margin-top: 10px;
+      margin-right: 5px;
+    }
+
+    .reject-btn {
+      background: red;
+      color: white;
     }
   </style>
 </head>
@@ -85,6 +91,7 @@
   <div id="friends"></div>
 </div>
 
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -104,6 +111,7 @@ const db = firebase.firestore();
 
 let currentUserId = null;
 
+// ✅ AUTH CHECK
 firebase.auth().onAuthStateChanged(user => {
   if(user){
     currentUserId = user.uid;
@@ -111,125 +119,134 @@ firebase.auth().onAuthStateChanged(user => {
     loadRequests();
     loadFriends();
   } else {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
-// 🔥 REAL-TIME USERS
-function loadUsers(){
-  db.collection("users").onSnapshot(snapshot => {
-    const usersDiv = document.getElementById("users");
-    usersDiv.innerHTML = "";
+// ✅ LOAD USERS
+async function loadUsers(){
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
 
-    snapshot.forEach(doc => {
-      if(doc.id === currentUserId) return;
+  const snapshot = await db.collection("users").get();
 
-      const data = doc.data();
-      const name = data.name || data.email || "No Name";
+  for (const doc of snapshot.docs) {
+    if(doc.id === currentUserId) continue;
 
-      db.collection("friendRequests")
-      .where("from","==",currentUserId)
-      .where("to","==",doc.id)
-      .onSnapshot(res => {
+    const data = doc.data();
 
-        let btn = `<button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>`;
+    const name = data.name || "No Name";
+    const email = data.email || "No Email";
 
-        if(!res.empty){
-          btn = `<button class="pending">Pending ⏳</button>`;
-        }
+    // check if already sent request
+    const req = await db.collection("friendRequests")
+      .where("from", "==", currentUserId)
+      .where("to", "==", doc.id)
+      .get();
 
-        usersDiv.innerHTML += `
-          <div class="card">
-            <b>${name}</b><br>
-            ${btn}
-          </div>
-        `;
-      });
-    });
-  });
+    let button = `<button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>`;
+
+    if(!req.empty){
+      button = `<button class="pending">Pending ⏳</button>`;
+    }
+
+    usersDiv.innerHTML += `
+      <div class="card">
+        <b>${name}</b><br>
+        <small>${email}</small><br>
+        ${button}
+      </div>
+    `;
+  }
 }
 
-// SEND REQUEST
+// ✅ SEND REQUEST
 function addFriend(userId){
   db.collection("friendRequests").add({
     from: currentUserId,
     to: userId,
     status: "pending"
+  }).then(()=>{
+    loadUsers();
   });
 }
 
-// 🔥 REAL-TIME REQUESTS
-function loadRequests(){
-  db.collection("friendRequests")
-  .where("to","==",currentUserId)
-  .where("status","==","pending")
-  .onSnapshot(snapshot => {
+// ✅ LOAD FRIEND REQUESTS
+async function loadRequests(){
+  const reqDiv = document.getElementById("requests");
+  reqDiv.innerHTML = "";
 
-    const div = document.getElementById("requests");
-    div.innerHTML = "";
+  const snapshot = await db.collection("friendRequests")
+    .where("to", "==", currentUserId)
+    .where("status", "==", "pending")
+    .get();
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
 
-      db.collection("users").doc(data.from).get().then(userDoc => {
-        const user = userDoc.data();
+    const userDoc = await db.collection("users").doc(data.from).get();
+    const user = userDoc.data();
 
-        div.innerHTML += `
-          <div class="card">
-            <b>${user.name || user.email}</b><br>
-            <button class="accept" onclick="acceptRequest('${doc.id}','${data.from}')">Accept</button>
-          </div>
-        `;
-      });
-    });
-  });
+    reqDiv.innerHTML += `
+      <div class="card">
+        <b>${user.name || "User"}</b><br><br>
+        <button class="accept-btn" onclick="acceptRequest('${doc.id}', '${data.from}')">Accept</button>
+        <button class="reject-btn" onclick="rejectRequest('${doc.id}')">Reject</button>
+      </div>
+    `;
+  }
 }
 
-// ACCEPT
-function acceptRequest(id, friendId){
-  db.collection("friendRequests").doc(id).update({ status: "accepted" });
-
+// ✅ ACCEPT REQUEST
+function acceptRequest(reqId, senderId){
   db.collection("friends").add({
-    users: [currentUserId, friendId]
+    users: [currentUserId, senderId]
   });
-}
 
-// 🔥 REAL-TIME FRIENDS
-function loadFriends(){
-  db.collection("friends").onSnapshot(snapshot => {
-    const div = document.getElementById("friends");
-    div.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const users = doc.data().users;
-
-      if(users.includes(currentUserId)){
-        const friendId = users.find(id => id !== currentUserId);
-
-        db.collection("users").doc(friendId).get().then(userDoc => {
-          const user = userDoc.data();
-
-          div.innerHTML += `
-            <div class="card">
-              <b>${user.name || user.email}</b><br>
-              <button onclick="openChat('${friendId}')">Chat</button>
-            </div>
-          `;
-        });
-      }
-    });
+  db.collection("friendRequests").doc(reqId).update({
+    status: "accepted"
   });
+
+  loadRequests();
+  loadFriends();
 }
 
-// CHAT
-function openChat(uid){
-  window.location.href = "chat.html?uid=" + uid;
+// ✅ REJECT
+function rejectRequest(reqId){
+  db.collection("friendRequests").doc(reqId).delete();
+  loadRequests();
 }
 
-// LOGOUT
+// ✅ LOAD FRIENDS
+async function loadFriends(){
+  const div = document.getElementById("friends");
+  div.innerHTML = "";
+
+  const snapshot = await db.collection("friends").get();
+
+  for (const doc of snapshot.docs) {
+    const users = doc.data().users;
+
+    if(users.includes(currentUserId)){
+      const friendId = users.find(id => id !== currentUserId);
+
+      const userDoc = await db.collection("users").doc(friendId).get();
+      const user = userDoc.data();
+
+      div.innerHTML += `
+        <div class="card">
+          <b>${user.name || "No Name"}</b><br>
+          <small>${user.email || ""}</small>
+        </div>
+      `;
+    }
+  }
+}
+
+// ✅ LOGOUT
 function logout(){
-  firebase.auth().signOut().then(() => {
-    window.location.href = "login.html";
+  firebase.auth().signOut().then(()=>{
+    window.location.href = "index.html";
   });
 }
 </script>
