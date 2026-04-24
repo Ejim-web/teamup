@@ -169,4 +169,49 @@ function loadRequests(){
         <button class="accept" onclick="acceptRequest('${docSnap.id}','${data.from}')">Accept</button>
       `;
 
-      req
+      reqDiv.appendChild(card);
+    });
+  });
+}
+
+// ACCEPT REQUEST
+window.acceptRequest = async function(id, fromId){
+
+  await addDoc(collection(db,"friends"),{
+    users:[currentUser.uid, fromId]
+  });
+
+  await deleteDoc(doc(db,"friendRequests",id));
+}
+
+// LOAD FRIENDS
+function loadFriends(){
+  const friendsDiv = document.getElementById("friends");
+
+  const q = query(
+    collection(db,"friends"),
+    where("users","array-contains",currentUser.uid)
+  );
+
+  onSnapshot(q, async(snapshot)=>{
+    friendsDiv.innerHTML="";
+
+    for(const d of snapshot.docs){
+      const users = d.data().users;
+      const friendId = users.find(u=>u !== currentUser.uid);
+
+      const userDoc = await getDoc(doc(db,"users",friendId));
+
+      const card = document.createElement("div");
+      card.className="card";
+
+      card.innerHTML = `<b>${userDoc.data().email}</b>`;
+
+      friendsDiv.appendChild(card);
+    }
+  });
+}
+</script>
+
+</body>
+</html>
