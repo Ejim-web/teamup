@@ -1,107 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Chat</title>
+  <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Firebase v8 (works perfectly with your setup) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: #ece5dd;
+      background: #f2f2f2;
     }
 
-    header {
-      background: #075e54;
+    .header {
+      background: #0f6d5c;
       color: white;
       padding: 15px;
       text-align: center;
-      font-size: 18px;
     }
 
-    #users {
-      padding: 10px;
-    }
-
-    .user {
-      background: white;
-      padding: 12px;
-      margin-bottom: 8px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    #chatBox {
-      display: none;
-      height: 100vh;
-      flex-direction: column;
-    }
-
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-    }
-
-    .msg {
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 8px;
-      max-width: 70%;
-    }
-
-    .me {
-      background: #25d366;
+    .logout-btn {
+      background: red;
       color: white;
-      margin-left: auto;
-    }
-
-    .other {
-      background: white;
-    }
-
-    #inputArea {
-      display: flex;
+      border: none;
       padding: 10px;
-      background: white;
+      margin-top: 10px;
+      border-radius: 5px;
     }
 
-    input {
-      flex: 1;
+    .container {
+      padding: 15px;
+    }
+
+    .user-card {
+      background: white;
       padding: 10px;
-      border: 1px solid #ccc;
+      margin: 10px 0;
+      border-radius: 10px;
     }
 
     button {
-      padding: 10px;
-      background: #25d366;
-      border: none;
+      background: #0f6d5c;
       color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 5px;
+      margin-top: 5px;
     }
   </style>
 </head>
 
 <body>
 
-<header>TeamUp Chat</header>
-
-<!-- USERS -->
-<div id="users"></div>
-
-<!-- CHAT -->
-<div id="chatBox">
-  <div id="messages"></div>
-
-  <div id="inputArea">
-    <input id="msgInput" placeholder="Type message..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>
+<div class="header">
+  <h2>TeamUp Global</h2>
+  <button class="logout-btn" onclick="logout()">Logout</button>
 </div>
+
+<div class="container">
+
+  <h3>Friend Requests</h3>
+  <div id="requests"></div>
+
+  <h3>All Users</h3>
+  <div id="users"></div>
+
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -110,115 +78,111 @@ const firebaseConfig = {
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.firebasestorage.app",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
 };
 
 firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
-let chatUser = null;
-let chatId = null;
+let currentUserId = null;
 
-// ✅ CHECK LOGIN
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    document.body.innerHTML = "<h3 style='text-align:center'>You are not logged in</h3>";
-    return;
+// ✅ AUTH CHECK
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    currentUserId = user.uid;
+    loadUsers();
+    loadRequests();
+  } else {
+    window.location.href = "index.html";
   }
-
-  currentUser = user;
-  loadUsers();
 });
 
 // ✅ LOAD USERS
 function loadUsers() {
   const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
 
-  db.collection("users").onSnapshot(snapshot => {
-    usersDiv.innerHTML = "";
-
+  db.collection("users").get().then(snapshot => {
     snapshot.forEach(doc => {
-      if (doc.id === currentUser.uid) return;
+      if (doc.id !== currentUserId) {
+        const user = doc.data();
 
-      const data = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "user";
-
-      div.innerHTML = `
-        <b>${data.name || "User"}</b><br>
-        <small>${data.email || ""}</small>
-      `;
-
-      div.onclick = () => openChat(doc.id);
-
-      usersDiv.appendChild(div);
+        usersDiv.innerHTML += `
+          <div class="user-card">
+            <p>${user.name || user.email}</p>
+            <button onclick="sendRequest('${doc.id}')">Add Friend</button>
+          </div>
+        `;
+      }
     });
   });
 }
 
-// ✅ OPEN CHAT
-function openChat(uid) {
-  chatUser = uid;
-
-  chatId = currentUser.uid < uid
-    ? currentUser.uid + "_" + uid
-    : uid + "_" + currentUser.uid;
-
-  document.getElementById("users").style.display = "none";
-  document.getElementById("chatBox").style.display = "flex";
-
-  loadMessages();
+// ✅ SEND REQUEST
+function sendRequest(toUserId) {
+  db.collection("friendRequests").add({
+    from: currentUserId,
+    to: toUserId,
+    status: "pending"
+  })
+  .then(() => {
+    alert("Friend request sent!");
+  })
+  .catch(err => {
+    alert(err.message);
+  });
 }
 
-// ✅ LOAD MESSAGES
-function loadMessages() {
-  const messagesDiv = document.getElementById("messages");
+// ✅ LOAD REQUESTS
+function loadRequests() {
+  const requestsDiv = document.getElementById("requests");
+  requestsDiv.innerHTML = "";
 
-  db.collection("chats")
-    .doc(chatId)
-    .collection("messages")
-    .orderBy("time")
-    .onSnapshot(snapshot => {
-
-      messagesDiv.innerHTML = "";
-
+  db.collection("friendRequests")
+    .where("to", "==", currentUserId)
+    .where("status", "==", "pending")
+    .get()
+    .then(snapshot => {
       snapshot.forEach(doc => {
-        const msg = doc.data();
+        const data = doc.data();
 
-        const div = document.createElement("div");
-        div.className = "msg " + (msg.sender === currentUser.uid ? "me" : "other");
-
-        div.textContent = msg.text;
-
-        messagesDiv.appendChild(div);
+        requestsDiv.innerHTML += `
+          <div class="user-card">
+            <p>Request from: ${data.from}</p>
+            <button onclick="acceptRequest('${doc.id}')">Accept</button>
+          </div>
+        `;
       });
-
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
 }
 
-// ✅ SEND MESSAGE
-function sendMessage() {
-  const input = document.getElementById("msgInput");
-  const text = input.value.trim();
-
-  if (!text) return;
-
-  db.collection("chats")
-    .doc(chatId)
-    .collection("messages")
-    .add({
-      text: text,
-      sender: currentUser.uid,
-      time: Date.now()
-    });
-
-  input.value = "";
+// ✅ ACCEPT REQUEST
+function acceptRequest(id) {
+  db.collection("friendRequests").doc(id).update({
+    status: "accepted"
+  })
+  .then(() => {
+    alert("Request accepted");
+    loadRequests();
+  });
 }
+
+// ✅ LOGOUT (FIXED)
+function logout() {
+  firebase.auth().signOut()
+    .then(() => {
+      alert("Logged out");
+      window.location.href = "index.html";
+    })
+    .catch(err => {
+      alert(err.message);
+    });
+}
+
+// 🔥 IMPORTANT FIX
+window.logout = logout;
+
 </script>
 
 </body>
