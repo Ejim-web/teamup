@@ -45,7 +45,7 @@
     }
 
     #chatBox {
-      height: 300px;
+      height: 50vh;
       overflow-y: auto;
       padding: 10px;
       background: #e5ddd5;
@@ -56,7 +56,6 @@
       margin: 5px;
       border-radius: 10px;
       max-width: 70%;
-      font-size: 14px;
     }
 
     .me {
@@ -71,7 +70,14 @@
     .time {
       font-size: 10px;
       color: gray;
-      margin-top: 4px;
+    }
+
+    .bottom {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ece5dd;
+      padding: 10px;
     }
   </style>
 </head>
@@ -95,39 +101,32 @@
   <div id="usersList"></div>
 
   <h3 id="chatTitle"></h3>
+  <p id="typing" style="color:gray;"></p>
+
   <div id="chatBox"></div>
 
-  <input id="message" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
+  <div class="bottom">
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
-  <br>
+  <br><br><br>
   <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+  getAuth, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  doc,
-  setDoc,
-  getDocs
+  getFirestore, collection, addDoc, query, orderBy,
+  onSnapshot, serverTimestamp, doc, setDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ✅ FIXED CONFIG */
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
@@ -142,60 +141,64 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const nameInput = document.getElementById("name");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const usersList = document.getElementById("usersList");
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
-const chatTitle = document.getElementById("chatTitle");
-
-let currentUser;
-let selectedUser;
-let unsubscribe;
+let currentUser, selectedUser, unsubscribe;
 
 /* SIGNUP */
 window.signup = async () => {
-  try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      email.value.trim(),
-      password.value.trim()
-    );
+  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
 
-    await setDoc(doc(db, "users", cred.user.uid), {
-      name: nameInput.value.trim() || cred.user.email,
-      email: cred.user.email
-    });
+  await setDoc(doc(db, "users", cred.user.uid), {
+    name: name.value || cred.user.email,
+    email: cred.user.email,
+    online: true,
+    lastSeen: serverTimestamp()
+  });
 
-    alert("Account created!");
-  } catch (e) {
-    alert(e.message);
-  }
+  alert("Account created");
 };
 
 /* LOGIN */
 window.login = () => {
-  signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim())
+  signInWithEmailAndPassword(auth, email.value, password.value)
     .catch(e => alert(e.message));
 };
 
-/* AUTH STATE */
+/* STATUS */
+function updateStatus() {
+  const ref = doc(db, "users", currentUser.uid);
+
+  setDoc(ref, {
+    online: true,
+    lastSeen: serverTimestamp()
+  }, { merge: true });
+
+  window.addEventListener("beforeunload", () => {
+    setDoc(ref, {
+      online: false,
+      lastSeen: new Date()
+    }, { merge: true });
+  });
+}
+
+/* AUTH */
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
+    updateStatus();
+
+    authDiv.style.display = "none";
+    app.style.display = "block";
+
     welcome.innerText = "Welcome " + user.email;
+
     loadUsers();
   } else {
-    document.getElementById("auth").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    authDiv.style.display = "block";
+    app.style.display = "none";
   }
 });
 
-/* LOAD USERS */
+/* USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
   usersList.innerHTML = "";
@@ -204,25 +207,30 @@ async function loadUsers() {
     if (d.id === currentUser.uid) return;
 
     const data = d.data();
+
+    let status = "Offline";
+    if (data.online) status = "🟢 Online";
+    else if (data.lastSeen)
+      status = "Last seen: " + data.lastSeen.toDate().toLocaleTimeString();
+
     const div = document.createElement("div");
-    div.innerText = data.name || data.email;
+    div.innerHTML = `<b>${data.name}</b><br><small>${status}</small>`;
 
-    div.onclick = () => openChat(d.id, div.innerText);
-
+    div.onclick = () => openChat(d.id, data.name);
     usersList.appendChild(div);
   });
 }
 
-/* OPEN CHAT */
+/* CHAT */
 function openChat(uid, name) {
   selectedUser = uid;
   chatTitle.innerText = "Chat with " + name;
   loadMessages();
 }
 
-/* SEND MESSAGE */
+/* SEND */
 window.sendMessage = async () => {
-  if (!selectedUser) return alert("Select a user first");
+  if (!selectedUser) return alert("Select user");
 
   const text = message.value.trim();
   if (!text) return;
@@ -234,13 +242,28 @@ window.sendMessage = async () => {
   }, { merge: true });
 
   await addDoc(collection(db, "chats", chatId, "messages"), {
-    text: text,
+    text,
     senderId: currentUser.uid,
     timestamp: serverTimestamp()
   });
 
   message.value = "";
 };
+
+/* TYPING */
+message.addEventListener("input", async () => {
+  if (!selectedUser) return;
+
+  const chatId = [currentUser.uid, selectedUser].sort().join("_");
+
+  await setDoc(doc(db, "chats", chatId), {
+    typing: currentUser.uid
+  }, { merge: true });
+
+  setTimeout(() => {
+    setDoc(doc(db, "chats", chatId), { typing: "" }, { merge: true });
+  }, 1500);
+});
 
 /* LOAD MESSAGES */
 function loadMessages() {
@@ -264,15 +287,18 @@ function loadMessages() {
 
       const time = data.timestamp?.toDate().toLocaleTimeString();
 
-      div.innerHTML = `
-        ${data.text}
-        <div class="time">${time || ""}</div>
-      `;
-
+      div.innerHTML = `${data.text}<div class="time">${time || ""}</div>`;
       chatBox.appendChild(div);
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  // typing listener
+  onSnapshot(doc(db, "chats", chatId), snap => {
+    const data = snap.data();
+    typing.innerText =
+      data?.typing && data.typing !== currentUser.uid ? "Typing..." : "";
   });
 }
 
