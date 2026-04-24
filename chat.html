@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #f2f2f2;
-    }
+    body { font-family: Arial; margin: 0; background: #f2f2f2; }
 
     header {
       background: #0f6d5b;
@@ -25,21 +21,14 @@
       margin-top: 5px;
     }
 
-    .logout {
-      background: red;
-      color: white;
-    }
+    .logout { background: red; color: white; }
+    .addBtn { background: #0f6d5b; color: white; }
 
     .card {
       background: white;
       margin: 10px;
       padding: 15px;
       border-radius: 10px;
-    }
-
-    .addBtn {
-      background: #0f6d5b;
-      color: white;
     }
   </style>
 </head>
@@ -89,71 +78,95 @@ auth.onAuthStateChanged(user => {
     loadUsers();
     loadRequests();
     loadFriends();
-
   } else {
     window.location.href = "login.html";
   }
 });
 
 
-// 🔴 LOGOUT FIX
+// 🔴 LOGOUT
 function logout() {
   auth.signOut()
-    .then(() => {
-      alert("Logged out");
-      window.location.href = "login.html";
-    })
+    .then(() => window.location.href = "login.html")
     .catch(err => alert(err.message));
 }
 
 
-// ✅ LOAD USERS
+// 🔍 LOAD USERS WITH SMART BUTTONS
 function loadUsers() {
   const div = document.getElementById("users");
 
-  db.collection("users").onSnapshot(snapshot => {
+  db.collection("users").onSnapshot(async snapshot => {
     div.innerHTML = "";
 
-    snapshot.forEach(doc => {
-      const user = doc.data();
+    for (const doc of snapshot.docs) {
+      if (doc.id === currentUserId) continue;
 
-      if (doc.id !== currentUserId) {
-        div.innerHTML += `
-          <div class="card">
-            <p>${user.name || user.email}</p>
-            <button class="addBtn" onclick="sendRequest('${doc.id}')">Add Friend</button>
-          </div>
-        `;
+      const user = doc.data();
+      let button = "";
+
+      // check friends
+      const friendsSnap = await db.collection("friends")
+        .where("users", "array-contains", currentUserId)
+        .get();
+
+      let isFriend = false;
+
+      friendsSnap.forEach(f => {
+        if (f.data().users.includes(doc.id)) {
+          isFriend = true;
+        }
+      });
+
+      if (isFriend) {
+        button = `<button disabled>Friends ✅</button>`;
+      } else {
+
+        const requestId = currentUserId + "_" + doc.id;
+        const reverseId = doc.id + "_" + currentUserId;
+
+        const sent = await db.collection("friendRequests").doc(requestId).get();
+        const received = await db.collection("friendRequests").doc(reverseId).get();
+
+        if (sent.exists) {
+          button = `<button disabled>Pending ⏳</button>`;
+        } else if (received.exists) {
+          button = `<button onclick="acceptRequest('${reverseId}', '${doc.id}')">Accept</button>`;
+        } else {
+          button = `<button class="addBtn" onclick="sendRequest('${doc.id}')">Add Friend</button>`;
+        }
       }
-    });
+
+      div.innerHTML += `
+        <div class="card">
+          <p>${user.name || user.email}</p>
+          ${button}
+        </div>
+      `;
+    }
   });
 }
 
 
-// ✅ SEND REQUEST (NO DUPLICATES)
+// 📤 SEND REQUEST (NO DUPLICATE)
 function sendRequest(toId) {
-
   const requestId = currentUserId + "_" + toId;
 
   db.collection("friendRequests").doc(requestId).get().then(doc => {
-
     if (doc.exists) {
-      alert("Request already sent");
+      alert("Already sent");
     } else {
       db.collection("friendRequests").doc(requestId).set({
         from: currentUserId,
         to: toId,
         status: "pending"
-      }).then(() => {
-        alert("Request sent");
-      });
+      }).then(() => alert("Request sent"));
     }
-
   });
 }
 
 
-// ✅ LOAD REQUESTS (SHOW NAME)
+// 📥 LOAD REQUESTS
 function loadRequests() {
   const div = document.getElementById("requests");
 
@@ -183,22 +196,18 @@ function loadRequests() {
 
 // ✅ ACCEPT REQUEST
 function acceptRequest(requestId, fromId) {
-
   const friendId = currentUserId + "_" + fromId;
 
   db.collection("friends").doc(friendId).set({
     users: [currentUserId, fromId]
   }).then(() => {
-
     db.collection("friendRequests").doc(requestId).delete();
-
     alert("Friend added");
-
   });
 }
 
 
-// ✅ LOAD FRIENDS (SHOW NAME)
+// 👥 LOAD FRIENDS
 function loadFriends() {
   const div = document.getElementById("friendsList");
 
@@ -223,7 +232,6 @@ function loadFriends() {
       }
     });
 }
-
 </script>
 
 </body>
