@@ -5,104 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #ece5dd;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
+    body { margin:0; font-family:Arial; background:#ece5dd; }
+    .header { background:#075e54; color:white; padding:15px; text-align:center; font-weight:bold; }
+    input, button {
+      width:90%; padding:12px; margin:8px;
+      border-radius:20px; border:none;
     }
-
-    .header {
-      background: #075e54;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    #auth {
-      padding: 20px;
-    }
-
-    input {
-      width: 90%;
-      padding: 12px;
-      margin: 8px;
-      border-radius: 20px;
-      border: none;
-    }
-
-    button {
-      padding: 10px 15px;
-      border-radius: 20px;
-      border: none;
-      background: #25d366;
-      color: white;
-      margin: 5px;
-      cursor: pointer;
-    }
-
-    #app {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    #usersList {
-      max-height: 150px;
-      overflow-y: auto;
-    }
-
+    button { background:#25d366; color:white; }
     #usersList div {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      background: white;
-      cursor: pointer;
-    }
-
-    #chatBox {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      background: #e5ddd5;
-    }
-
-    .msg {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 10px;
-      max-width: 70%;
-      font-size: 14px;
-    }
-
-    .me {
-      background: #dcf8c6;
-      margin-left: auto;
-    }
-
-    .other {
-      background: white;
-    }
-
-    .time {
-      font-size: 10px;
-      color: gray;
-      margin-top: 4px;
-    }
-
-    .inputBar {
-      display: flex;
-      padding: 10px;
-      background: #f0f0f0;
-      position: sticky;
-      bottom: 0;
-    }
-
-    .inputBar input {
-      flex: 1;
-      margin: 0;
+      padding:12px;
+      background:white;
+      border-bottom:1px solid #ddd;
+      cursor:pointer;
     }
   </style>
 </head>
@@ -115,51 +29,27 @@
   <input id="name" placeholder="Name">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <button id="signupBtn">Sign Up</button>
-  <button id="loginBtn">Login</button>
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
 </div>
 
 <div id="app" style="display:none;">
   <p id="welcome"></p>
-
   <h3>Users</h3>
   <div id="usersList"></div>
-
-  <h3 id="chatTitle"></h3>
-  <div id="chatBox"></div>
-
-  <div class="inputBar">
-    <input id="message" placeholder="Type message">
-    <button id="sendBtn">Send</button>
-  </div>
-
-  <button id="logoutBtn">Logout</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserLocalPersistence
+  getAuth, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  doc,
-  setDoc,
-  getDocs
+  getFirestore, collection, getDocs,
+  doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* CONFIG */
@@ -169,79 +59,45 @@ const firebaseConfig = {
   projectId: "teamup-68a21",
   storageBucket: "teamup-68a21.appspot.com",
   messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-setPersistence(auth, browserLocalPersistence);
-
-/* ELEMENTS */
-const nameInput = document.getElementById("name");
+const usersList = document.getElementById("usersList");
 const email = document.getElementById("email");
 const password = document.getElementById("password");
-const usersList = document.getElementById("usersList");
-const chatBox = document.getElementById("chatBox");
-const message = document.getElementById("message");
-const welcome = document.getElementById("welcome");
-const chatTitle = document.getElementById("chatTitle");
-const authDiv = document.getElementById("auth");
-const appDiv = document.getElementById("app");
-
-/* BUTTON EVENTS */
-document.getElementById("signupBtn").addEventListener("click", signup);
-document.getElementById("loginBtn").addEventListener("click", login);
-document.getElementById("sendBtn").addEventListener("click", sendMessage);
-document.getElementById("logoutBtn").addEventListener("click", logout);
+const nameInput = document.getElementById("name");
 
 let currentUser;
-let selectedUser;
-let unsubscribe;
-
-/* SIGNUP */
-async function signup() {
-  try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      email.value.trim(),
-      password.value.trim()
-    );
-
-    await setDoc(doc(db, "users", cred.user.uid), {
-      name: nameInput.value.trim() || cred.user.email,
-      email: cred.user.email
-    });
-
-    alert("Account created!");
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-/* LOGIN */
-function login() {
-  signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim())
-    .catch(e => alert(e.message));
-}
 
 /* AUTH */
+window.signup = async () => {
+  const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+  await setDoc(doc(db, "users", cred.user.uid), {
+    name: nameInput.value || cred.user.email,
+    email: cred.user.email
+  });
+  alert("Account created");
+};
+
+window.login = () => {
+  signInWithEmailAndPassword(auth, email.value, password.value);
+};
+
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
-    authDiv.style.display = "none";
-    appDiv.style.display = "flex";
-    welcome.innerText = "Welcome " + user.email;
+    auth.style.display = "none";
+    app.style.display = "block";
+    document.getElementById("welcome").innerText = "Welcome " + user.email;
     loadUsers();
-  } else {
-    authDiv.style.display = "block";
-    appDiv.style.display = "none";
   }
 });
 
-/* USERS */
+/* LOAD USERS */
 async function loadUsers() {
   const snap = await getDocs(collection(db, "users"));
   usersList.innerHTML = "";
@@ -252,78 +108,17 @@ async function loadUsers() {
     const div = document.createElement("div");
     div.innerText = d.data().name || d.data().email;
 
-    div.onclick = () => openChat(d.id, div.innerText);
+    div.onclick = () => {
+      localStorage.setItem("chatUserId", d.id);
+      localStorage.setItem("chatUserName", div.innerText);
+      window.location.href = "chat.html";
+    };
+
     usersList.appendChild(div);
   });
 }
 
-/* CHAT */
-function openChat(uid, name) {
-  selectedUser = uid;
-  chatTitle.innerText = "Chat with " + name;
-  loadMessages();
-}
-
-/* SEND */
-async function sendMessage() {
-  if (!selectedUser) return alert("Select a user");
-
-  const text = message.value.trim();
-  if (!text) return;
-
-  const chatId = [currentUser.uid, selectedUser].sort().join("_");
-
-  await setDoc(doc(db, "chats", chatId), {
-    participants: [currentUser.uid, selectedUser]
-  }, { merge: true });
-
-  await addDoc(collection(db, "chats", chatId, "messages"), {
-    text,
-    sender: currentUser.uid,
-    createdAt: serverTimestamp()
-  });
-
-  message.value = "";
-}
-
-/* LOAD MESSAGES */
-function loadMessages() {
-  const chatId = [currentUser.uid, selectedUser].sort().join("_");
-
-  if (unsubscribe) unsubscribe();
-
-  const q = query(
-    collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt")
-  );
-
-  unsubscribe = onSnapshot(q, snap => {
-    chatBox.innerHTML = "";
-
-    snap.forEach(doc => {
-      const data = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "msg " + (data.sender === currentUser.uid ? "me" : "other");
-
-      const time = data.createdAt?.toDate().toLocaleTimeString();
-
-      div.innerHTML = `
-        ${data.text}
-        <div class="time">${time || ""}</div>
-      `;
-
-      chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-
-/* LOGOUT */
-function logout() {
-  signOut(auth);
-}
+window.logout = () => signOut(auth);
 </script>
 
 </body>
