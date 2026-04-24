@@ -80,7 +80,7 @@ const firebaseConfig = {
 };
 
 // INIT
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -95,11 +95,13 @@ function logout(){
 auth.onAuthStateChanged(user => {
   if(user){
     loadUsers(user.uid);
+    loadFriends(user.uid);
   } else {
     alert("Not logged in");
   }
 });
 
+// LOAD ALL USERS
 async function loadUsers(currentUserId){
   const usersDiv = document.getElementById("users");
   usersDiv.innerHTML = "";
@@ -109,10 +111,9 @@ async function loadUsers(currentUserId){
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    // skip yourself
     if(doc.id === currentUserId) return;
 
-    const name = data.name || data.email || "No Name";
+    const name = data.name || data.email || "Unknown User";
 
     usersDiv.innerHTML += `
       <div class="card">
@@ -123,7 +124,7 @@ async function loadUsers(currentUserId){
   });
 }
 
-// ADD FRIEND
+// SEND FRIEND REQUEST
 async function addFriend(userId){
   const currentUser = auth.currentUser;
 
@@ -134,6 +135,37 @@ async function addFriend(userId){
   });
 
   alert("Friend request sent!");
+}
+
+// LOAD FRIENDS
+async function loadFriends(currentUserId){
+  const friendsDiv = document.getElementById("friends");
+  friendsDiv.innerHTML = "";
+
+  const snapshot = await db.collection("friends").get();
+
+  snapshot.forEach(async doc => {
+    const data = doc.data();
+
+    if(data.users && data.users.includes(currentUserId)){
+
+      const friendId = data.users.find(id => id !== currentUserId);
+
+      const userDoc = await db.collection("users").doc(friendId).get();
+
+      if(userDoc.exists){
+        const userData = userDoc.data();
+
+        const name = userData.name || userData.email || "Unknown";
+
+        friendsDiv.innerHTML += `
+          <div class="card">
+            <b>${name}</b>
+          </div>
+        `;
+      }
+    }
+  });
 }
 </script>
 
