@@ -27,16 +27,20 @@
     }
 
     .upload-box {
+      padding: 10px;
+      background: #eee;
       display: flex;
       gap: 10px;
-      padding: 10px;
-      background: #fff;
+    }
+
+    .upload-box input {
+      flex: 1;
     }
 
     .upload-box button {
-      background: #25D366;
+      background: #25d366;
       border: none;
-      padding: 8px 12px;
+      padding: 8px 15px;
       color: white;
       border-radius: 5px;
       cursor: pointer;
@@ -72,6 +76,7 @@
       font-size: 12px;
       color: gray;
     }
+
   </style>
 </head>
 
@@ -79,8 +84,9 @@
 
 <header>TeamUp Global</header>
 
-<div class="welcome" id="welcome">Loading...</div>
+<div class="welcome" id="welcome"></div>
 
+<!-- ✅ IMAGE UPLOAD -->
 <div class="upload-box">
   <input type="file" id="fileInput" accept="image/*">
   <button onclick="uploadImage()">Upload</button>
@@ -99,8 +105,8 @@ import {
   getFirestore, collection, getDocs, doc, updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { 
-  getStorage, ref, uploadBytes, getDownloadURL 
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 
@@ -123,7 +129,6 @@ const welcome = document.getElementById("welcome");
 
 let currentUser = null;
 
-// 🔐 AUTH CHECK
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
@@ -131,15 +136,11 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUser = user;
-
-  // Fix null issue
-  const displayName = user.email ? user.email : "User";
-  welcome.innerText = "Welcome " + displayName;
+  welcome.innerText = "Welcome " + user.email;
 
   loadUsers();
 });
 
-// 👥 LOAD USERS
 async function loadUsers() {
   usersDiv.innerHTML = "";
 
@@ -149,18 +150,17 @@ async function loadUsers() {
     if (docSnap.id === currentUser.uid) return;
 
     const data = docSnap.data();
-
-    const name = data.name || data.email || "User";
+    const name = data.name || data.email;
 
     const photo = data.photo || 
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=25D366&color=fff`;
+      `https://ui-avatars.com/api/?name=${name}&background=25D366&color=fff`;
 
     const div = document.createElement("div");
     div.className = "user";
 
     div.innerHTML = `
       <img class="avatar" src="${photo}" 
-        onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(name)}'" />
+      onerror="this.src='https://ui-avatars.com/api/?name=${name}'" />
 
       <div>
         <div class="name">${name}</div>
@@ -178,13 +178,16 @@ async function loadUsers() {
   });
 }
 
-// 📸 UPLOAD IMAGE (FIXED)
-window.uploadImage = async function () {
-  const fileInput = document.getElementById("fileInput");
-  const file = fileInput.files[0];
+window.uploadImage = async function() {
+  const file = document.getElementById("fileInput").files[0];
 
   if (!file) {
-    alert("Please choose an image");
+    alert("Select an image first");
+    return;
+  }
+
+  if (!currentUser) {
+    alert("User not logged in");
     return;
   }
 
@@ -200,13 +203,14 @@ window.uploadImage = async function () {
     });
 
     alert("Profile updated!");
+
     loadUsers();
 
   } catch (error) {
     console.error(error);
     alert("Upload failed");
   }
-};
+}
 </script>
 
 </body>
