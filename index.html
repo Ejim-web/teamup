@@ -1,77 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Global</title>
+  <title>TeamUp Global - Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: #f5f5f5;
+      background: #0f6d5c;
+      color: white;
+      text-align: center;
+      padding-top: 100px;
     }
 
-    header {
-      background: #0b6b57;
-      color: white;
-      padding: 15px;
-      text-align: center;
+    input {
+      display: block;
+      width: 80%;
+      margin: 10px auto;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
     }
 
     button {
-      padding: 8px 12px;
+      width: 80%;
+      padding: 10px;
+      margin-top: 10px;
       border: none;
       border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .logout {
-      background: red;
-      color: white;
-      margin-top: 10px;
-    }
-
-    .card {
       background: white;
-      margin: 10px;
-      padding: 10px;
-      border-radius: 10px;
-    }
-
-    .add {
-      background: #0b6b57;
-      color: white;
-    }
-
-    .accept {
-      background: green;
-      color: white;
-    }
-
-    .reject {
-      background: red;
-      color: white;
+      color: #0f6d5c;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2>TeamUp Global</h2>
-  <button class="logout" onclick="logout()">Logout</button>
-</header>
+<h2>TeamUp Global</h2>
 
-<h3 style="padding:10px;">Friend Requests</h3>
-<div id="friendRequests"></div>
+<input type="email" id="email" placeholder="Enter Email">
+<input type="password" id="password" placeholder="Enter Password">
 
-<h3 style="padding:10px;">All Users</h3>
-<div id="usersList"></div>
+<button onclick="login()">Login</button>
+<button onclick="signup()">Sign Up</button>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -84,100 +63,56 @@ const firebaseConfig = {
   measurementId: "G-EJ59MW0TMC"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// ✅ Initialize Firebase ONCE
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-let currentUserId = null;
-
-// CHECK LOGIN
+// ✅ ONLY redirect if already logged in
 auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.href = "index.html";
-  } else {
-    currentUserId = user.uid;
-    loadUsers();
-    loadRequests();
+  if (user) {
+    window.location.href = "chat.html";
   }
 });
 
-// LOGOUT
-function logout() {
-  auth.signOut().then(() => {
-    window.location.href = "index.html";
-  });
-}
+// 🔐 LOGIN
+function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-// LOAD USERS
-function loadUsers() {
-  db.collection("users").onSnapshot(snapshot => {
-    const list = document.getElementById("usersList");
-    list.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const user = doc.data();
-
-      if (user.uid !== currentUserId) {
-        list.innerHTML += `
-          <div class="card">
-            <p>${user.name || user.email}</p>
-            <button class="add" onclick="sendRequest('${user.uid}')">
-              Add Friend
-            </button>
-          </div>
-        `;
-      }
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      alert("Login successful");
+      window.location.href = "chat.html";
+    })
+    .catch(err => {
+      alert(err.message);
     });
-  });
 }
 
-// SEND REQUEST
-function sendRequest(toId) {
-  db.collection("friendRequests").add({
-    from: currentUserId,
-    to: toId,
-    status: "pending"
-  });
+// 🆕 SIGN UP
+function signup() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  alert("Friend request sent!");
-}
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
 
-// LOAD FRIEND REQUESTS
-function loadRequests() {
-  db.collection("friendRequests")
-    .where("to", "==", currentUserId)
-    .where("status", "==", "pending")
-    .onSnapshot(snapshot => {
-
-      const container = document.getElementById("friendRequests");
-      container.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-
-        container.innerHTML += `
-          <div class="card">
-            <p>Request from: ${data.from}</p>
-            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
-            <button class="reject" onclick="rejectRequest('${doc.id}')">Reject</button>
-          </div>
-        `;
+      // ✅ Save user to Firestore (VERY IMPORTANT)
+      db.collection("users").doc(userCredential.user.uid).set({
+        uid: userCredential.user.uid,
+        email: email,
+        name: email
       });
+
+      alert("Account created! Now login.");
+    })
+    .catch(err => {
+      alert(err.message);
     });
-}
-
-// ACCEPT
-function acceptRequest(id) {
-  db.collection("friendRequests").doc(id).update({
-    status: "accepted"
-  });
-}
-
-// REJECT
-function rejectRequest(id) {
-  db.collection("friendRequests").doc(id).update({
-    status: "rejected"
-  });
 }
 </script>
 
