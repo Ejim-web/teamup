@@ -3,55 +3,152 @@
 <head>
   <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: #0f6d5f;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .logout-btn {
+      background: red;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .container {
+      padding: 15px;
+    }
+
+    .user-card {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    button {
+      background: #0f6d5f;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>TeamUp Global</h2>
+<div class="header">
+  <h2>TeamUp Global</h2>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
 
-<button id="logoutBtn">Logout</button>
+<div class="container">
+  <h3>All Users</h3>
+  <div id="usersList"></div>
+</div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-  authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-};
+  // ✅ YOUR CONFIG (correct one)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+    measurementId: "G-EJ59MW0TMC"
+  };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-console.log("Script loaded");
-
-// 🔥 WATCH AUTH STATE
-auth.onAuthStateChanged(user => {
-  console.log("Auth state:", user);
-
-  if (!user) {
-    console.log("User is logged out, redirecting...");
-    window.location.href = "index.html";
+  // ✅ Initialize Firebase ONLY ONCE
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
   }
-});
 
-// 🔥 FORCE LOGOUT
-document.getElementById("logoutBtn").addEventListener("click", function () {
-  console.log("Logout clicked");
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  auth.signOut()
-    .then(() => {
-      console.log("SignOut successful");
-
-      // Force reload (important)
+  // ✅ CHECK LOGIN STATE
+  auth.onAuthStateChanged(user => {
+    if (!user) {
       window.location.href = "index.html";
-    })
-    .catch(error => {
-      console.error("Logout error:", error);
-      alert(error.message);
+    } else {
+      loadUsers(user.uid);
+    }
+  });
+
+  // ✅ LOGOUT (FIXED)
+  function logout() {
+    auth.signOut()
+      .then(() => {
+        alert("Logged out successfully");
+        window.location.href = "index.html";
+      })
+      .catch(error => {
+        alert("Logout error: " + error.message);
+      });
+  }
+
+  // ✅ LOAD USERS
+  function loadUsers(currentUserId) {
+    db.collection("users").get().then(snapshot => {
+      let html = "";
+
+      snapshot.forEach(doc => {
+        const user = doc.data();
+
+        if (user.uid !== currentUserId) {
+          html += `
+            <div class="user-card">
+              <p>${user.name || user.email}</p>
+              <button onclick="addFriend('${user.uid}')">Add Friend</button>
+            </div>
+          `;
+        }
+      });
+
+      document.getElementById("usersList").innerHTML = html;
     });
-});
+  }
+
+  // ✅ ADD FRIEND
+  function addFriend(toUserId) {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      alert("Not logged in");
+      return;
+    }
+
+    db.collection("friendRequests").add({
+      from: currentUser.uid,
+      to: toUserId,
+      status: "pending"
+    }).then(() => {
+      alert("Friend request sent!");
+    }).catch(err => {
+      alert(err.message);
+    });
+  }
 </script>
 
 </body>
