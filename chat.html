@@ -25,13 +25,14 @@
       padding: 10px;
       margin-top: 10px;
       border-radius: 5px;
+      cursor: pointer;
     }
 
     .container {
       padding: 15px;
     }
 
-    .user-card {
+    .card {
       background: white;
       padding: 10px;
       margin: 10px 0;
@@ -39,13 +40,15 @@
     }
 
     button {
-      background: #0f6d5c;
-      color: white;
-      border: none;
       padding: 8px;
+      border: none;
       border-radius: 5px;
       margin-top: 5px;
+      cursor: pointer;
     }
+
+    .add { background: #0f6d5c; color: white; }
+    .accept { background: green; color: white; }
   </style>
 </head>
 
@@ -53,7 +56,9 @@
 
 <div class="header">
   <h2>TeamUp Global</h2>
-  <button class="logout-btn" onclick="logout()">Logout</button>
+
+  <!-- ✅ FIXED LOGOUT BUTTON -->
+  <button class="logout-btn" id="logoutBtn">Logout</button>
 </div>
 
 <div class="container">
@@ -66,7 +71,7 @@
 
 </div>
 
-<!-- Firebase -->
+<!-- ✅ Firebase Scripts (correct order) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -83,12 +88,16 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUserId = null;
 
+//
 // ✅ AUTH CHECK
-firebase.auth().onAuthStateChanged(function(user) {
+//
+auth.onAuthStateChanged(user => {
   if (user) {
     currentUserId = user.uid;
     loadUsers();
@@ -98,7 +107,23 @@ firebase.auth().onAuthStateChanged(function(user) {
   }
 });
 
+//
+// ✅ LOGOUT (FIXED PROPERLY)
+//
+document.getElementById("logoutBtn").addEventListener("click", function () {
+  auth.signOut()
+    .then(() => {
+      alert("Logged out successfully");
+      window.location.href = "index.html";
+    })
+    .catch(error => {
+      alert("Logout error: " + error.message);
+    });
+});
+
+//
 // ✅ LOAD USERS
+//
 function loadUsers() {
   const usersDiv = document.getElementById("users");
   usersDiv.innerHTML = "";
@@ -109,9 +134,9 @@ function loadUsers() {
         const user = doc.data();
 
         usersDiv.innerHTML += `
-          <div class="user-card">
+          <div class="card">
             <p>${user.name || user.email}</p>
-            <button onclick="sendRequest('${doc.id}')">Add Friend</button>
+            <button class="add" onclick="sendRequest('${doc.id}')">Add Friend</button>
           </div>
         `;
       }
@@ -119,7 +144,9 @@ function loadUsers() {
   });
 }
 
+//
 // ✅ SEND REQUEST
+//
 function sendRequest(toUserId) {
   db.collection("friendRequests").add({
     from: currentUserId,
@@ -134,7 +161,9 @@ function sendRequest(toUserId) {
   });
 }
 
+//
 // ✅ LOAD REQUESTS
+//
 function loadRequests() {
   const requestsDiv = document.getElementById("requests");
   requestsDiv.innerHTML = "";
@@ -148,16 +177,18 @@ function loadRequests() {
         const data = doc.data();
 
         requestsDiv.innerHTML += `
-          <div class="user-card">
+          <div class="card">
             <p>Request from: ${data.from}</p>
-            <button onclick="acceptRequest('${doc.id}')">Accept</button>
+            <button class="accept" onclick="acceptRequest('${doc.id}')">Accept</button>
           </div>
         `;
       });
     });
 }
 
+//
 // ✅ ACCEPT REQUEST
+//
 function acceptRequest(id) {
   db.collection("friendRequests").doc(id).update({
     status: "accepted"
@@ -167,22 +198,6 @@ function acceptRequest(id) {
     loadRequests();
   });
 }
-
-// ✅ LOGOUT (FIXED)
-function logout() {
-  firebase.auth().signOut()
-    .then(() => {
-      alert("Logged out");
-      window.location.href = "index.html";
-    })
-    .catch(err => {
-      alert(err.message);
-    });
-}
-
-// 🔥 IMPORTANT FIX
-window.logout = logout;
-
 </script>
 
 </body>
