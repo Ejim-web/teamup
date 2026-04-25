@@ -1,119 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Chats</title>
+  <title>TeamUp Global</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #f2f2f2;
-    }
-
-    header {
-      background: #075e54;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 18px;
-    }
-
-    .chat {
-      background: white;
-      padding: 15px;
-      border-bottom: 1px solid #ddd;
-      cursor: pointer;
-    }
-
-    .name {
-      font-weight: bold;
-    }
-
-    .msg {
-      color: gray;
-      font-size: 14px;
-    }
+    body { margin:0; font-family:Arial; background:#f2f2f2; }
+    .header { background:#075E54; color:white; text-align:center; padding:20px; }
+    .logout { background:red; color:white; padding:8px 15px; border:none; border-radius:6px; margin-top:10px; }
+    .card { background:white; margin:10px; padding:15px; border-radius:10px; }
+    .btn { background:#075E54; color:white; padding:8px 12px; border:none; border-radius:6px; margin-top:10px; }
   </style>
 </head>
 
 <body>
 
-<header>Chats</header>
+<div class="header">
+  <h2>TeamUp Global</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+</div>
 
-<div id="chatList">Loading...</div>
+<h3 style="padding:10px;">Friends</h3>
+<div id="friends"></div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
   authDomain: "teamup-68a21.firebaseapp.com",
   projectId: "teamup-68a21",
+  storageBucket: "teamup-68a21.firebasestorage.app",
+  messagingSenderId: "379106762572",
+  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+  measurementId: "G-EJ59MW0TMC"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-let currentUserId = null;
-
-firebase.auth().onAuthStateChanged(async user => {
-  if(!user){
+// PROTECT PAGE
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) {
     window.location.href = "index.html";
-    return;
+  } else {
+    localStorage.setItem("userId", user.uid);
+    loadFriends();
   }
-
-  currentUserId = user.uid;
-  loadChats();
 });
 
+// DEMO FRIENDS
+const sampleFriends = [
+  {id:"user2", name:"Kelvin Carter"},
+  {id:"user3", name:"Evans Uchechukwu"}
+];
 
-// LOAD CHAT LIST
-async function loadChats(){
-  const list = document.getElementById("chatList");
-  list.innerHTML = "";
+function loadFriends() {
+  const container = document.getElementById("friends");
+  container.innerHTML = "";
 
-  const snapshot = await db.collection("chats").get();
-
-  snapshot.forEach(async doc => {
-    if(!doc.id.includes(currentUserId)) return;
-
-    const chatId = doc.id;
-    const otherUserId = chatId.replace(currentUserId, "").replace("_", "");
-
-    const userDoc = await db.collection("users").doc(otherUserId).get();
-    const userData = userDoc.data() || {};
-
-    // LAST MESSAGE
-    const msgSnap = await db.collection("chats")
-      .doc(chatId)
-      .collection("messages")
-      .orderBy("timestamp", "desc")
-      .limit(1)
-      .get();
-
-    let lastMsg = "No messages yet";
-
-    msgSnap.forEach(m => {
-      lastMsg = m.data().text;
-    });
-
-    list.innerHTML += `
-      <div class="chat" onclick="openChat('${chatId}')">
-        <div class="name">${userData.name || "Unknown User"}</div>
-        <div class="msg">${lastMsg}</div>
+  sampleFriends.forEach(f => {
+    container.innerHTML += `
+      <div class="card">
+        <b>${f.name}</b><br>
+        <button class="btn" onclick="openChat('${f.id}','${f.name}')">Chat</button>
       </div>
     `;
   });
 }
 
+function openChat(id, name) {
+  localStorage.setItem("chatUserId", id);
+  localStorage.setItem("chatUserName", name);
+  window.location.href = "chat.html";
+}
 
-// OPEN CHAT
-function openChat(chatId){
-  window.location.href = "chat.html?chatId=" + chatId;
+// LOGOUT FIXED
+function logout() {
+  firebase.auth().signOut().then(() => {
+    localStorage.clear();
+    window.location.href = "index.html";
+  });
 }
 </script>
 
