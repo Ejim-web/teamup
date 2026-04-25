@@ -2,22 +2,164 @@
 <html>
 <head>
   <title>Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f2f2f2;
+    }
+
+    header {
+      background: #176b5c;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    #messages {
+      padding: 10px;
+      height: 70vh;
+      overflow-y: auto;
+    }
+
+    .msg {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 10px;
+      max-width: 70%;
+    }
+
+    .me {
+      background: #176b5c;
+      color: white;
+      margin-left: auto;
+    }
+
+    .other {
+      background: white;
+    }
+
+    .input-box {
+      display: flex;
+      padding: 10px;
+      background: white;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 10px 15px;
+      background: #176b5c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Chat Page</h2>
-<button onclick="back()">Back</button>
+<header>Chat</header>
 
-<p>Chat with user ID:</p>
-<p id="chatUser"></p>
+<div id="messages"></div>
+
+<div class="input-box">
+  <input id="msgInput" placeholder="Type a message...">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-document.getElementById("chatUser").innerText = localStorage.getItem("chatUser");
+const firebaseConfig = {
+  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+  authDomain: "teamup-68a21.firebaseapp.com",
+  projectId: "teamup-68a21",
+};
 
-function back() {
-  window.location.href = "index.html";
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const urlParams = new URLSearchParams(window.location.search);
+const chatId = urlParams.get("chatId");
+
+let currentUserId = null;
+
+// AUTH
+firebase.auth().onAuthStateChanged(user => {
+  if(user){
+    currentUserId = user.uid;
+    loadMessages();
+  } else {
+    window.location.href = "index.html";
+  }
+});
+
+
+// REALTIME MESSAGES
+function loadMessages(){
+  db.collection("chats")
+    .doc(chatId)
+    .collection("messages")
+    .orderBy("timestamp")
+    .onSnapshot(snapshot => {
+      const msgDiv = document.getElementById("messages");
+      msgDiv.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+
+        const div = document.createElement("div");
+        div.classList.add("msg");
+
+        if(data.senderId === currentUserId){
+          div.classList.add("me");
+        } else {
+          div.classList.add("other");
+        }
+
+        div.innerText = data.text;
+        msgDiv.appendChild(div);
+      });
+
+      msgDiv.scrollTop = msgDiv.scrollHeight;
+    });
+}
+
+
+// SEND MESSAGE
+function sendMessage(){
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
+
+  if(text === "") return;
+
+  db.collection("chats")
+    .doc(chatId)
+    .collection("messages")
+    .add({
+      senderId: currentUserId,
+      text: text,
+      timestamp: Date.now()
+    });
+
+  input.value = "";
 }
 </script>
 
 </body>
-</html>
+  </html>
