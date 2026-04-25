@@ -15,17 +15,16 @@
       background: #176b5c;
       color: white;
       text-align: center;
-      padding: 25px;
+      padding: 30px 20px;
     }
 
     .logout {
       background: red;
       color: white;
-      border: none;
       padding: 12px 20px;
       border-radius: 8px;
+      border: none;
       margin-top: 10px;
-      cursor: pointer;
     }
 
     .section {
@@ -37,45 +36,17 @@
       padding: 15px;
       margin: 10px 0;
       border-radius: 12px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .add-btn {
+    .btn {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 10px;
+      cursor: pointer;
       background: #176b5c;
       color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 8px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-
-    .pending {
-      background: gray;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      display: inline-block;
-      margin-top: 10px;
-    }
-
-    .accept {
-      background: green;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 8px;
-      margin-right: 10px;
-      cursor: pointer;
-    }
-
-    .reject {
-      background: red;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -86,11 +57,6 @@
   <h2>TeamUp Global</h2>
   <button class="logout" onclick="logout()">Logout</button>
 </header>
-
-<div class="section">
-  <h3>Friend Requests</h3>
-  <div id="requests">Loading...</div>
-</div>
 
 <div class="section">
   <h3>All Users</h3>
@@ -113,132 +79,52 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUserId = null;
-let requestsMap = {};
 
-// ✅ AUTH
+// AUTH
 firebase.auth().onAuthStateChanged(user => {
   if(user){
     currentUserId = user.uid;
-    loadRequests();
     loadUsers();
   } else {
     window.location.href = "index.html";
   }
 });
 
-// ✅ LOAD REQUESTS
-function loadRequests(){
-  db.collection("friendRequests").onSnapshot(snapshot => {
-    const reqDiv = document.getElementById("requests");
-    reqDiv.innerHTML = "";
-    requestsMap = {};
 
-    let hasRequest = false;
+// LOAD USERS
+async function loadUsers(){
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+  const snapshot = await db.collection("users").get();
 
-      // Save all requests
-      requestsMap[data.from + "_" + data.to] = data.status;
+  snapshot.forEach(doc => {
+    if(doc.id === currentUserId) return;
 
-      // Incoming requests
-      if(data.to === currentUserId && data.status === "pending"){
-        hasRequest = true;
+    const data = doc.data();
 
-        db.collection("users").doc(data.from).get().then(userDoc => {
-          const user = userDoc.data();
-
-          reqDiv.innerHTML += `
-            <div class="card">
-              <b>${user?.name || "Unknown User"}</b><br><br>
-              <button class="accept" onclick="accept('${doc.id}')">Accept</button>
-              <button class="reject" onclick="reject('${doc.id}')">Reject</button>
-            </div>
-          `;
-        });
-      }
-    });
-
-    if(!hasRequest){
-      reqDiv.innerHTML = "No requests";
-    }
-
-    loadUsers(); // refresh UI
+    usersDiv.innerHTML += `
+      <div class="card">
+        <b>${data.name || "No Name"}</b><br>
+        <small>${data.email || "No Email"}</small><br>
+        <button class="btn" onclick="startChat('${doc.id}')">Chat</button>
+      </div>
+    `;
   });
 }
 
-// ✅ LOAD USERS
-function loadUsers(){
-  db.collection("users").get().then(snapshot => {
-    const usersDiv = document.getElementById("users");
-    usersDiv.innerHTML = "";
 
-    snapshot.forEach(doc => {
-      if(doc.id === currentUserId) return;
-
-      const data = doc.data();
-      const name = data.name || "No Name";
-      const email = data.email || "No Email";
-
-      const sent = requestsMap[currentUserId + "_" + doc.id];
-      const received = requestsMap[doc.id + "_" + currentUserId];
-
-      let button = "";
-
-      if(sent === "pending"){
-        button = `<div class="pending">Pending ⏳</div>`;
-      }
-      else if(received === "pending"){
-        button = `<div class="pending">Pending ⏳</div>`;
-      }
-      else{
-        button = `<button class="add-btn" onclick="addFriend('${doc.id}')">Add Friend</button>`;
-      }
-
-      usersDiv.innerHTML += `
-        <div class="card">
-          <b>${name}</b><br>
-          <small>${email}</small><br>
-          ${button}
-        </div>
-      `;
-    });
-  });
+// START CHAT
+function startChat(otherUserId){
+  const chatId = [currentUserId, otherUserId].sort().join("_");
+  window.location.href = "chat.html?chatId=" + chatId;
 }
 
-// ✅ SEND REQUEST (NO DUPLICATE)
-function addFriend(userId){
-  const id = currentUserId + "_" + userId;
 
-  db.collection("friendRequests").doc(id).set({
-    from: currentUserId,
-    to: userId,
-    status: "pending"
-  })
-  .then(() => alert("Friend request sent"));
-}
-
-// ✅ ACCEPT
-function accept(id){
-  db.collection("friendRequests").doc(id).update({
-    status: "accepted"
-  });
-}
-
-// ✅ REJECT
-function reject(id){
-  db.collection("friendRequests").doc(id).delete();
-}
-
-// ✅ LOGOUT FIXED
+// LOGOUT
 function logout(){
-  firebase.auth().signOut()
-  .then(() => {
-    window.location.replace("index.html");
-  })
-  .catch(err => {
-    alert("Logout failed");
-    console.log(err);
+  firebase.auth().signOut().then(() => {
+    window.location.href = "index.html";
   });
 }
 </script>
