@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TeamUp Chat</title>
+  <title>Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -9,238 +9,130 @@
       margin: 0;
       font-family: Arial;
       background: #e5ddd5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
-    header {
+    .header {
       background: #075e54;
       color: white;
       padding: 15px;
       text-align: center;
-      font-size: 20px;
-    }
-
-    .chat-list, .chat-box {
-      padding: 10px;
-    }
-
-    .user-card {
-      background: white;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .chat-header {
-      background: #075e54;
-      color: white;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-    }
-
-    .chat-header button {
-      margin-right: 10px;
-      background: none;
-      border: none;
-      color: white;
       font-size: 18px;
     }
 
-    .messages {
-      height: 70vh;
-      overflow-y: auto;
+    #chatBox {
+      flex: 1;
       padding: 10px;
+      overflow-y: auto;
     }
 
-    .msg {
-      padding: 8px 12px;
-      margin: 5px 0;
-      border-radius: 10px;
+    .message {
+      background: white;
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
       max-width: 70%;
     }
 
-    .sent {
+    .me {
       background: #dcf8c6;
       margin-left: auto;
     }
 
-    .received {
-      background: white;
-    }
-
-    .input-box {
+    .inputBox {
       display: flex;
       padding: 10px;
-      background: white;
+      background: #f0f0f0;
     }
 
-    .input-box input {
+    .inputBox input {
       flex: 1;
       padding: 10px;
+      border: none;
       border-radius: 20px;
-      border: 1px solid #ccc;
+      outline: none;
     }
 
-    .input-box button {
+    .inputBox button {
       margin-left: 10px;
       padding: 10px 15px;
       border: none;
-      border-radius: 50%;
       background: #075e54;
       color: white;
+      border-radius: 20px;
     }
   </style>
 </head>
 
 <body>
 
-<header>Chats</header>
+  <div class="header" id="chatTitle">Chat</div>
 
-<div id="chatList" class="chat-list"></div>
+  <div id="chatBox"></div>
 
-<div id="chatScreen" style="display:none;">
-  <div class="chat-header">
-    <button onclick="goBack()">←</button>
-    <span id="chatName"></span>
+  <div class="inputBox">
+    <input type="text" id="messageInput" placeholder="Type a message">
+    <button onclick="sendMessage()">Send</button>
   </div>
 
-  <div id="messages" class="messages"></div>
+  <script>
+    // Get selected user
+    const chatUser = localStorage.getItem("chatUser");
 
-  <div class="input-box">
-    <input id="msgInput" placeholder="Type message...">
-    <button onclick="sendMessage()">➤</button>
-  </div>
-</div>
+    if (!chatUser) {
+      alert("No user selected!");
+    }
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    document.getElementById("chatTitle").innerText = chatUser;
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
-  authDomain: "teamup-68a21.firebaseapp.com",
-  projectId: "teamup-68a21",
-  storageBucket: "teamup-68a21.firebasestorage.app",
-  messagingSenderId: "379106762572",
-  appId: "1:379106762572:web:a1537754ed17d3a60339e9",
-  measurementId: "G-EJ59MW0TMC"
-};
+    const chatBox = document.getElementById("chatBox");
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+    // Load messages
+    function loadMessages() {
+      chatBox.innerHTML = "";
 
-let currentUser;
-let currentChatUser;
-let unsubscribe;
+      const messages = JSON.parse(localStorage.getItem(chatUser)) || [];
 
-// 🔥 Auth check
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    location.href = "index.html";
-  } else {
-    currentUser = user;
-    loadChats();
-  }
-});
+      messages.forEach(msg => {
+        const div = document.createElement("div");
+        div.classList.add("message");
 
-// 🔥 Load friends/chats
-function loadChats() {
-  db.collection("friends")
-    .doc(currentUser.uid)
-    .collection("list")
-    .onSnapshot(snapshot => {
-      const chatList = document.getElementById("chatList");
-      chatList.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const user = doc.data();
-
-        chatList.innerHTML += `
-          <div class="user-card" onclick="openChat('${user.uid}', '${user.name}')">
-            <b>${user.name}</b><br>
-            <small>${user.lastMessage || "Tap to chat"}</small>
-          </div>
-        `;
-      });
-    });
-}
-
-// 🔥 Open chat
-function openChat(uid, name) {
-  currentChatUser = uid;
-
-  document.getElementById("chatList").style.display = "none";
-  document.getElementById("chatScreen").style.display = "block";
-  document.getElementById("chatName").innerText = name;
-
-  loadMessages();
-}
-
-// 🔥 Load messages (REALTIME)
-function loadMessages() {
-  if (unsubscribe) unsubscribe();
-
-  unsubscribe = db.collection("messages")
-    .orderBy("time")
-    .onSnapshot(snapshot => {
-      const box = document.getElementById("messages");
-      box.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const msg = doc.data();
-
-        if (
-          (msg.from === currentUser.uid && msg.to === currentChatUser) ||
-          (msg.from === currentChatUser && msg.to === currentUser.uid)
-        ) {
-          box.innerHTML += `
-            <div class="msg ${msg.from === currentUser.uid ? "sent" : "received"}">
-              ${msg.text}
-            </div>
-          `;
+        if (msg.sender === "me") {
+          div.classList.add("me");
         }
+
+        div.innerText = msg.text;
+        chatBox.appendChild(div);
       });
 
-      box.scrollTop = box.scrollHeight;
-    });
-}
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-// 🔥 Send message
-function sendMessage() {
-  const input = document.getElementById("msgInput");
-  const text = input.value;
+    // Send message
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
 
-  if (!text) return;
+      if (text === "") return;
 
-  db.collection("messages").add({
-    text: text,
-    from: currentUser.uid,
-    to: currentChatUser,
-    time: Date.now()
-  });
+      let messages = JSON.parse(localStorage.getItem(chatUser)) || [];
 
-  // update last message
-  db.collection("friends").doc(currentUser.uid)
-    .collection("list").doc(currentChatUser)
-    .update({ lastMessage: text });
+      messages.push({
+        sender: "me",
+        text: text
+      });
 
-  db.collection("friends").doc(currentChatUser)
-    .collection("list").doc(currentUser.uid)
-    .update({ lastMessage: text });
+      localStorage.setItem(chatUser, JSON.stringify(messages));
 
-  input.value = "";
-}
+      input.value = "";
+      loadMessages();
+    }
 
-// 🔥 Back button
-function goBack() {
-  document.getElementById("chatScreen").style.display = "none";
-  document.getElementById("chatList").style.display = "block";
-}
-</script>
+    // Load on start
+    loadMessages();
+  </script>
 
 </body>
 </html>
