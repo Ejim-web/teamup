@@ -1,1 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Match</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      width: 300px;
+      height: 400px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+      transition: 0.3s;
+    }
+
+    .name {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .buttons {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      font-size: 20px;
+      color: white;
+    }
+
+    .like { background: green; }
+    .reject { background: red; }
+  </style>
+</head>
+
+<body>
+
+<div id="card" class="card">
+  <div class="name" id="name">Loading...</div>
+</div>
+
+<div class="buttons">
+  <button class="btn reject" onclick="swipeLeft()">❌</button>
+  <button class="btn like" onclick="swipeRight()">❤️</button>
+</div>
+
+<script>
+  // 👤 DEMO USERS (you can replace later with Firebase users)
+  const users = ["John", "Mary", "David", "Sophia", "Daniel"];
+
+  let index = 0;
+
+  let myName = localStorage.getItem("myName");
+  if (!myName) {
+    myName = "User" + Math.floor(Math.random() * 1000);
+    localStorage.setItem("myName", myName);
+  }
+
+  const card = document.getElementById("card");
+
+  function showUser() {
+    if (index >= users.length) {
+      card.innerHTML = "<h2>No more users</h2>";
+      return;
+    }
+
+    document.getElementById("name").innerText = users[index];
+  }
+
+  // 👉 LIKE (MATCH)
+  function swipeRight() {
+    const matchedUser = users[index];
+
+    localStorage.setItem("chatUser", matchedUser);
+
+    alert("🎉 Matched with " + matchedUser);
+
+    // go to chat
+    window.location.href = "chat.html";
+  }
+
+  // 👈 REJECT
+  function swipeLeft() {
+    index++;
+    showUser();
+  }
+
+  // 👆 TOUCH SWIPE
+  let startX = 0;
+
+  card.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+  });
+
+  card.addEventListener("touchend", e => {
+    let endX = e.changedTouches[0].clientX;
+
+    if (endX - startX > 50) {
+      swipeRight();
+    } else if (startX - endX > 50) {
+      swipeLeft();
+    }
+  });
+
+  showUser();
+</script>
+
+</body>
+</html>
