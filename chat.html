@@ -4,34 +4,57 @@
   <title>Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: #e5ddd5;
       display: flex;
       flex-direction: column;
       height: 100vh;
+      background: #e5ddd5;
     }
 
     .header {
       background: #075e54;
       color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 18px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .back {
+      font-size: 20px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .name {
+      font-weight: bold;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #ddd;
     }
 
     #chatBox {
       flex: 1;
-      padding: 10px;
       overflow-y: auto;
-      border: 2px solid red; /* DEBUG: to confirm it's visible */
+      padding: 10px;
     }
 
     .message {
       background: white;
-      padding: 10px;
+      padding: 8px;
       margin: 5px;
       border-radius: 8px;
       max-width: 70%;
@@ -42,84 +65,175 @@
       margin-left: auto;
     }
 
+    .time {
+      font-size: 10px;
+      color: gray;
+      text-align: right;
+    }
+
     .inputBox {
       display: flex;
       padding: 10px;
       background: #f0f0f0;
     }
 
-    .inputBox input {
+    input {
       flex: 1;
       padding: 10px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
     }
 
-    .inputBox button {
+    button {
       margin-left: 10px;
       padding: 10px;
+      border: none;
+      background: #075e54;
+      color: white;
+      border-radius: 20px;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="header" id="chatTitle">Loading...</div>
-
-  <div id="chatBox"></div>
-
-  <div class="inputBox">
-    <input type="text" id="messageInput">
-    <button onclick="sendMessage()">Send</button>
+<div class="header">
+  <span class="back" onclick="history.back()">⬅</span>
+  <div class="info">
+    <div id="chatTitle" class="name">Loading...</div>
+    <div id="status" class="status">offline</div>
   </div>
+</div>
 
-  <script>
-    const chatUser = localStorage.getItem("chatUser");
+<div id="chatBox"></div>
 
-    console.log("Selected user:", chatUser); // DEBUG
+<div class="inputBox">
+  <input type="text" id="messageInput" placeholder="Type message...">
+  <button onclick="sendMessage()">Send</button>
+</div>
 
-    if (!chatUser) {
-      alert("No user selected!");
-    }
+<script>
+  // FIREBASE CONFIG
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+    measurementId: "G-EJ59MW0TMC"
+  };
 
-    document.getElementById("chatTitle").innerText = chatUser || "No User";
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    const chatBox = document.getElementById("chatBox");
+  // AUTO USER SETUP
+  let myName = localStorage.getItem("myName");
+  if (!myName) {
+    myName = "User" + Math.floor(Math.random() * 1000);
+    localStorage.setItem("myName", myName);
+  }
 
-    function loadMessages() {
-      console.log("Loading messages..."); // DEBUG
+  let chatUser = localStorage.getItem("chatUser");
+  if (!chatUser) {
+    chatUser = "Public"; // fallback so page never breaks
+  }
 
-      chatBox.innerHTML = "";
+  document.getElementById("chatTitle").innerText = chatUser;
 
-      const messages = JSON.parse(localStorage.getItem(chatUser)) || [];
+  // ONLINE STATUS
+  const myRef = db.ref("status/" + myName);
 
-      messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.className = "message " + (msg.sender === "me" ? "me" : "");
-        div.innerText = msg.text;
-        chatBox.appendChild(div);
+  db.ref(".info/connected").on("value", snap => {
+    if (snap.val()) {
+      myRef.onDisconnect().set({
+        state: "offline",
+        lastSeen: Date.now()
+      });
+
+      myRef.set({
+        state: "online",
+        lastSeen: Date.now()
       });
     }
+  });
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = input.value;
+  // SHOW STATUS
+  db.ref("status/" + chatUser).on("value", snap => {
+    const data = snap.val();
 
-      if (!text) return;
-
-      let messages = JSON.parse(localStorage.getItem(chatUser)) || [];
-
-      messages.push({
-        sender: "me",
-        text: text
-      });
-
-      localStorage.setItem(chatUser, JSON.stringify(messages));
-
-      input.value = "";
-      loadMessages();
+    if (!data) {
+      document.getElementById("status").innerText = "offline";
+      return;
     }
 
-    loadMessages();
-  </script>
+    if (data.state === "online") {
+      document.getElementById("status").innerText = "🟢 online";
+    } else {
+      const t = new Date(data.lastSeen).toLocaleTimeString();
+      document.getElementById("status").innerText = "Last seen " + t;
+    }
+  });
+
+  // CHAT ID
+  const chatId = myName < chatUser ? myName + "_" + chatUser : chatUser + "_" + myName;
+
+  const chatBox = document.getElementById("chatBox");
+
+  // SEND
+  function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    db.ref("messages/" + chatId).push({
+      sender: myName,
+      text: text,
+      time: Date.now()
+    });
+
+    input.value = "";
+    db.ref("typing/" + chatId + "/" + myName).set(false);
+  }
+
+  // ENTER SEND
+  document.getElementById("messageInput").addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  // TYPING
+  document.getElementById("messageInput").addEventListener("input", () => {
+    db.ref("typing/" + chatId + "/" + myName).set(true);
+
+    setTimeout(() => {
+      db.ref("typing/" + chatId + "/" + myName).set(false);
+    }, 1500);
+  });
+
+  db.ref("typing/" + chatId + "/" + chatUser).on("value", snap => {
+    if (snap.val()) {
+      document.getElementById("status").innerText = "typing...";
+    }
+  });
+
+  // RECEIVE
+  db.ref("messages/" + chatId).on("child_added", snap => {
+    const msg = snap.val();
+
+    const div = document.createElement("div");
+    div.className = "message " + (msg.sender === myName ? "me" : "");
+
+    div.innerHTML = `
+      <div>${msg.text}</div>
+      <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
+    `;
+
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+</script>
 
 </body>
 </html>
