@@ -10,7 +10,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: system-ui, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
     body {
       background: #1a1a2e;
@@ -44,7 +44,6 @@
     .login-screen h1 {
       font-size: 2.2rem;
       color: #c44545;
-      letter-spacing: -0.5px;
     }
     .login-screen input {
       width: 100%;
@@ -63,23 +62,11 @@
       width: 100%;
       font-weight: 600;
       cursor: pointer;
-      transition: 0.2s;
     }
-    #signupBtn {
-      background: #e07a7a;
-    }
-    .error-msg {
-      color: #c44545;
-      font-size: 0.8rem;
-      text-align: center;
-      margin-top: 5px;
-    }
+    #signupBtn { background: #e07a7a; }
+    .error-msg { color: #c44545; font-size: 0.8rem; text-align: center; margin-top: 5px; }
     /* Main app */
-    #mainApp {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-    }
+    #mainApp { display: none; flex-direction: column; flex: 1; }
     .app-header {
       padding: 20px 20px 8px;
       background: white;
@@ -87,7 +74,6 @@
     }
     .app-header h2 {
       font-size: 1.8rem;
-      font-weight: 700;
       background: linear-gradient(135deg, #c44545, #e07a7a);
       -webkit-background-clip: text;
       background-clip: text;
@@ -99,31 +85,11 @@
       align-items: center;
       margin-top: 8px;
     }
-    .user-email {
-      font-size: 0.7rem;
-      color: #888;
-    }
-    .icon-btn {
-      background: none;
-      border: none;
-      font-size: 1.3rem;
-      cursor: pointer;
-      color: #c44545;
-    }
-    .content-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      background: #fafafa;
-    }
+    .user-email { font-size: 0.7rem; color: #888; }
+    .icon-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #c44545; }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; background: #fafafa; }
     /* Swipe card */
-    .swipe-container {
-      position: relative;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+    .swipe-container { position: relative; height: 100%; display: flex; justify-content: center; align-items: center; }
     .card {
       position: absolute;
       width: 100%;
@@ -133,50 +99,15 @@
       box-shadow: 0 15px 30px rgba(0,0,0,0.1);
       overflow: hidden;
       cursor: grab;
-      transition: transform 0.2s;
     }
-    .card-img {
-      height: 280px;
-      background: #eaeef3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 5rem;
-      color: #a0aec0;
-    }
-    .card-info {
-      padding: 20px;
-    }
-    .card-info h3 {
-      font-size: 1.6rem;
-      margin-bottom: 5px;
-    }
-    .location {
-      font-size: 0.85rem;
-      color: #5a6e85;
-      margin: 6px 0;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .last-active {
-      font-size: 0.7rem;
-      color: #22c55e;
-      margin-bottom: 12px;
-    }
-    .stats-row {
-      display: flex;
-      gap: 20px;
-      margin-top: 12px;
-      color: #555;
-      font-size: 0.8rem;
-    }
-    /* People lists (matches & liked) */
-    .people-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    .card-img { height: 280px; background: #eaeef3; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .card-info { padding: 20px; }
+    .card-info h3 { font-size: 1.6rem; margin-bottom: 5px; }
+    .location { font-size: 0.85rem; color: #5a6e85; margin: 6px 0; display: flex; align-items: center; gap: 4px; }
+    .last-active { font-size: 0.7rem; color: #22c55e; margin-bottom: 12px; }
+    .stats-row { display: flex; gap: 20px; margin-top: 12px; color: #555; font-size: 0.8rem; }
+    /* People list (matches / likes) */
+    .people-list { display: flex; flex-direction: column; gap: 12px; }
     .person-card {
       background: white;
       border-radius: 24px;
@@ -187,86 +118,20 @@
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .person-avatar {
-      width: 56px;
-      height: 56px;
-      background: #f0d9d9;
-      border-radius: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.8rem;
-    }
-    .person-info {
-      flex: 1;
-    }
-    .online-indicator {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      background: #2ecc71;
-      border-radius: 50%;
-      margin-left: 6px;
-    }
+    .person-avatar { width: 56px; height: 56px; background: #f0d9d9; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+    .person-info { flex: 1; }
+    .online-indicator { display: inline-block; width: 10px; height: 10px; background: #2ecc71; border-radius: 50%; margin-left: 6px; }
+    .last-message { font-size: 0.7rem; color: #888; margin-top: 4px; }
     /* Chat view */
-    .chat-view {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    .chat-header {
-      padding: 12px 16px;
-      background: white;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #fefefe;
-    }
-    .message {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 22px;
-      font-size: 0.9rem;
-    }
-    .message.me {
-      align-self: flex-end;
-      background: #c44545;
-      color: white;
-      border-bottom-right-radius: 5px;
-    }
-    .message.other {
-      align-self: flex-start;
-      background: #eef2ff;
-      color: #1f2a48;
-      border-bottom-left-radius: 5px;
-    }
-    .chat-input {
-      display: flex;
-      gap: 10px;
-      padding: 12px;
-      background: white;
-      border-top: 1px solid #eee;
-    }
-    .chat-input input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 40px;
-      border: 1px solid #ddd;
-    }
-    .no-profiles {
-      text-align: center;
-      padding: 50px 20px;
-      color: #8892a0;
-    }
+    .chat-view { display: flex; flex-direction: column; height: 100%; }
+    .chat-header { padding: 12px 16px; background: white; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #fefefe; }
+    .message { max-width: 80%; padding: 10px 14px; border-radius: 22px; font-size: 0.9rem; }
+    .message.me { align-self: flex-end; background: #c44545; color: white; border-bottom-right-radius: 5px; }
+    .message.other { align-self: flex-start; background: #eef2ff; color: #1f2a48; border-bottom-left-radius: 5px; }
+    .chat-input { display: flex; gap: 10px; padding: 12px; background: white; border-top: 1px solid #eee; }
+    .chat-input input { flex: 1; padding: 12px; border-radius: 40px; border: 1px solid #ddd; }
+    .no-profiles { text-align: center; padding: 50px 20px; color: #8892a0; }
     /* Bottom tab bar */
     .tab-bar {
       display: flex;
@@ -282,16 +147,8 @@
       text-align: center;
       flex: 1;
     }
-    .tab.active {
-      color: #c44545;
-    }
-    .back-btn {
-      background: none;
-      border: none;
-      font-size: 1.4rem;
-      cursor: pointer;
-      color: #c44545;
-    }
+    .tab.active { color: #c44545; }
+    .back-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #c44545; }
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -311,8 +168,7 @@
       border-radius: 32px;
       padding: 24px;
     }
-    .modal-content input,
-    .modal-content textarea {
+    .modal-content input, .modal-content select, .modal-content textarea {
       width: 100%;
       margin: 8px 0;
       padding: 10px;
@@ -328,9 +184,7 @@
       border: none;
       margin-top: 8px;
     }
-    .cancel-btn {
-      background: #ccc !important;
-    }
+    .cancel-btn { background: #ccc !important; }
   </style>
 </head>
 <body>
@@ -358,17 +212,30 @@
     <div id="contentArea" class="content-area"></div>
     <div class="tab-bar">
       <div class="tab" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
-      <div class="tab" data-main-tab="matches"><i class="fas fa-heart"></i></div>
+      <div class="tab" data-main-tab="messages"><i class="fas fa-comment-dots"></i></div>
       <div class="tab" data-main-tab="likes"><i class="fas fa-star"></i></div>
     </div>
   </div>
 
-  <!-- Edit Profile Modal -->
+  <!-- Edit Profile Modal (includes gender & looking for) -->
   <div id="editModal" class="modal-overlay">
     <div class="modal-content">
       <h3>Edit Profile</h3>
       <input type="text" id="editName" placeholder="Full Name">
       <input type="number" id="editAge" placeholder="Age">
+      <select id="editGender">
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Non-binary">Non-binary</option>
+        <option value="Other">Other</option>
+      </select>
+      <select id="editLookingFor">
+        <option value="">I want to meet...</option>
+        <option value="Male">Men</option>
+        <option value="Female">Women</option>
+        <option value="Everyone">Everyone</option>
+      </select>
       <input type="text" id="editLocation" placeholder="City, Country">
       <input type="text" id="editAvatar" placeholder="Avatar emoji (e.g. 🧑)" maxlength="2">
       <textarea id="editBio" placeholder="Bio (e.g. 'Adventure lover')" rows="2"></textarea>
@@ -381,7 +248,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
@@ -410,6 +277,8 @@
   const closeModalBtn = document.getElementById("closeModalBtn");
   const editName = document.getElementById("editName");
   const editAge = document.getElementById("editAge");
+  const editGender = document.getElementById("editGender");
+  const editLookingFor = document.getElementById("editLookingFor");
   const editLocation = document.getElementById("editLocation");
   const editAvatar = document.getElementById("editAvatar");
   const editBio = document.getElementById("editBio");
@@ -422,18 +291,21 @@
   let currentMainTab = "swipe";
   let unsubscribeChat = null, swipeCards = [], currentCardIndex = 0;
 
-  // Helper functions
+  // Helper: online/offline
   async function setUserOnline(uid, on) {
     try { await updateDoc(doc(db, "users", uid), { online: on, lastSeen: serverTimestamp() }); } catch(e) {}
   }
 
+  // Create profile on first signup (default gender & looking for)
   async function createUserProfile(user) {
     await setDoc(doc(db, "users", user.uid), {
       email: user.email,
       name: user.email.split('@')[0],
       age: null,
+      gender: null,
+      lookingFor: "Everyone",
       location: null,
-      bio: "New to TeamUp!",
+      bio: "New to TeamUp Global!",
       photoIcon: "🧑",
       online: true,
       lastSeen: serverTimestamp(),
@@ -445,6 +317,7 @@
     });
   }
 
+  // Get all other users (filter later)
   async function getAllUsers(uid) {
     const q = query(collection(db, "users"), limit(50));
     const snap = await getDocs(q);
@@ -453,12 +326,19 @@
     return users;
   }
 
+  // Get candidates for swipe: not yet swiped AND matches the user's "lookingFor" preference
   async function getSwipeCandidates(uid) {
     const userDoc = await getDoc(doc(db, "users", uid));
-    const swipedRight = userDoc.data()?.swipedRight || [];
-    const swipedLeft = userDoc.data()?.swipedLeft || [];
+    const userData = userDoc.data();
+    const swipedRight = userData?.swipedRight || [];
+    const swipedLeft = userData?.swipedLeft || [];
     const swipedIds = [...swipedRight, ...swipedLeft];
-    const all = await getAllUsers(uid);
+    const lookingFor = userData?.lookingFor || "Everyone";
+    let all = await getAllUsers(uid);
+    // Filter by gender preference
+    if (lookingFor !== "Everyone") {
+      all = all.filter(u => u.gender === lookingFor);
+    }
     return all.filter(u => !swipedIds.includes(u.id));
   }
 
@@ -471,11 +351,12 @@
     return `${Math.floor(diff/86400)} days ago`;
   }
 
+  // Swipe deck rendering
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
     const candidates = await getSwipeCandidates(currentUserId);
     if (candidates.length === 0) {
-      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No new people nearby ✨</div>';
+      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No new people matching your preferences ✨</div>';
       return;
     }
     swipeCards = candidates;
@@ -498,7 +379,7 @@
       <div class="card-img">${user.photoIcon || "👤"}</div>
       <div class="card-info">
         <h3>${user.name || "?"}, ${user.age || "?"}</h3>
-        <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Unknown"}</div>
+        <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Not set"}</div>
         <div class="last-active"><i class="fas fa-clock"></i> ${lastActive}</div>
         <p>${user.bio || ""}</p>
         <div class="stats-row">
@@ -535,7 +416,6 @@
         setTimeout(async () => {
           if (liked) {
             await updateDoc(doc(db, "users", currentUserId), { swipedRight: arrayUnion(user.id) });
-            // Add current user to likedBy of the other person
             await updateDoc(doc(db, "users", user.id), { likedBy: arrayUnion(currentUserId), likesReceived: increment(1) });
             // Check for match
             const otherDoc = await getDoc(doc(db, "users", user.id));
@@ -563,9 +443,18 @@
     window.addEventListener("touchend", onEnd);
   }
 
-  // Render matches (mutual)
-  async function renderMatches() {
-    contentArea.innerHTML = `<div id="matchesList" class="people-list"></div>`;
+  // Get last message for a match
+  async function getLastMessage(otherId) {
+    const roomId = [currentUserId, otherId].sort().join("__");
+    const q = query(collection(db, "chats", roomId, "messages"), orderBy("timestamp", "desc"), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) return snap.docs[0].data().text;
+    return "Say hi!";
+  }
+
+  // Render messages tab: all matches with last message preview
+  async function renderMessages() {
+    contentArea.innerHTML = `<div id="messagesList" class="people-list"></div>`;
     const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
     const matchIds = [];
     matchesSnap.forEach(d => {
@@ -573,9 +462,9 @@
       const other = users.find(id => id !== currentUserId);
       if (other) matchIds.push(other);
     });
-    const container = document.getElementById("matchesList");
+    const container = document.getElementById("messagesList");
     if (matchIds.length === 0) {
-      container.innerHTML = '<div class="no-profiles">💔 No matches yet. Keep swiping!</div>';
+      container.innerHTML = '<div class="no-profiles">💬 No matches yet. Swipe right to match!</div>';
       return;
     }
     for (const id of matchIds) {
@@ -583,13 +472,14 @@
       if (userSnap.exists()) {
         const data = userSnap.data();
         const onlineDot = data.online ? '<span class="online-indicator"></span>' : '';
+        const lastMsg = await getLastMessage(id);
         const div = document.createElement("div");
         div.className = "person-card";
         div.innerHTML = `
           <div class="person-avatar">${data.photoIcon || "👤"}</div>
           <div class="person-info">
             <strong>${data.name || "?"}, ${data.age || "?"}</strong> ${onlineDot}<br>
-            <small>${data.location || "Unknown"}</small>
+            <div class="last-message">💬 ${lastMsg.substring(0, 40)}</div>
           </div>
         `;
         div.addEventListener("click", () => openChat(id, data.name));
@@ -598,12 +488,12 @@
     }
   }
 
-  // Render people who liked me (not yet matched)
-  async function renderLikedBy() {
-    contentArea.innerHTML = `<div id="likedList" class="people-list"></div>`;
+  // Render likes (people who liked me, not yet matched)
+  async function renderLikes() {
+    contentArea.innerHTML = `<div id="likesList" class="people-list"></div>`;
     const currentUserDoc = await getDoc(doc(db, "users", currentUserId));
     const likedByIds = currentUserDoc.data()?.likedBy || [];
-    // exclude already matched ones
+    // Remove already matched
     const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
     const matchedIds = [];
     matchesSnap.forEach(d => {
@@ -612,9 +502,9 @@
       if (other) matchedIds.push(other);
     });
     const notYetMatched = likedByIds.filter(id => !matchedIds.includes(id));
-    const container = document.getElementById("likedList");
+    const container = document.getElementById("likesList");
     if (notYetMatched.length === 0) {
-      container.innerHTML = '<div class="no-profiles">🌟 No likes yet. Swipe more!</div>';
+      container.innerHTML = '<div class="no-profiles">🌟 No likes yet. Keep swiping!</div>';
       return;
     }
     for (const id of notYetMatched) {
@@ -627,16 +517,16 @@
           <div class="person-avatar">${data.photoIcon || "👤"}</div>
           <div class="person-info">
             <strong>${data.name || "?"}, ${data.age || "?"}</strong><br>
-            <small>${data.location || "Unknown"}</small>
+            <small>${data.location || "Not set"}</small>
           </div>
         `;
-        // clicking on a like does not open chat, just shows profile (optional)
         div.addEventListener("click", () => alert(`${data.name} liked you! Swipe right to match.`));
         container.appendChild(div);
       }
     }
   }
 
+  // Chat screen
   async function openChat(otherId, otherName) {
     if (unsubscribeChat) unsubscribeChat();
     contentArea.innerHTML = `
@@ -654,7 +544,7 @@
     `;
     document.getElementById("chatBackBtn").addEventListener("click", () => {
       if (unsubscribeChat) unsubscribeChat();
-      renderMatches();
+      renderMessages();
     });
     const roomId = [currentUserId, otherId].sort().join("__");
     const messagesRef = collection(db, "chats", roomId, "messages");
@@ -681,12 +571,14 @@
     });
   }
 
+  // Refresh content based on active tab
   async function refreshContent() {
     if (currentMainTab === "swipe") await renderSwipeDeck();
-    else if (currentMainTab === "matches") await renderMatches();
-    else if (currentMainTab === "likes") await renderLikedBy();
+    else if (currentMainTab === "messages") await renderMessages();
+    else if (currentMainTab === "likes") await renderLikes();
   }
 
+  // Tab switching
   mainTabs.forEach(tab => {
     tab.addEventListener("click", () => {
       mainTabs.forEach(t => t.classList.remove("active"));
@@ -696,10 +588,13 @@
     });
   });
 
+  // Edit profile
   editProfileBtn.onclick = async () => {
     const d = (await getDoc(doc(db, "users", currentUserId))).data();
     editName.value = d.name || "";
     editAge.value = d.age || "";
+    editGender.value = d.gender || "";
+    editLookingFor.value = d.lookingFor || "Everyone";
     editLocation.value = d.location || "";
     editAvatar.value = d.photoIcon || "🧑";
     editBio.value = d.bio || "";
@@ -709,6 +604,8 @@
     await updateDoc(doc(db, "users", currentUserId), {
       name: editName.value,
       age: parseInt(editAge.value) || null,
+      gender: editGender.value,
+      lookingFor: editLookingFor.value,
       location: editLocation.value,
       photoIcon: editAvatar.value || "🧑",
       bio: editBio.value
@@ -718,6 +615,7 @@
   };
   closeModalBtn.onclick = () => editModal.style.display = "none";
 
+  // Auth state
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
@@ -740,6 +638,7 @@
     }
   });
 
+  // Login handlers
   loginBtn.onclick = async () => {
     loginError.innerText = "";
     try {
