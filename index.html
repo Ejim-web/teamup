@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>TeamUp – Swipe, Match, Chat</title>
+  <title>TeamUp Global – Swipe, Match, Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: system-ui, 'Segoe UI', sans-serif;
+      font-family: system-ui, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     body {
       background: #1a1a2e;
@@ -44,6 +44,7 @@
     .login-screen h1 {
       font-size: 2.2rem;
       color: #c44545;
+      letter-spacing: -0.5px;
     }
     .login-screen input {
       width: 100%;
@@ -62,6 +63,7 @@
       width: 100%;
       font-weight: 600;
       cursor: pointer;
+      transition: 0.2s;
     }
     #signupBtn {
       background: #e07a7a;
@@ -84,7 +86,8 @@
       border-bottom: 1px solid #f0f0f0;
     }
     .app-header h2 {
-      font-size: 1.9rem;
+      font-size: 1.8rem;
+      font-weight: 700;
       background: linear-gradient(135deg, #c44545, #e07a7a);
       -webkit-background-clip: text;
       background-clip: text;
@@ -107,33 +110,13 @@
       cursor: pointer;
       color: #c44545;
     }
-    /* Filter row */
-    .filter-row {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding: 12px 16px;
-      background: white;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .filter-chip {
-      background: #f5f5f5;
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-size: 0.85rem;
-      white-space: nowrap;
-      cursor: pointer;
-    }
-    .filter-chip.active {
-      background: #c44545;
-      color: white;
-    }
     .content-area {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
       background: #fafafa;
     }
+    /* Swipe card */
     .swipe-container {
       position: relative;
       height: 100%;
@@ -150,6 +133,7 @@
       box-shadow: 0 15px 30px rgba(0,0,0,0.1);
       overflow: hidden;
       cursor: grab;
+      transition: transform 0.2s;
     }
     .card-img {
       height: 280px;
@@ -158,6 +142,7 @@
       align-items: center;
       justify-content: center;
       font-size: 5rem;
+      color: #a0aec0;
     }
     .card-info {
       padding: 20px;
@@ -186,12 +171,13 @@
       color: #555;
       font-size: 0.8rem;
     }
-    .matches-list {
+    /* People lists (matches & liked) */
+    .people-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
-    .match-card {
+    .person-card {
       background: white;
       border-radius: 24px;
       padding: 12px;
@@ -201,7 +187,7 @@
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .match-avatar {
+    .person-avatar {
       width: 56px;
       height: 56px;
       background: #f0d9d9;
@@ -211,6 +197,9 @@
       justify-content: center;
       font-size: 1.8rem;
     }
+    .person-info {
+      flex: 1;
+    }
     .online-indicator {
       display: inline-block;
       width: 10px;
@@ -219,6 +208,7 @@
       border-radius: 50%;
       margin-left: 6px;
     }
+    /* Chat view */
     .chat-view {
       display: flex;
       flex-direction: column;
@@ -277,17 +267,20 @@
       padding: 50px 20px;
       color: #8892a0;
     }
+    /* Bottom tab bar */
     .tab-bar {
       display: flex;
       background: white;
       border-top: 1px solid #eee;
-      padding: 8px 28px;
+      padding: 8px 20px;
       justify-content: space-around;
     }
     .tab {
       font-size: 1.6rem;
       color: #aaa;
       cursor: pointer;
+      text-align: center;
+      flex: 1;
     }
     .tab.active {
       color: #c44545;
@@ -344,7 +337,7 @@
 <div class="app-container">
   <!-- Login Screen -->
   <div id="loginScreen" class="login-screen">
-    <h1>💙 TeamUp</h1>
+    <h1>💙 TeamUp Global</h1>
     <input type="email" id="loginEmail" placeholder="Email">
     <input type="password" id="loginPassword" placeholder="Password">
     <div id="loginError" class="error-msg"></div>
@@ -355,25 +348,18 @@
   <!-- Main App (hidden until logged in) -->
   <div id="mainApp" style="display:none;">
     <div class="app-header">
-      <h2>TeamUp</h2>
+      <h2>TeamUp Global</h2>
       <div class="header-actions">
         <span class="user-email" id="currentUserEmail"></span>
         <button id="editProfileBtn" class="icon-btn"><i class="fas fa-user-edit"></i></button>
         <button id="logoutMainBtn" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
       </div>
     </div>
-    <!-- Filter row: Matches, Online, Popular, Newest members, Latest Picks -->
-    <div class="filter-row" id="filterRow">
-      <div class="filter-chip active" data-filter="matches">Matches</div>
-      <div class="filter-chip" data-filter="online">Online</div>
-      <div class="filter-chip" data-filter="popular">Popular</div>
-      <div class="filter-chip" data-filter="newest">Newest members</div>
-      <div class="filter-chip" data-filter="latest">Latest Picks</div>
-    </div>
     <div id="contentArea" class="content-area"></div>
     <div class="tab-bar">
-      <div class="tab active" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
+      <div class="tab" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
       <div class="tab" data-main-tab="matches"><i class="fas fa-heart"></i></div>
+      <div class="tab" data-main-tab="likes"><i class="fas fa-star"></i></div>
     </div>
   </div>
 
@@ -381,10 +367,11 @@
   <div id="editModal" class="modal-overlay">
     <div class="modal-content">
       <h3>Edit Profile</h3>
-      <input type="text" id="editName" placeholder="Name">
+      <input type="text" id="editName" placeholder="Full Name">
       <input type="number" id="editAge" placeholder="Age">
-      <input type="text" id="editLocation" placeholder="Location (City, Country)">
-      <textarea id="editBio" placeholder="Bio" rows="2"></textarea>
+      <input type="text" id="editLocation" placeholder="City, Country">
+      <input type="text" id="editAvatar" placeholder="Avatar emoji (e.g. 🧑)" maxlength="2">
+      <textarea id="editBio" placeholder="Bio (e.g. 'Adventure lover')" rows="2"></textarea>
       <button id="saveProfileBtn">Save</button>
       <button id="closeModalBtn" class="cancel-btn">Cancel</button>
     </div>
@@ -394,9 +381,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Your real Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
     authDomain: "teamup-68a21.firebaseapp.com",
@@ -425,16 +411,18 @@
   const editName = document.getElementById("editName");
   const editAge = document.getElementById("editAge");
   const editLocation = document.getElementById("editLocation");
+  const editAvatar = document.getElementById("editAvatar");
   const editBio = document.getElementById("editBio");
   const contentArea = document.getElementById("contentArea");
-  const filterChips = document.querySelectorAll(".filter-chip");
   const mainTabs = document.querySelectorAll(".tab");
   const currentUserEmailSpan = document.getElementById("currentUserEmail");
   const loginError = document.getElementById("loginError");
 
-  let currentUser = null, currentUserId = null, currentFilter = "matches", currentMainTab = "swipe";
+  let currentUser = null, currentUserId = null;
+  let currentMainTab = "swipe";
   let unsubscribeChat = null, swipeCards = [], currentCardIndex = 0;
 
+  // Helper functions
   async function setUserOnline(uid, on) {
     try { await updateDoc(doc(db, "users", uid), { online: on, lastSeen: serverTimestamp() }); } catch(e) {}
   }
@@ -443,31 +431,35 @@
     await setDoc(doc(db, "users", user.uid), {
       email: user.email,
       name: user.email.split('@')[0],
-      age: 28,
-      location: "Earth",
-      bio: "Ready to meet people 🔥",
+      age: null,
+      location: null,
+      bio: "New to TeamUp!",
       photoIcon: "🧑",
       online: true,
       lastSeen: serverTimestamp(),
       joinDate: serverTimestamp(),
       likesReceived: 0,
       swipedRight: [],
-      swipedLeft: []
+      swipedLeft: [],
+      likedBy: []
     });
   }
 
-  async function fetchUsersByFilter(filter, uid) {
-    let q;
-    if (filter === "online") q = query(collection(db, "users"), where("online", "==", true));
-    else if (filter === "popular") q = query(collection(db, "users"), orderBy("likesReceived", "desc"), limit(30));
-    else if (filter === "newest") q = query(collection(db, "users"), orderBy("joinDate", "desc"), limit(30));
-    else if (filter === "latest") q = query(collection(db, "users"), orderBy("joinDate", "desc"), limit(20));
-    else q = query(collection(db, "users"), limit(50));
+  async function getAllUsers(uid) {
+    const q = query(collection(db, "users"), limit(50));
     const snap = await getDocs(q);
     let users = [];
     snap.forEach(d => { if (d.id !== uid) users.push({ id: d.id, ...d.data() }); });
-    if (filter === "latest") users = users.sort(() => 0.5 - Math.random()).slice(0, 10);
     return users;
+  }
+
+  async function getSwipeCandidates(uid) {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    const swipedRight = userDoc.data()?.swipedRight || [];
+    const swipedLeft = userDoc.data()?.swipedLeft || [];
+    const swipedIds = [...swipedRight, ...swipedLeft];
+    const all = await getAllUsers(uid);
+    return all.filter(u => !swipedIds.includes(u.id));
   }
 
   function formatLastActive(ts) {
@@ -481,12 +473,12 @@
 
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
-    const users = await fetchUsersByFilter(currentFilter, currentUserId);
-    if (users.length === 0) {
-      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No more profiles right now ✨</div>';
+    const candidates = await getSwipeCandidates(currentUserId);
+    if (candidates.length === 0) {
+      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No new people nearby ✨</div>';
       return;
     }
-    swipeCards = users;
+    swipeCards = candidates;
     currentCardIndex = 0;
     displayNextCard();
   }
@@ -505,13 +497,14 @@
     card.innerHTML = `
       <div class="card-img">${user.photoIcon || "👤"}</div>
       <div class="card-info">
-        <h3>${user.name}, ${user.age || "?"}</h3>
-        <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Worldwide"}</div>
+        <h3>${user.name || "?"}, ${user.age || "?"}</h3>
+        <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Unknown"}</div>
         <div class="last-active"><i class="fas fa-clock"></i> ${lastActive}</div>
         <p>${user.bio || ""}</p>
         <div class="stats-row">
           <span><i class="fas fa-heart"></i> ${user.likesReceived || 0}</span>
-          <span><i class="fas fa-eye"></i> ${Math.floor(Math.random() * 100)}</span>
+          <span><i class="fas fa-comment"></i> 8</span>
+          <span><i class="fas fa-eye"></i> 43</span>
         </div>
       </div>
     `;
@@ -542,12 +535,14 @@
         setTimeout(async () => {
           if (liked) {
             await updateDoc(doc(db, "users", currentUserId), { swipedRight: arrayUnion(user.id) });
-            const other = await getDoc(doc(db, "users", user.id));
-            if (other.exists() && (other.data().swipedRight || []).includes(currentUserId)) {
+            // Add current user to likedBy of the other person
+            await updateDoc(doc(db, "users", user.id), { likedBy: arrayUnion(currentUserId), likesReceived: increment(1) });
+            // Check for match
+            const otherDoc = await getDoc(doc(db, "users", user.id));
+            if (otherDoc.exists() && (otherDoc.data().swipedRight || []).includes(currentUserId)) {
               const matchId = [currentUserId, user.id].sort().join("_");
               await setDoc(doc(db, "matches", matchId), { users: [currentUserId, user.id], createdAt: serverTimestamp() });
               alert("💖 It's a match! 💖");
-              await updateDoc(doc(db, "users", user.id), { likesReceived: increment(1) });
             }
           } else {
             await updateDoc(doc(db, "users", currentUserId), { swipedLeft: arrayUnion(user.id) });
@@ -568,17 +563,19 @@
     window.addEventListener("touchend", onEnd);
   }
 
-  async function renderMatchesList() {
-    contentArea.innerHTML = `<div id="matchesList" class="matches-list"></div>`;
-    const matches = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
+  // Render matches (mutual)
+  async function renderMatches() {
+    contentArea.innerHTML = `<div id="matchesList" class="people-list"></div>`;
+    const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
     const matchIds = [];
-    matches.forEach(d => {
-      const other = d.data().users.find(id => id !== currentUserId);
+    matchesSnap.forEach(d => {
+      const users = d.data().users;
+      const other = users.find(id => id !== currentUserId);
       if (other) matchIds.push(other);
     });
     const container = document.getElementById("matchesList");
     if (matchIds.length === 0) {
-      container.innerHTML = '<div class="no-profiles">No matches yet. Start swiping!</div>';
+      container.innerHTML = '<div class="no-profiles">💔 No matches yet. Keep swiping!</div>';
       return;
     }
     for (const id of matchIds) {
@@ -587,15 +584,54 @@
         const data = userSnap.data();
         const onlineDot = data.online ? '<span class="online-indicator"></span>' : '';
         const div = document.createElement("div");
-        div.className = "match-card";
+        div.className = "person-card";
         div.innerHTML = `
-          <div class="match-avatar">${data.photoIcon || "👤"}</div>
-          <div class="match-info">
-            <strong>${data.name}, ${data.age || "?"}</strong> ${onlineDot}<br>
-            <small>${data.location || "Worldwide"}</small>
+          <div class="person-avatar">${data.photoIcon || "👤"}</div>
+          <div class="person-info">
+            <strong>${data.name || "?"}, ${data.age || "?"}</strong> ${onlineDot}<br>
+            <small>${data.location || "Unknown"}</small>
           </div>
         `;
         div.addEventListener("click", () => openChat(id, data.name));
+        container.appendChild(div);
+      }
+    }
+  }
+
+  // Render people who liked me (not yet matched)
+  async function renderLikedBy() {
+    contentArea.innerHTML = `<div id="likedList" class="people-list"></div>`;
+    const currentUserDoc = await getDoc(doc(db, "users", currentUserId));
+    const likedByIds = currentUserDoc.data()?.likedBy || [];
+    // exclude already matched ones
+    const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
+    const matchedIds = [];
+    matchesSnap.forEach(d => {
+      const users = d.data().users;
+      const other = users.find(id => id !== currentUserId);
+      if (other) matchedIds.push(other);
+    });
+    const notYetMatched = likedByIds.filter(id => !matchedIds.includes(id));
+    const container = document.getElementById("likedList");
+    if (notYetMatched.length === 0) {
+      container.innerHTML = '<div class="no-profiles">🌟 No likes yet. Swipe more!</div>';
+      return;
+    }
+    for (const id of notYetMatched) {
+      const userSnap = await getDoc(doc(db, "users", id));
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        const div = document.createElement("div");
+        div.className = "person-card";
+        div.innerHTML = `
+          <div class="person-avatar">${data.photoIcon || "👤"}</div>
+          <div class="person-info">
+            <strong>${data.name || "?"}, ${data.age || "?"}</strong><br>
+            <small>${data.location || "Unknown"}</small>
+          </div>
+        `;
+        // clicking on a like does not open chat, just shows profile (optional)
+        div.addEventListener("click", () => alert(`${data.name} liked you! Swipe right to match.`));
         container.appendChild(div);
       }
     }
@@ -618,7 +654,7 @@
     `;
     document.getElementById("chatBackBtn").addEventListener("click", () => {
       if (unsubscribeChat) unsubscribeChat();
-      renderMatchesList();
+      renderMatches();
     });
     const roomId = [currentUserId, otherId].sort().join("__");
     const messagesRef = collection(db, "chats", roomId, "messages");
@@ -647,22 +683,15 @@
 
   async function refreshContent() {
     if (currentMainTab === "swipe") await renderSwipeDeck();
-    else await renderMatchesList();
+    else if (currentMainTab === "matches") await renderMatches();
+    else if (currentMainTab === "likes") await renderLikedBy();
   }
 
-  filterChips.forEach(c => {
-    c.addEventListener("click", () => {
-      filterChips.forEach(f => f.classList.remove("active"));
-      c.classList.add("active");
-      currentFilter = c.getAttribute("data-filter");
-      if (currentMainTab === "swipe") refreshContent();
-    });
-  });
-  mainTabs.forEach(t => {
-    t.addEventListener("click", () => {
-      mainTabs.forEach(m => m.classList.remove("active"));
-      t.classList.add("active");
-      currentMainTab = t.getAttribute("data-main-tab");
+  mainTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      mainTabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentMainTab = tab.getAttribute("data-main-tab");
       refreshContent();
     });
   });
@@ -672,14 +701,16 @@
     editName.value = d.name || "";
     editAge.value = d.age || "";
     editLocation.value = d.location || "";
+    editAvatar.value = d.photoIcon || "🧑";
     editBio.value = d.bio || "";
     editModal.style.display = "flex";
   };
   saveProfileBtn.onclick = async () => {
     await updateDoc(doc(db, "users", currentUserId), {
       name: editName.value,
-      age: parseInt(editAge.value) || 25,
+      age: parseInt(editAge.value) || null,
       location: editLocation.value,
+      photoIcon: editAvatar.value || "🧑",
       bio: editBio.value
     });
     editModal.style.display = "none";
@@ -697,8 +728,6 @@
       await setUserOnline(user.uid, true);
       loginScreen.style.display = "none";
       mainApp.style.display = "flex";
-      document.querySelector('.filter-chip[data-filter="matches"]').classList.add("active");
-      currentFilter = "matches";
       document.querySelector('.tab[data-main-tab="swipe"]').classList.add("active");
       currentMainTab = "swipe";
       await refreshContent();
