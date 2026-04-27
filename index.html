@@ -50,15 +50,19 @@
     .chat-input{display:flex;gap:10px;padding:12px;background:white;border-top:1px solid #eee}
     .chat-input input{flex:1;padding:12px;border-radius:40px;border:1px solid #ddd}
     .no-profiles{text-align:center;padding:50px 20px;color:#8892a0}
-    .tab-bar{display:flex;background:white;border-top:1px solid #eee;padding:8px 20px;justify-content:space-around}
-    .tab{font-size:1.6rem;color:#aaa;cursor:pointer;text-align:center;flex:1}
+    .tab-bar{display:flex;background:white;border-top:1px solid #eee;padding:8px 20px;justify-content:space-around;position:relative}
+    .tab{font-size:1.6rem;color:#aaa;cursor:pointer;text-align:center;flex:1;position:relative}
     .tab.active{color:#c44545}
+    .badge{position:absolute;top:-5px;right:-5px;background:#c44545;color:white;font-size:0.7rem;border-radius:20px;padding:2px 6px;min-width:18px;text-align:center}
     .back-btn{background:none;border:none;font-size:1.4rem;cursor:pointer;color:#c44545}
     .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;display:none}
     .modal-content{background:white;width:85%;max-width:350px;border-radius:32px;padding:24px}
     .modal-content input,.modal-content select,.modal-content textarea{width:100%;margin:8px 0;padding:10px;border-radius:30px;border:1px solid #ddd}
     .modal-content button{background:#c44545;color:white;padding:10px;border-radius:40px;width:100%;border:none;margin-top:8px}
     .cancel-btn{background:#ccc !important}
+    /* Toast notification */
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:12px 24px;border-radius:60px;font-size:0.9rem;z-index:1100;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;animation: fadeInUp 0.3s ease;pointer-events:none}
+    @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   </style>
 </head>
 <body>
@@ -87,7 +91,7 @@
     <div id="contentArea" class="content-area"></div>
     <div class="tab-bar">
       <div class="tab" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
-      <div class="tab" data-main-tab="messages"><i class="fas fa-comment-dots"></i></div>
+      <div class="tab" data-main-tab="messages" id="messagesTab"><i class="fas fa-comment-dots"></i><span id="matchBadge" class="badge" style="display:none;">0</span></div>
       <div class="tab" data-main-tab="likes"><i class="fas fa-star"></i></div>
     </div>
   </div>
@@ -148,12 +152,24 @@
   const mainTabs = document.querySelectorAll(".tab");
   const currentUserEmailSpan = document.getElementById("currentUserEmail");
   const loginError = document.getElementById("loginError");
+  const matchBadge = document.getElementById("matchBadge");
 
   let currentUser = null, currentUserId = null;
   let currentMainTab = "swipe";
   let unsubscribeChat = null, swipeCards = [], currentCardIndex = 0;
-  let matchListener = null; // optional
 
+  // ========== TOAST NOTIFICATION ==========
+  function showToast(message, icon = "❤️") {
+    const existing = document.querySelector(".toast");
+    if(existing) existing.remove();
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = `${icon} ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // ========== FIREBASE HELPERS ==========
   async function setUserOnline(uid, on) {
     try { await updateDoc(doc(db, "users", uid), { online: on, lastSeen: serverTimestamp() }); } catch(e) {}
   }
@@ -219,36 +235,38 @@
     else return `<div class="person-avatar">${user.photoIcon || "👤"}</div>`;
   }
 
-  // ================== SWIPE LOGIC WITH MATCH DETECTION ==================
+  // ========== SWIPE LOGIC (WITH NOTIFICATIONS) ==========
   async function handleSwipe(swipedUserId, liked) {
     if (!currentUserId) return;
     const userRef = doc(db, "users", currentUserId);
     if (liked) {
-      // 1. Add to my swipedRight
       await updateDoc(userRef, { swipedRight: arrayUnion(swipedUserId) });
-      // 2. Add current user to likedBy of the other person
       await updateDoc(doc(db, "users", swipedUserId), { likedBy: arrayUnion(currentUserId), likesReceived: increment(1) });
-      // 3. Check if the other person already swiped right on me
+      // notify the other user in real-time (if they are online, we'll show toast via listener)
+      // we can add a listener on likedBy later, but for simplicity, show toast to current user only when match
       const otherDoc = await getDoc(doc(db, "users", swipedUserId));
       const otherSwipedRight = otherDoc.data()?.swipedRight || [];
       if (otherSwipedRight.includes(currentUserId)) {
-        // MATCH!
         const matchId = [currentUserId, swipedUserId].sort().join("_");
         const matchRef = doc(db, "matches", matchId);
         const matchSnap = await getDoc(matchRef);
         if (!matchSnap.exists()) {
           await setDoc(matchRef, { users: [currentUserId, swipedUserId], createdAt: serverTimestamp() });
-          alert("💖 It's a match! 💖");
-          // If currently on messages tab, refresh it to show the new match
+          showToast("New match! 💖", "🎉");
           if (currentMainTab === "messages") await renderMessages();
+          updateMatchBadge();
         }
+      } else {
+        // user liked someone, but no match yet – optional: "You liked X"
+        // we can show subtle toast
+        // showToast(`You liked ${otherDoc.data()?.name || "someone"}`, "👍");
       }
     } else {
       await updateDoc(userRef, { swipedLeft: arrayUnion(swipedUserId) });
     }
   }
 
-  // ================== SWIPE UI ==================
+  // ========== UI SWIPE DECK ==========
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
     const candidates = await getSwipeCandidates(currentUserId);
@@ -317,12 +335,23 @@
     window.addEventListener("touchend", onEnd);
   }
 
-  // ================== MESSAGES (MATCHES) ==================
+  // ========== MESSAGES (MATCHES) WITH BADGE ==========
   async function getLastMessage(otherId) {
     const roomId = [currentUserId, otherId].sort().join("__");
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("timestamp", "desc"), limit(1));
     const snap = await getDocs(q);
     return snap.empty ? "Say hi!" : snap.docs[0].data().text;
+  }
+
+  async function updateMatchBadge() {
+    const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
+    const count = matchesSnap.size;
+    if (count > 0) {
+      matchBadge.style.display = "inline-block";
+      matchBadge.innerText = count;
+    } else {
+      matchBadge.style.display = "none";
+    }
   }
 
   async function renderMessages() {
@@ -346,9 +375,28 @@
         container.appendChild(div);
       }
     }
+    await updateMatchBadge();
   }
 
-  // ================== LIKES (people who swiped right on me) ==================
+  // ========== LIKES (with toast when someone likes you) ==========
+  // We'll set up a real-time listener on current user's 'likedBy' field to show toast when new like arrives
+  let likedByUnsubscribe = null;
+  function listenForNewLikes() {
+    if (likedByUnsubscribe) likedByUnsubscribe();
+    const userRef = doc(db, "users", currentUserId);
+    likedByUnsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const likedBy = docSnap.data().likedBy || [];
+        // compare with previous count (store in global)
+        if (window._prevLikedByCount === undefined) window._prevLikedByCount = likedBy.length;
+        else if (likedBy.length > window._prevLikedByCount) {
+          showToast("Someone liked you! ❤️", "😍");
+        }
+        window._prevLikedByCount = likedBy.length;
+      }
+    });
+  }
+
   async function renderLikes() {
     contentArea.innerHTML = `<div id="likesList" class="people-list"></div>`;
     const currentUserDoc = await getDoc(doc(db, "users", currentUserId));
@@ -373,7 +421,7 @@
     }
   }
 
-  // ================== CHAT ==================
+  // ========== CHAT ==========
   async function openChat(otherId, otherName) {
     if (unsubscribeChat) unsubscribeChat();
     contentArea.innerHTML = `<div class="chat-view"><div class="chat-header"><button id="chatBackBtn" class="back-btn"><i class="fas fa-arrow-left"></i></button><strong>${otherName}</strong></div><div id="chatMessagesArea" class="chat-messages"></div><div class="chat-input"><input id="chatInputField" placeholder="Message..."><button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button></div></div>`;
@@ -381,9 +429,15 @@
     const roomId = [currentUserId, otherId].sort().join("__");
     const messagesRef = collection(db, "chats", roomId, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
+    let lastMessageCount = 0;
     unsubscribeChat = onSnapshot(q, (snap) => {
       const container = document.getElementById("chatMessagesArea");
       if (!container) return;
+      const newCount = snap.size;
+      if (newCount > lastMessageCount && lastMessageCount > 0 && window.location.href.includes("chat")) {
+        showToast("New message! 💬", "📨");
+      }
+      lastMessageCount = newCount;
       container.innerHTML = "";
       snap.forEach(d => { const msg = d.data(); const div = document.createElement("div"); div.className = `message ${msg.senderId === currentUserId ? "me" : "other"}`; div.innerText = msg.text; container.appendChild(div); });
       container.scrollTop = container.scrollHeight;
@@ -403,7 +457,7 @@
     else if (currentMainTab === "likes") await renderLikes();
   }
 
-  // ================== TAB SWITCHING ==================
+  // ========== EVENT LISTENERS ==========
   mainTabs.forEach(tab => {
     tab.addEventListener("click", () => {
       mainTabs.forEach(t => t.classList.remove("active"));
@@ -413,7 +467,6 @@
     });
   });
 
-  // ================== EDIT PROFILE ==================
   editProfileBtn.onclick = async () => {
     const d = (await getDoc(doc(db, "users", currentUserId))).data();
     editName.value = d.name || "";
@@ -440,19 +493,15 @@
   };
   closeModalBtn.onclick = () => editModal.style.display = "none";
 
-  // ================== LOGOUT ==================
-  logoutMainBtn.onclick = () => { if (confirm("Are you sure you want to log out?")) signOut(auth); };
+  logoutMainBtn.onclick = () => { if (confirm("Log out?")) signOut(auth); };
 
-  // ================== GOOGLE SIGN-IN ==================
   googleBtn.onclick = async () => {
     loginError.innerText = "";
-    try {
-      const result = await signInWithPopup(auth, provider);
-      await createOrUpdateUserProfile(result.user, result.user.displayName, result.user.photoURL);
-    } catch (err) { loginError.innerText = "❌ Google sign-in failed: " + err.message; }
+    try { const result = await signInWithPopup(auth, provider); await createOrUpdateUserProfile(result.user, result.user.displayName, result.user.photoURL); }
+    catch (err) { loginError.innerText = "❌ Google sign-in failed: " + err.message; }
   };
 
-  // ================== AUTH STATE ==================
+  // ========== AUTH STATE ==========
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
@@ -465,16 +514,18 @@
       document.querySelector('.tab[data-main-tab="swipe"]').classList.add("active");
       currentMainTab = "swipe";
       await refreshContent();
+      await updateMatchBadge();
+      listenForNewLikes(); // start listening for new likes
       setInterval(() => setUserOnline(user.uid, true), 30000);
     } else {
       if (currentUserId) setUserOnline(currentUserId, false);
+      if (likedByUnsubscribe) likedByUnsubscribe();
       loginScreen.style.display = "flex";
       mainApp.style.display = "none";
       loginError.innerText = "";
     }
   });
 
-  // ================== EMAIL/PASSWORD ==================
   loginBtn.onclick = async () => {
     loginError.innerText = "";
     try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); }
@@ -482,10 +533,8 @@
   };
   signupBtn.onclick = async () => {
     loginError.innerText = "";
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-      await createOrUpdateUserProfile(cred.user, cred.user.email.split('@')[0], null);
-    } catch (err) { loginError.innerText = "❌ " + (err.message.includes("auth/email-already-in-use") ? "Email already in use." : err.message.includes("auth/weak-password") ? "Password must be at least 6 characters." : err.message); }
+    try { const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); await createOrUpdateUserProfile(cred.user, cred.user.email.split('@')[0], null); }
+    catch (err) { loginError.innerText = "❌ " + (err.message.includes("auth/email-already-in-use") ? "Email already in use." : err.message.includes("auth/weak-password") ? "Password must be at least 6 characters." : err.message); }
   };
   window.addEventListener("beforeunload", () => { if (currentUserId) setUserOnline(currentUserId, false); });
 </script>
