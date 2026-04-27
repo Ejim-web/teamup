@@ -3,448 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>TeamUp Global – Swipe, Match, Chat</title>
+  <title>TeamUp Global – Email Verified</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,'Segoe UI',sans-serif}
-    body{
-      background:#1a1a2e;
-      height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      /* Larger base font */
-      font-size:18px;
-    }
-    .app-container{
-      width:100%;
-      max-width:550px;
-      height:95vh;
-      background:white;
-      border-radius:36px;
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      box-shadow:0 25px 45px rgba(0,0,0,0.2);
-    }
-    /* Login screen - bigger elements */
-    .login-screen{
+    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
+    body{background:#1a1a2e;height:100vh;display:flex;justify-content:center;align-items:center}
+    .app-container{width:100%;max-width:500px;height:95vh;background:white;border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 45px rgba(0,0,0,0.2)}
+    .login-screen{background:linear-gradient(145deg,#f9ecec,#ffe0e0);justify-content:center;align-items:center;padding:40px 28px;gap:20px;display:flex;flex-direction:column;height:100%;overflow-y:auto}
+    .login-screen h1{font-size:2.5rem;color:#c44545;font-weight:800}
+    .login-screen input{width:100%;padding:16px 24px;border:1px solid #ffc2c2;border-radius:60px;background:white;font-size:1rem;font-weight:500}
+    .login-screen button{background:#c44545;color:white;border:none;padding:14px;border-radius:60px;width:100%;font-weight:700;font-size:1rem;cursor:pointer}
+    #signupBtn{background:#e07a7a}
+    .google-btn{background:white;color:#444;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;gap:12px;font-weight:600}
+    .google-btn i{font-size:1.3rem;color:#c44545}
+    .divider{color:#aaa;font-size:0.9rem;margin:10px 0;text-align:center;font-weight:500}
+    .error-msg{color:#c44545;font-size:0.85rem;text-align:center;margin-top:5px;font-weight:500}
+    /* Verification screen */
+    .verify-screen{
       background:linear-gradient(145deg,#f9ecec,#ffe0e0);
       justify-content:center;
       align-items:center;
-      padding:40px 28px;
+      padding:32px;
       gap:20px;
       display:flex;
       flex-direction:column;
       height:100%;
-      overflow-y:auto;
-    }
-    .login-screen h1{
-      font-size:2.5rem;
-      color:#c44545;
-      font-weight:800;
-      letter-spacing:-0.5px;
-    }
-    .login-screen input{
-      width:100%;
-      padding:16px 24px;
-      border:1px solid #ffc2c2;
-      border-radius:60px;
-      background:white;
-      font-size:1rem;
-      font-weight:500;
-    }
-    .login-screen button{
-      background:#c44545;
-      color:white;
-      border:none;
-      padding:14px;
-      border-radius:60px;
-      width:100%;
-      font-weight:700;
-      font-size:1rem;
-      cursor:pointer;
-      transition:0.2s;
-    }
-    #signupBtn{background:#e07a7a;}
-    .google-btn{
-      background:white;
-      color:#444;
-      border:1px solid #ddd;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
-      font-weight:600;
-    }
-    .google-btn i{font-size:1.3rem;color:#c44545;}
-    .divider{
-      color:#aaa;
-      font-size:0.9rem;
-      margin:10px 0;
       text-align:center;
-      font-weight:500;
     }
-    .error-msg{
-      color:#c44545;
-      font-size:0.85rem;
-      text-align:center;
-      margin-top:5px;
-      font-weight:500;
-    }
-    /* Main app header */
-    #mainApp{display:none;flex-direction:column;flex:1;}
-    .app-header{
-      padding:24px 20px 12px;
-      background:white;
-      border-bottom:2px solid #f0f0f0;
-    }
-    .app-header h2{
-      font-size:2rem;
-      font-weight:800;
-      background:linear-gradient(135deg,#c44545,#e07a7a);
-      -webkit-background-clip:text;
-      background-clip:text;
-      color:transparent;
-    }
-    .header-actions{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:12px;
-    }
-    .user-email{
-      font-size:0.85rem;
-      color:#888;
-      font-weight:500;
-    }
-    .icon-btn{
-      background:none;
-      border:none;
-      font-size:1.5rem;
-      cursor:pointer;
-      color:#c44545;
-    }
-    .logout-btn{
-      background:none;
-      border:none;
-      font-size:1rem;
-      cursor:pointer;
-      color:#c44545;
-      font-weight:700;
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-    .content-area{
-      flex:1;
-      overflow-y:auto;
-      padding:16px;
-      background:#fafafa;
-    }
-    /* Swipe card - larger and bolder */
-    .swipe-container{
-      position:relative;
-      height:100%;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-    .card{
-      position:absolute;
-      width:100%;
-      max-width:360px;
-      background:white;
-      border-radius:36px;
-      box-shadow:0 18px 36px rgba(0,0,0,0.15);
-      overflow:hidden;
-      cursor:grab;
-      will-change:transform;
-    }
-    .card-img{
-      height:300px;
-      background:#eaeef3;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:6rem;
-      background-size:cover;
-      background-position:center;
-    }
-    .card-info{
-      padding:24px;
-    }
-    .card-info h3{
-      font-size:1.9rem;
-      font-weight:800;
-      margin-bottom:8px;
-      letter-spacing:-0.3px;
-    }
-    .location{
-      font-size:1rem;
-      color:#5a6e85;
-      margin:8px 0;
-      display:flex;
-      align-items:center;
-      gap:6px;
-      font-weight:500;
-    }
-    .last-active{
-      font-size:0.85rem;
-      color:#22c55e;
-      margin-bottom:16px;
-      font-weight:500;
-    }
-    .stats-row{
-      display:flex;
-      gap:24px;
-      margin-top:16px;
-      color:#555;
-      font-size:0.9rem;
-      font-weight:600;
-    }
-    /* People lists (matches & likes) */
-    .people-list{
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
-    .person-card{
-      background:white;
-      border-radius:28px;
-      padding:14px;
-      display:flex;
-      align-items:center;
-      gap:16px;
-      cursor:pointer;
-      box-shadow:0 4px 12px rgba(0,0,0,0.08);
-      transition:0.1s;
-    }
-    .person-card:active{background:#f5f5f5;}
-    .person-avatar{
-      width:64px;
-      height:64px;
-      background:#f0d9d9;
-      border-radius:32px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:2rem;
-      background-size:cover;
-      background-position:center;
-    }
-    .person-info{
-      flex:1;
-    }
-    .person-info strong{
-      font-size:1.1rem;
-      font-weight:800;
-    }
-    .online-indicator{
-      display:inline-block;
-      width:12px;
-      height:12px;
-      background:#2ecc71;
-      border-radius:50%;
-      margin-left:8px;
-      box-shadow:0 0 2px #2ecc71;
-    }
-    .last-message{
-      font-size:0.8rem;
-      color:#888;
-      margin-top:6px;
-      font-weight:500;
-    }
-    /* Chat */
-    .chat-view{
-      display:flex;
-      flex-direction:column;
-      height:100%;
-    }
-    .chat-header{
-      padding:16px;
-      background:white;
-      border-bottom:1px solid #eee;
-      display:flex;
-      align-items:center;
-      gap:14px;
-    }
-    .chat-header strong{
-      font-size:1.2rem;
-      font-weight:800;
-    }
-    .chat-messages{
-      flex:1;
-      overflow-y:auto;
-      padding:20px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      background:#fefefe;
-    }
-    .message{
-      max-width:80%;
-      padding:12px 18px;
-      border-radius:28px;
-      font-size:1rem;
-      font-weight:500;
-      word-break:break-word;
-    }
-    .message.me{
-      align-self:flex-end;
-      background:#c44545;
-      color:white;
-      border-bottom-right-radius:8px;
-    }
-    .message.other{
-      align-self:flex-start;
-      background:#eef2ff;
-      color:#1f2a48;
-      border-bottom-left-radius:8px;
-    }
-    .chat-input{
-      display:flex;
-      gap:12px;
-      padding:16px;
-      background:white;
-      border-top:1px solid #eee;
-    }
-    .chat-input input{
-      flex:1;
-      padding:14px 18px;
-      border-radius:50px;
-      border:1px solid #ddd;
-      font-size:1rem;
-      font-weight:500;
-    }
-    .chat-input button{
-      background:#c44545;
-      border:none;
-      color:white;
-      width:54px;
-      border-radius:54px;
-      font-size:1.3rem;
-      cursor:pointer;
-    }
-    .no-profiles{
-      text-align:center;
-      padding:60px 20px;
-      color:#8892a0;
-      font-size:1rem;
-      font-weight:500;
-    }
-    /* Tab bar */
-    .tab-bar{
-      display:flex;
-      background:white;
-      border-top:1px solid #eee;
-      padding:10px 24px;
-      justify-content:space-around;
-      position:relative;
-    }
-    .tab{
-      font-size:1.9rem;
-      color:#aaa;
-      cursor:pointer;
-      text-align:center;
-      flex:1;
-      position:relative;
-    }
-    .tab.active{color:#c44545;}
-    .badge{
-      position:absolute;
-      top:-6px;
-      right:-8px;
-      background:#c44545;
-      color:white;
-      font-size:0.7rem;
-      border-radius:20px;
-      padding:2px 8px;
-      min-width:20px;
-      text-align:center;
-      font-weight:700;
-    }
-    .back-btn{
-      background:none;
-      border:none;
-      font-size:1.6rem;
-      cursor:pointer;
-      color:#c44545;
-    }
-    /* Modal larger inputs */
-    .modal-overlay{
-      position:fixed;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
-      background:rgba(0,0,0,0.5);
-      align-items:center;
-      justify-content:center;
-      z-index:1000;
-      display:none;
-    }
-    .modal-content{
-      background:white;
-      width:85%;
-      max-width:380px;
-      border-radius:40px;
-      padding:28px;
-    }
-    .modal-content h3{
-      font-size:1.6rem;
-      font-weight:800;
-      margin-bottom:16px;
-    }
-    .modal-content input,.modal-content select,.modal-content textarea{
-      width:100%;
-      margin:10px 0;
-      padding:14px;
-      border-radius:40px;
-      border:1px solid #ddd;
-      font-size:1rem;
-      font-weight:500;
-    }
-    .modal-content button{
-      background:#c44545;
-      color:white;
-      padding:14px;
-      border-radius:40px;
-      width:100%;
-      border:none;
-      margin-top:12px;
-      font-weight:700;
-      font-size:1rem;
-    }
-    .cancel-btn{background:#ccc !important;}
-    /* Toast notification larger */
-    .toast{
-      position:fixed;
-      bottom:90px;
-      left:50%;
-      transform:translateX(-50%);
-      background:#1e1e2e;
-      color:white;
-      padding:14px 28px;
-      border-radius:60px;
-      font-size:1rem;
-      font-weight:600;
-      z-index:1100;
-      box-shadow:0 6px 16px rgba(0,0,0,0.3);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      animation:fadeInUp 0.3s ease;
-      pointer-events:none;
-    }
-    @keyframes fadeInUp{
-      from{opacity:0;transform:translateX(-50%) translateY(20px);}
-      to{opacity:1;transform:translateX(-50%) translateY(0);}
-    }
+    .verify-screen h2{font-size:1.8rem;color:#c44545;font-weight:800}
+    .verify-screen p{font-size:1rem;color:#555;margin-bottom:10px}
+    .verify-screen button{background:#c44545;color:white;border:none;padding:14px;border-radius:60px;width:100%;font-weight:700;cursor:pointer}
+    /* Main app (same as before) */
+    #mainApp{display:none;flex-direction:column;flex:1}
+    .app-header{padding:24px 20px 12px;background:white;border-bottom:2px solid #f0f0f0}
+    .app-header h2{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#c44545,#e07a7a);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .header-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .user-email{font-size:0.85rem;color:#888;font-weight:500}
+    .icon-btn{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#c44545}
+    .logout-btn{background:none;border:none;font-size:1rem;cursor:pointer;color:#c44545;font-weight:700;display:flex;align-items:center;gap:6px}
+    .content-area{flex:1;overflow-y:auto;padding:16px;background:#fafafa}
+    .swipe-container{position:relative;height:100%;display:flex;justify-content:center;align-items:center}
+    .card{position:absolute;width:100%;max-width:360px;background:white;border-radius:36px;box-shadow:0 18px 36px rgba(0,0,0,0.15);overflow:hidden;cursor:grab}
+    .card-img{height:300px;background:#eaeef3;display:flex;align-items:center;justify-content:center;font-size:6rem;background-size:cover;background-position:center}
+    .card-info{padding:24px}
+    .card-info h3{font-size:1.9rem;font-weight:800;margin-bottom:8px}
+    .location{font-size:1rem;color:#5a6e85;margin:8px 0;display:flex;align-items:center;gap:6px;font-weight:500}
+    .last-active{font-size:0.85rem;color:#22c55e;margin-bottom:16px;font-weight:500}
+    .stats-row{display:flex;gap:24px;margin-top:16px;color:#555;font-size:0.9rem;font-weight:600}
+    .people-list{display:flex;flex-direction:column;gap:14px}
+    .person-card{background:white;border-radius:28px;padding:14px;display:flex;align-items:center;gap:16px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+    .person-avatar{width:64px;height:64px;background:#f0d9d9;border-radius:32px;display:flex;align-items:center;justify-content:center;font-size:2rem;background-size:cover;background-position:center}
+    .person-info strong{font-size:1.1rem;font-weight:800}
+    .online-indicator{display:inline-block;width:12px;height:12px;background:#2ecc71;border-radius:50%;margin-left:8px}
+    .last-message{font-size:0.8rem;color:#888;margin-top:6px;font-weight:500}
+    .chat-view{display:flex;flex-direction:column;height:100%}
+    .chat-header{padding:16px;background:white;border-bottom:1px solid #eee;display:flex;align-items:center;gap:14px}
+    .chat-header strong{font-size:1.2rem;font-weight:800}
+    .chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#fefefe}
+    .message{max-width:80%;padding:12px 18px;border-radius:28px;font-size:1rem;font-weight:500}
+    .message.me{align-self:flex-end;background:#c44545;color:white;border-bottom-right-radius:8px}
+    .message.other{align-self:flex-start;background:#eef2ff;color:#1f2a48;border-bottom-left-radius:8px}
+    .chat-input{display:flex;gap:12px;padding:16px;background:white;border-top:1px solid #eee}
+    .chat-input input{flex:1;padding:14px 18px;border-radius:50px;border:1px solid #ddd;font-size:1rem}
+    .chat-input button{background:#c44545;border:none;color:white;width:54px;border-radius:54px;font-size:1.3rem;cursor:pointer}
+    .no-profiles{text-align:center;padding:60px 20px;color:#8892a0;font-size:1rem;font-weight:500}
+    .tab-bar{display:flex;background:white;border-top:1px solid #eee;padding:10px 24px;justify-content:space-around}
+    .tab{font-size:1.9rem;color:#aaa;cursor:pointer;text-align:center;flex:1;position:relative}
+    .tab.active{color:#c44545}
+    .badge{position:absolute;top:-6px;right:-8px;background:#c44545;color:white;font-size:0.7rem;border-radius:20px;padding:2px 8px;min-width:20px;text-align:center;font-weight:700}
+    .back-btn{background:none;border:none;font-size:1.6rem;cursor:pointer;color:#c44545}
+    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;display:none}
+    .modal-content{background:white;width:85%;max-width:380px;border-radius:40px;padding:28px}
+    .modal-content h3{font-size:1.6rem;font-weight:800;margin-bottom:16px}
+    .modal-content input,.modal-content select,.modal-content textarea{width:100%;margin:10px 0;padding:14px;border-radius:40px;border:1px solid #ddd;font-size:1rem}
+    .modal-content button{background:#c44545;color:white;padding:14px;border-radius:40px;width:100%;border:none;margin-top:12px;font-weight:700}
+    .cancel-btn{background:#ccc !important}
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:14px 28px;border-radius:60px;font-size:1rem;font-weight:600;z-index:1100;display:flex;align-items:center;gap:10px;animation:fadeInUp 0.3s ease;pointer-events:none}
+    @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   </style>
 </head>
 <body>
 <div class="app-container">
+  <!-- Login Screen -->
   <div id="loginScreen" class="login-screen">
     <h1>💙 TeamUp Global</h1>
     <input type="email" id="loginEmail" placeholder="Email">
@@ -455,6 +95,17 @@
     <div class="divider">or</div>
     <button id="googleSignInBtn" class="google-btn"><i class="fab fa-google"></i> Sign in with Google</button>
   </div>
+
+  <!-- Email Verification Screen -->
+  <div id="verifyScreen" class="verify-screen" style="display:none;">
+    <h2>📧 Verify Your Email</h2>
+    <p>We sent a verification link to <strong id="verifyEmail"></strong></p>
+    <p>Please check your email and click the link to continue.</p>
+    <button id="resendVerifyBtn">Resend Verification Email</button>
+    <button id="logoutFromVerifyBtn" class="google-btn" style="margin-top:10px;">Back to Login</button>
+  </div>
+
+  <!-- Main App (hidden until verified) -->
   <div id="mainApp" style="display:none;">
     <div class="app-header">
       <h2>TeamUp Global</h2>
@@ -473,6 +124,8 @@
       <div class="tab" data-main-tab="likes"><i class="fas fa-star"></i></div>
     </div>
   </div>
+
+  <!-- Edit Profile Modal -->
   <div id="editModal" class="modal-overlay">
     <div class="modal-content">
       <h3>Edit Profile</h3>
@@ -488,9 +141,10 @@
     </div>
   </div>
 </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -506,8 +160,9 @@
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
-  // DOM elements (same as before)
+  // DOM elements
   const loginScreen = document.getElementById("loginScreen");
+  const verifyScreen = document.getElementById("verifyScreen");
   const mainApp = document.getElementById("mainApp");
   const loginEmail = document.getElementById("loginEmail");
   const loginPassword = document.getElementById("loginPassword");
@@ -515,6 +170,9 @@
   const signupBtn = document.getElementById("signupBtn");
   const googleBtn = document.getElementById("googleSignInBtn");
   const logoutMainBtn = document.getElementById("logoutMainBtn");
+  const logoutFromVerifyBtn = document.getElementById("logoutFromVerifyBtn");
+  const resendVerifyBtn = document.getElementById("resendVerifyBtn");
+  const verifyEmailSpan = document.getElementById("verifyEmail");
   const editProfileBtn = document.getElementById("editProfileBtn");
   const editModal = document.getElementById("editModal");
   const saveProfileBtn = document.getElementById("saveProfileBtn");
@@ -579,6 +237,7 @@
     }
   }
 
+  // Helper to refresh main app content (same as before)
   async function getAllUsers(uid) {
     const q = query(collection(db, "users"), limit(100));
     const snap = await getDocs(q);
@@ -823,93 +482,146 @@
     else if (currentMainTab === "likes") await renderLikes();
   }
 
-  mainTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      mainTabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      currentMainTab = tab.getAttribute("data-main-tab");
+  function initMainApp() {
+    mainTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        mainTabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentMainTab = tab.getAttribute("data-main-tab");
+        refreshContent();
+      });
+    });
+
+    editProfileBtn.onclick = async () => {
+      const d = (await getDoc(doc(db, "users", currentUserId))).data();
+      editName.value = d.name || "";
+      editAge.value = d.age || "";
+      editGender.value = d.gender || "";
+      editLookingFor.value = d.lookingFor || "Everyone";
+      editLocation.value = d.location || "";
+      editAvatar.value = d.photoIcon || "🧑";
+      editBio.value = d.bio || "";
+      editModal.style.display = "flex";
+    };
+    saveProfileBtn.onclick = async () => {
+      await updateDoc(doc(db, "users", currentUserId), {
+        name: editName.value,
+        age: parseInt(editAge.value) || null,
+        gender: editGender.value,
+        lookingFor: editLookingFor.value,
+        location: editLocation.value,
+        photoIcon: editAvatar.value || "🧑",
+        bio: editBio.value
+      });
+      editModal.style.display = "none";
       refreshContent();
-    });
-  });
+    };
+    closeModalBtn.onclick = () => editModal.style.display = "none";
 
-  editProfileBtn.onclick = async () => {
-    const d = (await getDoc(doc(db, "users", currentUserId))).data();
-    editName.value = d.name || "";
-    editAge.value = d.age || "";
-    editGender.value = d.gender || "";
-    editLookingFor.value = d.lookingFor || "Everyone";
-    editLocation.value = d.location || "";
-    editAvatar.value = d.photoIcon || "🧑";
-    editBio.value = d.bio || "";
-    editModal.style.display = "flex";
-  };
-  saveProfileBtn.onclick = async () => {
-    await updateDoc(doc(db, "users", currentUserId), {
-      name: editName.value,
-      age: parseInt(editAge.value) || null,
-      gender: editGender.value,
-      lookingFor: editLookingFor.value,
-      location: editLocation.value,
-      photoIcon: editAvatar.value || "🧑",
-      bio: editBio.value
-    });
-    editModal.style.display = "none";
-    refreshContent();
-  };
-  closeModalBtn.onclick = () => editModal.style.display = "none";
+    logoutMainBtn.onclick = () => { if (confirm("Log out?")) signOut(auth); };
+  }
 
-  logoutMainBtn.onclick = () => { if (confirm("Log out?")) signOut(auth); };
+  // Show verification screen
+  function showVerificationScreen(user) {
+    verifyEmailSpan.innerText = user.email;
+    loginScreen.style.display = "none";
+    verifyScreen.style.display = "flex";
+    mainApp.style.display = "none";
+  }
 
-  googleBtn.onclick = () => {
-    loginError.innerText = "";
-    signInWithRedirect(auth, provider).catch(err => {
-      loginError.innerText = "❌ Google redirect failed: " + err.message;
-    });
-  };
+  // Handle verified user (enter main app)
+  async function handleVerifiedUser(user) {
+    currentUser = user;
+    currentUserId = user.uid;
+    currentUserEmailSpan.innerText = user.email;
+    await createOrUpdateUserProfile(user, user.displayName, user.photoURL);
+    await setUserOnline(user.uid, true);
+    loginScreen.style.display = "none";
+    verifyScreen.style.display = "none";
+    mainApp.style.display = "flex";
+    document.querySelector('.tab[data-main-tab="swipe"]').classList.add("active");
+    currentMainTab = "swipe";
+    await refreshContent();
+    await updateMatchBadge();
+    listenForNewLikes();
+    setInterval(() => setUserOnline(user.uid, true), 30000);
+    // Show welcome toast after successful verification and app load
+    showToast("🎉 Welcome to TeamUp Global! Start swiping!", "🚀");
+  }
 
-  getRedirectResult(auth).then(async (result) => {
-    if (result && result.user) {
-      await createOrUpdateUserProfile(result.user, result.user.displayName, result.user.photoURL);
+  resendVerifyBtn.onclick = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
+      showToast("Verification email sent! Check your inbox.", "📧");
     }
-  }).catch((error) => {
-    console.error("Redirect sign-in error:", error);
-    if (error.message) loginError.innerText = "❌ " + error.message;
-  });
+  };
 
+  logoutFromVerifyBtn.onclick = () => signOut(auth);
+
+  // Auth state listener with email verification check
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      currentUser = user;
-      currentUserId = user.uid;
-      currentUserEmailSpan.innerText = user.email;
-      await createOrUpdateUserProfile(user, user.displayName, user.photoURL);
-      await setUserOnline(user.uid, true);
-      loginScreen.style.display = "none";
-      mainApp.style.display = "flex";
-      document.querySelector('.tab[data-main-tab="swipe"]').classList.add("active");
-      currentMainTab = "swipe";
-      await refreshContent();
-      await updateMatchBadge();
-      listenForNewLikes();
-      setInterval(() => setUserOnline(user.uid, true), 30000);
+      // Google sign-in is automatically verified
+      if (user.providerData[0]?.providerId === "google.com") {
+        await handleVerifiedUser(user);
+        return;
+      }
+      // For email/password, check verification status
+      await user.reload();
+      if (user.emailVerified) {
+        await handleVerifiedUser(user);
+      } else {
+        showVerificationScreen(user);
+      }
     } else {
       if (currentUserId) setUserOnline(currentUserId, false);
       if (likedByUnsubscribe) likedByUnsubscribe();
       loginScreen.style.display = "flex";
+      verifyScreen.style.display = "none";
       mainApp.style.display = "none";
       loginError.innerText = "";
     }
   });
 
-  loginBtn.onclick = async () => {
-    loginError.innerText = "";
-    try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); }
-    catch (err) { loginError.innerText = "❌ " + (err.message.includes("auth/user-not-found") ? "No account. Create one." : err.message.includes("auth/wrong-password") ? "Wrong password." : err.message); }
-  };
+  // Email/Password signup with verification
   signupBtn.onclick = async () => {
     loginError.innerText = "";
-    try { const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); await createOrUpdateUserProfile(cred.user, cred.user.email.split('@')[0], null); }
-    catch (err) { loginError.innerText = "❌ " + (err.message.includes("auth/email-already-in-use") ? "Email already in use." : err.message.includes("auth/weak-password") ? "Password must be at least 6 characters." : err.message); }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+      await sendEmailVerification(cred.user);
+      alert("Verification email sent! Please check your inbox and click the link to continue.");
+    } catch (err) {
+      let msg = err.message;
+      if (msg.includes("auth/email-already-in-use")) msg = "❌ Email already in use.";
+      else if (msg.includes("auth/weak-password")) msg = "❌ Password must be at least 6 characters.";
+      else msg = "❌ " + msg;
+      loginError.innerText = msg;
+    }
   };
+
+  // Login (email/password)
+  loginBtn.onclick = async () => {
+    loginError.innerText = "";
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+    } catch (err) {
+      loginError.innerText = "❌ " + (err.message.includes("auth/user-not-found") ? "No account. Create one." : err.message.includes("auth/wrong-password") ? "Wrong password." : err.message);
+    }
+  };
+
+  // Google Sign-In (no verification needed)
+  googleBtn.onclick = async () => {
+    loginError.innerText = "";
+    try {
+      const result = await signInWithPopup(auth, provider);
+      await createOrUpdateUserProfile(result.user, result.user.displayName, result.user.photoURL);
+    } catch (err) {
+      loginError.innerText = "❌ Google sign-in failed: " + err.message;
+    }
+  };
+
+  initMainApp();
+
   window.addEventListener("beforeunload", () => { if (currentUserId) setUserOnline(currentUserId, false); });
 </script>
 </body>
