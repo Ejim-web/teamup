@@ -36,10 +36,11 @@
       justify-content: center;
       align-items: center;
       padding: 32px 24px;
-      gap: 20px;
+      gap: 16px;
       display: flex;
       flex-direction: column;
       height: 100%;
+      overflow-y: auto;
     }
     .login-screen h1 { font-size: 2.2rem; color: #c44545; }
     .login-screen input {
@@ -62,8 +63,24 @@
       transition: 0.2s;
     }
     #signupBtn { background: #e07a7a; }
+    .google-btn {
+      background: white;
+      color: #444;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .google-btn i { font-size: 1.2rem; color: #c44545; }
+    .divider {
+      color: #aaa;
+      font-size: 0.8rem;
+      margin: 8px 0;
+      text-align: center;
+    }
     .error-msg { color: #c44545; font-size: 0.8rem; text-align: center; margin-top: 5px; }
-    /* Main app */
+    /* Main app (same as before) */
     #mainApp { display: none; flex-direction: column; flex: 1; }
     .app-header {
       padding: 20px 20px 8px;
@@ -130,7 +147,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .person-card:active { background: #f5f5f5; }
-    .person-avatar { width: 56px; height: 56px; background: #f0d9d9; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+    .person-avatar { width: 56px; height: 56px; background: #f0d9d9; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; background-size: cover; background-position: center; }
     .person-info { flex: 1; }
     .online-indicator { display: inline-block; width: 10px; height: 10px; background: #2ecc71; border-radius: 50%; margin-left: 6px; box-shadow: 0 0 2px #2ecc71; }
     .last-message { font-size: 0.7rem; color: #888; margin-top: 4px; }
@@ -211,9 +228,11 @@
     <div id="loginError" class="error-msg"></div>
     <button id="loginBtn">Login</button>
     <button id="signupBtn">Create Account</button>
+    <div class="divider">or</div>
+    <button id="googleSignInBtn" class="google-btn"><i class="fab fa-google"></i> Sign in with Google</button>
   </div>
 
-  <!-- Main App -->
+  <!-- Main App (same as before) -->
   <div id="mainApp" style="display:none;">
     <div class="app-header">
       <h2>TeamUp Global</h2>
@@ -263,7 +282,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -278,6 +297,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
 
   // DOM elements
   const loginScreen = document.getElementById("loginScreen");
@@ -286,6 +306,7 @@
   const loginPassword = document.getElementById("loginPassword");
   const loginBtn = document.getElementById("loginBtn");
   const signupBtn = document.getElementById("signupBtn");
+  const googleBtn = document.getElementById("googleSignInBtn");
   const logoutMainBtn = document.getElementById("logoutMainBtn");
   const editProfileBtn = document.getElementById("editProfileBtn");
   const editModal = document.getElementById("editModal");
@@ -311,24 +332,34 @@
     try { await updateDoc(doc(db, "users", uid), { online: on, lastSeen: serverTimestamp() }); } catch(e) {}
   }
 
-  async function createUserProfile(user) {
-    await setDoc(doc(db, "users", user.uid), {
-      email: user.email,
-      name: user.email.split('@')[0],
-      age: null,
-      gender: null,
-      lookingFor: "Everyone",
-      location: null,
-      bio: "New to TeamUp Global!",
-      photoIcon: "🧑",
-      online: true,
-      lastSeen: serverTimestamp(),
-      joinDate: serverTimestamp(),
-      likesReceived: 0,
-      swipedRight: [],
-      swipedLeft: [],
-      likedBy: []
-    });
+  async function createUserProfile(user, name, photoUrl) {
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        email: user.email,
+        name: name || user.email.split('@')[0],
+        age: null,
+        gender: null,
+        lookingFor: "Everyone",
+        location: null,
+        bio: "New to TeamUp Global!",
+        photoIcon: photoUrl || "🧑",
+        photoUrl: photoUrl || null,
+        online: true,
+        lastSeen: serverTimestamp(),
+        joinDate: serverTimestamp(),
+        likesReceived: 0,
+        swipedRight: [],
+        swipedLeft: [],
+        likedBy: []
+      });
+    } else {
+      // If user already exists but maybe missing photoUrl, update it
+      if (photoUrl && !snap.data().photoUrl) {
+        await updateDoc(userRef, { photoUrl: photoUrl, photoIcon: "📸" });
+      }
+    }
   }
 
   async function getAllUsers(uid) {
@@ -362,6 +393,15 @@
     return `${Math.floor(diff/86400)} days ago`;
   }
 
+  // Helper to get avatar display (emoji or photo URL)
+  function getAvatarHtml(user) {
+    if (user.photoUrl) {
+      return `<div class="person-avatar" style="background-image: url('${user.photoUrl}'); background-size: cover; background-position: center;"></div>`;
+    } else {
+      return `<div class="person-avatar">${user.photoIcon || "👤"}</div>`;
+    }
+  }
+
   // ----- Swipe Deck -----
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
@@ -384,10 +424,11 @@
     }
     const user = swipeCards[currentCardIndex];
     const lastActive = user.lastSeen ? formatLastActive(user.lastSeen) : "Recently";
+    const avatarHtml = user.photoUrl ? `<div class="card-img" style="background-image: url('${user.photoUrl}'); background-size: cover; background-position: center;"></div>` : `<div class="card-img">${user.photoIcon || "👤"}</div>`;
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="card-img">${user.photoIcon || "👤"}</div>
+      ${avatarHtml}
       <div class="card-info">
         <h3>${user.name || "?"}, ${user.age || "?"}</h3>
         <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Not set"}</div>
@@ -483,10 +524,11 @@
         const data = userSnap.data();
         const onlineDot = data.online ? '<span class="online-indicator"></span>' : '';
         const lastMsg = await getLastMessage(id);
+        const avatarHtml = getAvatarHtml(data);
         const div = document.createElement("div");
         div.className = "person-card";
         div.innerHTML = `
-          <div class="person-avatar">${data.photoIcon || "👤"}</div>
+          ${avatarHtml}
           <div class="person-info">
             <strong>${data.name || "?"}, ${data.age || "?"}</strong> ${onlineDot}<br>
             <div class="last-message">💬 ${lastMsg.substring(0, 40)}</div>
@@ -520,10 +562,11 @@
       const userSnap = await getDoc(doc(db, "users", id));
       if (userSnap.exists()) {
         const data = userSnap.data();
+        const avatarHtml = getAvatarHtml(data);
         const div = document.createElement("div");
         div.className = "person-card";
         div.innerHTML = `
-          <div class="person-avatar">${data.photoIcon || "👤"}</div>
+          ${avatarHtml}
           <div class="person-info">
             <strong>${data.name || "?"}, ${data.age || "?"}</strong><br>
             <small>${data.location || "Not set"}</small>
@@ -623,10 +666,25 @@
   };
   closeModalBtn.onclick = () => editModal.style.display = "none";
 
-  // Logout with confirmation
+  // Logout
   logoutMainBtn.onclick = () => {
     if (confirm("Are you sure you want to log out?")) {
       signOut(auth);
+    }
+  };
+
+  // Google Sign-In
+  googleBtn.onclick = async () => {
+    loginError.innerText = "";
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // Extract name and photo from Google
+      const displayName = user.displayName || user.email.split('@')[0];
+      const photoUrl = user.photoURL;
+      await createUserProfile(user, displayName, photoUrl);
+    } catch (err) {
+      loginError.innerText = "❌ Google sign-in failed: " + err.message;
     }
   };
 
@@ -636,8 +694,9 @@
       currentUser = user;
       currentUserId = user.uid;
       currentUserEmailSpan.innerText = user.email;
+      // Ensure profile exists (for users who signed up with email/password previously)
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (!snap.exists()) await createUserProfile(user);
+      if (!snap.exists()) await createUserProfile(user, user.displayName, user.photoURL);
       await setUserOnline(user.uid, true);
       loginScreen.style.display = "none";
       mainApp.style.display = "flex";
@@ -653,14 +712,14 @@
     }
   });
 
-  // Login handlers
+  // Email/Password handlers
   loginBtn.onclick = async () => {
     loginError.innerText = "";
     try {
       await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
     } catch (err) {
       let msg = err.message;
-      if (msg.includes("auth/user-not-found")) msg = "❌ No account. Click 'Create Account'.";
+      if (msg.includes("auth/user-not-found")) msg = "❌ No account. Click 'Create Account' or use Google.";
       else if (msg.includes("auth/wrong-password")) msg = "❌ Wrong password.";
       else if (msg.includes("auth/operation-not-allowed")) msg = "❌ Email/Password sign-in disabled. Enable in Firebase Console.";
       else msg = "❌ " + msg;
@@ -671,7 +730,7 @@
     loginError.innerText = "";
     try {
       const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-      await createUserProfile(cred.user);
+      await createUserProfile(cred.user, cred.user.email.split('@')[0], null);
     } catch (err) {
       let msg = err.message;
       if (msg.includes("auth/email-already-in-use")) msg = "❌ Email already in use. Login instead.";
