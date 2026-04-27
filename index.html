@@ -2,368 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>TeamUp Global – Real‑time Chat</title>
-  <!-- Font Awesome 6 (free) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeamUp Global – Real Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    body {
-      background: #eef2f9;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-    }
-
-    /* Shared containers */
-    .screen {
-      width: 100%;
-      max-width: 550px;
-      height: 90vh;
-      max-height: 800px;
-      background: white;
-      border-radius: 32px;
-      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Login panel */
-    #loginScreen {
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      padding: 24px;
-    }
-
-    #loginScreen h2 {
-      font-size: 2rem;
-      background: linear-gradient(135deg, #1e3c72, #2a4f8c);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      margin-bottom: 8px;
-    }
-
-    #loginScreen input {
-      width: 100%;
-      padding: 14px 18px;
-      border: 1px solid #cfdfed;
-      border-radius: 44px;
-      font-size: 1rem;
-      background: #fefefe;
-      transition: all 0.2s;
-    }
-
-    #loginScreen input:focus {
-      outline: none;
-      border-color: #1e3c72;
-      box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.2);
-    }
-
-    #loginScreen button {
-      background: #1e3c72;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 44px;
-      width: 100%;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    #loginScreen button:active { transform: scale(0.97); background: #0f2b4f; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
+    body { background: #eef2f9; height: 100vh; display: flex; justify-content: center; align-items: center; padding: 12px; }
+    .screen { width: 100%; max-width: 550px; height: 90vh; background: white; border-radius: 32px; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2); overflow: hidden; display: flex; flex-direction: column; }
+    #loginScreen { justify-content: center; align-items: center; gap: 20px; padding: 24px; }
+    #loginScreen h2 { font-size: 2rem; background: linear-gradient(135deg, #1e3c72, #2a4f8c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    #loginScreen input { width: 100%; padding: 14px 18px; border: 1px solid #cfdfed; border-radius: 44px; font-size: 1rem; }
+    #loginScreen button { background: #1e3c72; color: white; border: none; padding: 12px; border-radius: 44px; width: 100%; font-weight: 600; cursor: pointer; }
     #signupBtn { background: #2c5a8c; margin-top: 4px; }
-
-    /* Chat screen layout */
-    #chatScreen {
-      display: none;
-    }
-
-    .app-header {
-      background: #1e3c72;
-      color: white;
-      padding: 18px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .app-header h3 {
-      font-weight: 600;
-      font-size: 1.35rem;
-    }
-
-    .user-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.15);
-      padding: 5px 12px;
-      border-radius: 40px;
-      font-size: 0.8rem;
-    }
-
-    .logout-icon {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1.3rem;
-      cursor: pointer;
-      padding: 6px;
-      border-radius: 50%;
-      transition: background 0.2s;
-    }
-
-    .logout-icon:hover { background: rgba(255,255,255,0.2); }
-
-    /* Two column layout: contacts + chat area */
-    .main-layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .contacts-panel {
-      width: 40%;
-      background: #ffffff;
-      border-right: 1px solid #eef2ff;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #fbfdff;
-      display: none;
-    }
-
-    .chat-header {
-      padding: 14px 18px;
-      background: white;
-      border-bottom: 1px solid #ecf3fa;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .avatar-small {
-      width: 44px;
-      height: 44px;
-      background: #eef2ff;
-      border-radius: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
-      color: #1e3c72;
-    }
-
-    .chat-header-info strong {
-      font-size: 1rem;
-    }
-    .chat-header-info small {
-      font-size: 0.7rem;
-      color: #5b6e8c;
-    }
-
-    .messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 18px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .message-bubble {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 22px;
-      word-break: break-word;
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-
-    .message-user {
-      align-self: flex-end;
-      background: #2563eb;
-      color: white;
-      border-bottom-right-radius: 6px;
-    }
-
-    .message-contact {
-      align-self: flex-start;
-      background: #eef2ff;
-      color: #0f172a;
-      border-bottom-left-radius: 6px;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 10px;
-      padding: 14px 16px 20px;
-      background: white;
-      border-top: 1px solid #eef2ff;
-    }
-
-    .input-row input {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid #cfdfed;
-      border-radius: 40px;
-      font-size: 0.9rem;
-      background: white;
-    }
-
-    .input-row input:focus {
-      outline: none;
-      border-color: #2563eb;
-    }
-
-    .input-row button {
-      background: #1e3c72;
-      border: none;
-      color: white;
-      width: 48px;
-      border-radius: 48px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .input-row button:active { background: #0f2b4f; transform: scale(0.96); }
-
-    .contact-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 12px;
-      border-bottom: 1px solid #eff3f8;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .contact-item:active { background: #f5f9ff; }
-    .contact-avatar {
-      width: 46px;
-      height: 46px;
-      background: #eef2ff;
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1rem;
-      color: #1f3a5f;
-      flex-shrink: 0;
-    }
-    .contact-info {
-      flex: 1;
-      overflow: hidden;
-    }
-    .contact-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .contact-sub {
-      font-size: 0.7rem;
-      color: #6c86a3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .chat-action {
-      font-size: 0.7rem;
-      background: #eef2ff;
-      padding: 5px 10px;
-      border-radius: 30px;
-      color: #2563eb;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .empty-chat-placeholder {
-      text-align: center;
-      color: #9aaec6;
-      margin-top: 40px;
-      font-size: 0.85rem;
-    }
-
-    @media (max-width: 550px) {
-      body { padding: 6px; }
-      .screen { height: 95vh; border-radius: 28px; }
-      .contacts-panel { width: 38%; }
-      .contact-item { gap: 8px; padding: 12px 8px; }
-      .contact-avatar { width: 40px; height: 40px; font-size: 0.9rem; }
-      .chat-action span { display: none; }
-      .chat-action i { margin: 0; }
-    }
+    .app-header { background: #1e3c72; color: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .main-layout { display: flex; flex: 1; overflow: hidden; }
+    .contacts-panel { width: 40%; background: white; border-right: 1px solid #eef2ff; overflow-y: auto; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: #fbfdff; display: none; }
+    .chat-header { padding: 14px 18px; background: white; border-bottom: 1px solid #ecf3fa; display: flex; align-items: center; gap: 12px; }
+    .avatar-small { width: 44px; height: 44px; background: #eef2ff; border-radius: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .messages-container { flex: 1; overflow-y: auto; padding: 18px 14px; display: flex; flex-direction: column; gap: 12px; }
+    .message-bubble { max-width: 80%; padding: 10px 14px; border-radius: 22px; word-break: break-word; }
+    .message-user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 6px; }
+    .message-contact { align-self: flex-start; background: #eef2ff; color: #0f172a; border-bottom-left-radius: 6px; }
+    .input-row { display: flex; gap: 10px; padding: 14px 16px 20px; background: white; border-top: 1px solid #eef2ff; }
+    .input-row input { flex: 1; padding: 12px 16px; border: 1px solid #cfdfed; border-radius: 40px; }
+    .input-row button { background: #1e3c72; border: none; color: white; width: 48px; border-radius: 48px; cursor: pointer; }
+    .contact-item { display: flex; align-items: center; gap: 12px; padding: 14px 12px; border-bottom: 1px solid #eff3f8; cursor: pointer; }
+    .contact-avatar { width: 46px; height: 46px; background: #eef2ff; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .contact-info { flex: 1; }
+    .contact-name { font-weight: 600; font-size: 0.9rem; }
+    .contact-sub { font-size: 0.7rem; color: #6c86a3; }
+    .chat-action { font-size: 0.7rem; background: #eef2ff; padding: 5px 10px; border-radius: 30px; color: #2563eb; }
+    .loading-text { text-align: center; padding: 20px; color: gray; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
 <div id="loginScreen" class="screen">
   <h2><i class="fas fa-globe-americas"></i> TeamUp Global</h2>
-  <p style="color:#3a5a7a; text-align:center;">Connect & chat · realtime</p>
-  <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email">
-  <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-  <button id="loginBtn"><i class="fas fa-sign-in-alt"></i> Log in</button>
-  <button id="signupBtn"><i class="fas fa-user-plus"></i> Create account</button>
+  <input type="email" id="loginEmail" placeholder="Email address">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <button id="loginBtn">Log in</button>
+  <button id="signupBtn">Create account</button>
 </div>
 
-<!-- MAIN CHAT SCREEN -->
-<div id="chatScreen" class="screen">
+<div id="chatScreen" class="screen" style="display:none">
   <div class="app-header">
-    <h3><i class="fas fa-users"></i> TeamUp Global</h3>
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <span class="user-badge" id="currentUserEmail">user@example.com</span>
-      <button id="logoutBtn" class="logout-icon"><i class="fas fa-sign-out-alt"></i></button>
-    </div>
+    <h3>TeamUp Global</h3>
+    <div><span id="currentUserEmail"></span> <button id="logoutBtn" style="background:none;border:none;color:white;margin-left:10px;"><i class="fas fa-sign-out-alt"></i></button></div>
   </div>
   <div class="main-layout">
-    <!-- Contacts sidebar -->
-    <div class="contacts-panel" id="contactList">
-      <div style="padding: 20px; text-align:center;">Loading contacts...</div>
-    </div>
-    <!-- Chat area (hidden until contact selected) -->
+    <div class="contacts-panel" id="contactList"><div class="loading-text">Loading contacts...</div></div>
     <div id="chatArea" class="chat-area">
-      <div class="chat-header" id="chatHeader">
-        <!-- dynamic contact header -->
-      </div>
-      <div class="messages-container" id="messagesContainer">
-        <div class="empty-chat-placeholder"><i class="far fa-comment-dots"></i> Select a contact to start chatting</div>
-      </div>
-      <div class="input-row">
-        <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-        <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
-      </div>
+      <div class="chat-header" id="chatHeader"></div>
+      <div class="messages-container" id="messagesContainer"><div class="loading-text">Select a contact</div></div>
+      <div class="input-row"><input type="text" id="messageInput" placeholder="Type a message..."><button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button></div>
     </div>
   </div>
 </div>
 
 <script type="module">
-  // ----------------------------- FIREBASE CONFIG (YOURS) -------------------------
   const firebaseConfig = {
     apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
     authDomain: "teamup-68a21.firebaseapp.com",
@@ -374,16 +72,15 @@
     measurementId: "G-EJ59MW0TMC"
   };
 
-  // Import Firebase v10 modular SDK
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ------------------------- DOM elements ---------------------------------
+  // DOM elements
   const loginScreen = document.getElementById("loginScreen");
   const chatScreen = document.getElementById("chatScreen");
   const loginEmail = document.getElementById("loginEmail");
@@ -393,20 +90,17 @@
   const logoutBtn = document.getElementById("logoutBtn");
   const currentUserSpan = document.getElementById("currentUserEmail");
   const contactListDiv = document.getElementById("contactList");
-  const chatAreaDiv = document.getElementById("chatArea");
-  const chatHeaderDiv = document.getElementById("chatHeader");
+  const chatArea = document.getElementById("chatArea");
+  const chatHeader = document.getElementById("chatHeader");
   const messagesContainer = document.getElementById("messagesContainer");
   const messageInput = document.getElementById("messageInput");
   const sendMsgBtn = document.getElementById("sendMsgBtn");
 
-  // state
-  let currentUserObj = null;         // Firebase user
-  let activeContactId = null;        // contact email (uid)
-  let activeContactName = "";
-  let activeContactInitials = "";
+  let currentUser = null;
+  let activeContact = null;
   let unsubscribeMessages = null;
 
-  // ------------------------- PREDEFINED CONTACTS (exactly from your description) ----------
+  // STATIC CONTACTS (always shown, no Firestore read needed)
   const CONTACTS = [
     { email: "ejim.edu@teamup.com", name: "EJim Edu", initials: "EE" },
     { email: "ejim.chinedu@teamup.com", name: "EJim Chinedu", initials: "EC" },
@@ -415,108 +109,79 @@
     { email: "ejim.boniface@teamup.com", name: "EJim Boniface", initials: "EB" }
   ];
 
-  // Ensure each contact exists as a user document in Firestore (so we can reference)
-  async function seedContactsIfMissing() {
-    for (const contact of CONTACTS) {
-      const contactRef = doc(db, "users", contact.email);
-      const snap = await getDoc(contactRef);
-      if (!snap.exists()) {
-        await setDoc(contactRef, {
-          email: contact.email,
-          displayName: contact.name,
-          initials: contact.initials,
-          createdAt: serverTimestamp(),
-          role: "contact"
-        });
-        console.log(`Created contact: ${contact.email}`);
-      }
-    }
-  }
-
-  // Render contact list in sidebar
   function renderContacts() {
     contactListDiv.innerHTML = "";
-    CONTACTS.forEach(contact => {
+    for (const c of CONTACTS) {
       const div = document.createElement("div");
       div.className = "contact-item";
       div.innerHTML = `
-        <div class="contact-avatar">${contact.initials}</div>
+        <div class="contact-avatar">${escapeHtml(c.initials)}</div>
         <div class="contact-info">
-          <div class="contact-name">${escapeHtml(contact.name)}</div>
-          <div class="contact-sub">${escapeHtml(contact.email)}</div>
+          <div class="contact-name">${escapeHtml(c.name)}</div>
+          <div class="contact-sub">${escapeHtml(c.email)}</div>
         </div>
-        <div class="chat-action"><i class="fas fa-comment"></i> <span>Chat</span></div>
+        <div class="chat-action"><i class="fas fa-comment"></i> Chat</div>
       `;
-      div.addEventListener("click", () => openChat(contact.email, contact.name, contact.initials));
+      div.addEventListener("click", () => openChat(c.email, c.name, c.initials));
       contactListDiv.appendChild(div);
-    });
+    }
   }
 
-  // Open specific chat: roomId = sorted emails
   function getRoomId(userEmail, contactEmail) {
     return [userEmail, contactEmail].sort().join("__");
   }
 
   async function openChat(contactEmail, contactName, contactInitials) {
-    if (!currentUserObj) return;
-    // cleanup previous listener
+    if (!currentUser) return;
     if (unsubscribeMessages) unsubscribeMessages();
 
-    activeContactId = contactEmail;
-    activeContactName = contactName;
-    activeContactInitials = contactInitials;
+    activeContact = { email: contactEmail, name: contactName, initials: contactInitials };
+    chatArea.style.display = "flex";
+    chatHeader.innerHTML = `<div class="avatar-small">${escapeHtml(contactInitials)}</div><div><strong>${escapeHtml(contactName)}</strong><br><small>${escapeHtml(contactEmail)}</small></div>`;
 
-    // show chat area
-    chatAreaDiv.style.display = "flex";
-
-    // update header
-    chatHeaderDiv.innerHTML = `
-      <div class="avatar-small">${contactInitials}</div>
-      <div class="chat-header-info">
-        <strong>${escapeHtml(contactName)}</strong><br>
-        <small><i class="fas fa-circle" style="color:#22c55e; font-size: 0.5rem;"></i> online · tap to chat</small>
-      </div>
-    `;
-
-    const roomId = getRoomId(currentUserObj.email, contactEmail);
+    const roomId = getRoomId(currentUser.email, contactEmail);
     const messagesRef = collection(db, "chats", roomId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"), limit(100));
+    const q = query(messagesRef, orderBy("timestamp", "asc"));
 
     unsubscribeMessages = onSnapshot(q, (snapshot) => {
       messagesContainer.innerHTML = "";
       if (snapshot.empty) {
-        messagesContainer.innerHTML = `<div class="empty-chat-placeholder"><i class="far fa-comment"></i> No messages yet. Say hello!</div>`;
+        messagesContainer.innerHTML = '<div class="loading-text">No messages yet. Say hi!</div>';
       } else {
         snapshot.forEach(docSnap => {
           const msg = docSnap.data();
-          const isUser = msg.senderId === currentUserObj.email;
+          const isUser = msg.senderId === currentUser.email;
           const bubble = document.createElement("div");
           bubble.className = `message-bubble ${isUser ? "message-user" : "message-contact"}`;
-          bubble.innerText = msg.text || "";
+          bubble.innerText = msg.text;
           messagesContainer.appendChild(bubble);
         });
       }
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, (error) => {
+      console.warn("Error loading messages:", error);
+      messagesContainer.innerHTML = '<div class="loading-text">⚠️ Unable to load messages. Check Firestore rules.</div>';
     });
   }
 
-  // Send message
   async function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text || !activeContactId || !currentUserObj) return;
-    const roomId = getRoomId(currentUserObj.email, activeContactId);
+    if (!text || !activeContact || !currentUser) return;
+    const roomId = getRoomId(currentUser.email, activeContact.email);
     const messagesRef = collection(db, "chats", roomId, "messages");
-    await addDoc(messagesRef, {
-      text: text,
-      senderId: currentUserObj.email,
-      senderName: currentUserObj.displayName || currentUserObj.email,
-      timestamp: serverTimestamp()
-    });
-    messageInput.value = "";
-    // auto-scroll handled by snapshot
+    try {
+      await addDoc(messagesRef, {
+        text: text,
+        senderId: currentUser.email,
+        senderName: currentUser.email,
+        timestamp: serverTimestamp()
+      });
+      messageInput.value = "";
+    } catch (err) {
+      alert("Send failed: " + err.message);
+    }
   }
 
-  // Helper: escape HTML to avoid injection
   function escapeHtml(str) {
     if (!str) return "";
     return str.replace(/[&<>]/g, function(m) {
@@ -527,86 +192,36 @@
     });
   }
 
-  // Create user document after signup (store extra info)
-  async function createUserDocument(user) {
-    const userRef = doc(db, "users", user.email);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) {
-      await setDoc(userRef, {
-        email: user.email,
-        displayName: user.email.split('@')[0],
-        createdAt: serverTimestamp()
-      });
-    }
-  }
-
-  // --------------- AUTH STATE HANDLER -----------------
-  onAuthStateChanged(auth, async (user) => {
+  // Auth
+  onAuthStateChanged(auth, (user) => {
     if (user) {
-      currentUserObj = user;
+      currentUser = user;
       currentUserSpan.innerText = user.email;
       loginScreen.style.display = "none";
       chatScreen.style.display = "flex";
-      await seedContactsIfMissing();
-      renderContacts();
-      // If chat area is open but no contact, reset it
-      if (!activeContactId) {
-        chatAreaDiv.style.display = "none";
-        if (unsubscribeMessages) unsubscribeMessages();
-      }
+      renderContacts();  // This instantly removes "Loading contacts..."
+      chatArea.style.display = "none";
     } else {
-      currentUserObj = null;
-      activeContactId = null;
+      currentUser = null;
       if (unsubscribeMessages) unsubscribeMessages();
       loginScreen.style.display = "flex";
       chatScreen.style.display = "none";
-      // clear inputs
-      loginEmail.value = "";
-      loginPassword.value = "";
     }
   });
 
-  // Login handler
   loginBtn.onclick = async () => {
-    const email = loginEmail.value.trim();
-    const pwd = loginPassword.value;
-    if (!email || !pwd) { alert("Enter email and password"); return; }
     try {
-      await signInWithEmailAndPassword(auth, email, pwd);
-    } catch (err) {
-      alert("Login failed: " + err.message);
-    }
+      await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+    } catch (err) { alert("Login error: " + err.message); }
   };
-
-  // Signup handler: create auth + user document
   signupBtn.onclick = async () => {
-    const email = loginEmail.value.trim();
-    const pwd = loginPassword.value;
-    if (!email || !pwd) { alert("Please fill email & password"); return; }
-    if (pwd.length < 6) { alert("Password should be at least 6 characters"); return; }
     try {
-      const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
-      await createUserDocument(userCred.user);
-    } catch (err) {
-      alert("Signup error: " + err.message);
-    }
+      await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+    } catch (err) { alert("Signup error: " + err.message); }
   };
-
-  logoutBtn.onclick = async () => {
-    await signOut(auth);
-  };
-
+  logoutBtn.onclick = () => signOut(auth);
   sendMsgBtn.onclick = sendMessage;
-  messageInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
-
-  // small cleanup on page reload
-  window.addEventListener("beforeunload", () => {
-    if (unsubscribeMessages) unsubscribeMessages();
-  });
-
-  console.log("🔥 Firebase chat app ready – TeamUp Global");
+  messageInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
 </script>
 </body>
-  </html>
+</html>
