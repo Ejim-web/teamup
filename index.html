@@ -2,60 +2,319 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>TeamUp Global – Dating & Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TeamUp Global – Connect worldwide</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
-    body { background: #1e1e2e; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    .app-container { width: 100%; max-width: 480px; height: 95vh; background: white; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-    
-    /* Login screen */
-    .login-screen { background: linear-gradient(145deg, #fff0f0, #ffe6e6); justify-content: center; align-items: center; padding: 24px; gap: 18px; display: flex; flex-direction: column; height: 100%; }
-    .login-screen h1 { font-size: 2rem; color: #c44545; margin-bottom: 12px; }
-    .login-screen input { width: 100%; padding: 14px 18px; border: 1px solid #ffcdcd; border-radius: 44px; background: white; font-size: 1rem; }
-    .login-screen button { background: #c44545; color: white; border: none; padding: 12px; border-radius: 44px; width: 100%; font-weight: bold; font-size: 1rem; cursor: pointer; }
-    #signupBtn { background: #e07a7a; }
-    .error-msg { color: #c44545; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+    }
 
-    /* Main app (hidden initially) */
-    #mainApp { display: none; flex-direction: column; flex: 1; }
-    .app-header { padding: 18px 20px 8px; background: white; border-bottom: 1px solid #f0f0f0; }
-    .app-header h2 { font-size: 1.8rem; background: linear-gradient(135deg, #c44545, #e07a7a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-    .user-email { font-size: 0.75rem; color: #888; }
-    .icon-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #c44545; }
-    .filter-row { display: flex; gap: 12px; overflow-x: auto; padding: 12px 20px; background: white; border-bottom: 1px solid #f0f0f0; }
-    .filter-chip { background: #f5f5f5; padding: 8px 18px; border-radius: 40px; font-size: 0.85rem; white-space: nowrap; cursor: pointer; }
-    .filter-chip.active { background: #c44545; color: white; }
-    .content-area { flex: 1; overflow-y: auto; padding: 16px; background: #fafafa; }
-    .swipe-container { position: relative; height: 100%; display: flex; justify-content: center; align-items: center; }
-    .card { position: absolute; width: 100%; max-width: 340px; background: white; border-radius: 28px; box-shadow: 0 12px 24px rgba(0,0,0,0.1); overflow: hidden; cursor: grab; }
-    .card-img { height: 280px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
-    .card-info { padding: 18px; }
-    .card-info h3 { font-size: 1.4rem; }
-    .location, .last-active { font-size: 0.85rem; color: #6c757d; margin: 4px 0; }
-    .matches-list, .chat-list { display: flex; flex-direction: column; gap: 12px; }
-    .match-card { background: white; border-radius: 20px; padding: 12px; display: flex; align-items: center; gap: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .match-avatar { width: 60px; height: 60px; background: #f0d9d9; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-    .online-indicator { display: inline-block; width: 10px; height: 10px; background: #2ecc71; border-radius: 5px; margin-left: 6px; }
-    .chat-view { display: flex; flex-direction: column; height: 100%; }
-    .chat-header { padding: 12px; background: white; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-    .message { max-width: 80%; padding: 10px 14px; border-radius: 20px; }
-    .message.me { align-self: flex-end; background: #c44545; color: white; }
-    .message.other { align-self: flex-start; background: #f1f1f1; }
-    .chat-input { display: flex; gap: 10px; padding: 12px; background: white; border-top: 1px solid #eee; }
-    .chat-input input { flex: 1; padding: 10px; border-radius: 30px; border: 1px solid #ddd; }
-    .no-profiles { text-align: center; padding: 40px; color: #888; }
-    .tab-bar { display: flex; background: white; border-top: 1px solid #eee; padding: 8px 20px; justify-content: space-around; }
-    .tab { font-size: 1.4rem; color: #aaa; cursor: pointer; }
-    .tab.active { color: #c44545; }
-    .back-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; }
+    body {
+      background: #1e1e2e;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Main container */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 95vh;
+      background: white;
+      border-radius: 32px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Login screen */
+    .login-screen {
+      background: linear-gradient(145deg, #fff0f0, #ffe6e6);
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      gap: 18px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .login-screen h1 {
+      font-size: 2rem;
+      color: #c44545;
+      margin-bottom: 12px;
+    }
+    .login-screen input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1px solid #ffcdcd;
+      border-radius: 44px;
+      background: white;
+      font-size: 1rem;
+    }
+    .login-screen button {
+      background: #c44545;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 44px;
+      width: 100%;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #signupBtn {
+      background: #e07a7a;
+    }
+    .error-msg {
+      color: #c44545;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* Main app (hidden after login) */
+    #mainApp {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+    }
+    .app-header {
+      padding: 18px 20px 8px;
+      background: white;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .app-header h2 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #c44545, #e07a7a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .user-email {
+      font-size: 0.75rem;
+      color: #888;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: #c44545;
+    }
+    .filter-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 12px 20px;
+      background: white;
+      border-bottom: 1px solid #f0f0f0;
+      scrollbar-width: thin;
+    }
+    .filter-chip {
+      background: #f5f5f5;
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      color: #333;
+      transition: all 0.2s;
+    }
+    .filter-chip.active {
+      background: #c44545;
+      color: white;
+    }
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #fafafa;
+    }
+    .swipe-container {
+      position: relative;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      position: absolute;
+      width: 100%;
+      max-width: 340px;
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      cursor: grab;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    .card:active { cursor: grabbing; }
+    .card-img {
+      height: 280px;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      color: #adb5bd;
+    }
+    .card-info {
+      padding: 18px;
+    }
+    .card-info h3 {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    .card-info .location {
+      color: #6c757d;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    .card-info .last-active {
+      font-size: 0.7rem;
+      color: #28a745;
+      margin-bottom: 10px;
+    }
+    .stats-row {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      color: #555;
+      font-size: 0.85rem;
+    }
+    .stats-row i {
+      margin-right: 5px;
+    }
+    .matches-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .match-card {
+      background: white;
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+    }
+    .match-avatar {
+      width: 60px;
+      height: 60px;
+      background: #f0d9d9;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+    .match-info {
+      flex: 1;
+    }
+    .online-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 5px;
+      background: #2ecc71;
+      margin-left: 6px;
+    }
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .chat-header {
+      padding: 12px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+    .message.me {
+      align-self: flex-end;
+      background: #c44545;
+      color: white;
+    }
+    .message.other {
+      align-self: flex-start;
+      background: #f1f1f1;
+    }
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #eee;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 30px;
+      border: 1px solid #ddd;
+    }
+    .no-profiles {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    .tab-bar {
+      display: flex;
+      background: white;
+      border-top: 1px solid #eee;
+      padding: 8px 20px;
+      justify-content: space-around;
+    }
+    .tab {
+      font-size: 1.4rem;
+      color: #aaa;
+      cursor: pointer;
+    }
+    .tab.active {
+      color: #c44545;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<div class="app-container">
+<div class="app-container" id="app">
   <!-- Login Screen -->
   <div id="loginScreen" class="login-screen">
     <h1>💙 TeamUp Global</h1>
@@ -72,6 +331,7 @@
       <h2>TeamUp Global</h2>
       <div class="header-actions">
         <span class="user-email" id="currentUserEmail"></span>
+        <button id="editProfileBtn" class="icon-btn"><i class="fas fa-user-edit"></i></button>
         <button id="logoutMainBtn" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
       </div>
     </div>
@@ -86,6 +346,19 @@
     <div class="tab-bar">
       <div class="tab active" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
       <div class="tab" data-main-tab="matches"><i class="fas fa-heart"></i></div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div id="editModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000; display:none;">
+    <div style="background:white; width:85%; max-width:350px; border-radius:32px; padding:24px;">
+      <h3>Edit Profile</h3>
+      <input type="text" id="editName" placeholder="Name" style="width:100%; margin:10px 0; padding:10px; border-radius:30px; border:1px solid #ddd;">
+      <input type="number" id="editAge" placeholder="Age" style="width:100%; margin:10px 0; padding:10px; border-radius:30px;">
+      <input type="text" id="editLocation" placeholder="Location (City, Country)" style="width:100%; margin:10px 0; padding:10px; border-radius:30px;">
+      <textarea id="editBio" placeholder="Bio" rows="2" style="width:100%; margin:10px 0; padding:10px; border-radius:20px;"></textarea>
+      <button id="saveProfileBtn" style="background:#c44545; color:white; border:none; padding:10px; border-radius:40px; width:100%;">Save</button>
+      <button id="closeModalBtn" style="margin-top:10px; background:#ccc;">Cancel</button>
     </div>
   </div>
 </div>
@@ -117,10 +390,18 @@
   const loginBtn = document.getElementById("loginBtn");
   const signupBtn = document.getElementById("signupBtn");
   const logoutMainBtn = document.getElementById("logoutMainBtn");
-  const currentUserEmailSpan = document.getElementById("currentUserEmail");
+  const editProfileBtn = document.getElementById("editProfileBtn");
+  const editModal = document.getElementById("editModal");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const editName = document.getElementById("editName");
+  const editAge = document.getElementById("editAge");
+  const editLocation = document.getElementById("editLocation");
+  const editBio = document.getElementById("editBio");
   const contentArea = document.getElementById("contentArea");
   const filterChips = document.querySelectorAll(".filter-chip");
   const mainTabs = document.querySelectorAll(".tab");
+  const currentUserEmailSpan = document.getElementById("currentUserEmail");
   const loginError = document.getElementById("loginError");
 
   let currentUser = null;
@@ -131,12 +412,24 @@
   let swipeCards = [];
   let currentCardIndex = 0;
 
+  // Helper: format last active
+  function formatLastActive(timestamp) {
+    if (!timestamp) return "Active now";
+    const diff = (Date.now() - timestamp.toDate()) / 1000;
+    if (diff < 60) return "Active now";
+    if (diff < 3600) return `${Math.floor(diff/60)} min ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
+    return `${Math.floor(diff/86400)} days ago`;
+  }
+
+  // Update user online status
   async function setUserOnline(uid, isOnline) {
     try {
       await updateDoc(doc(db, "users", uid), { online: isOnline, lastSeen: serverTimestamp() });
     } catch(e) { console.warn(e); }
   }
 
+  // Create user profile on signup
   async function createUserProfile(user) {
     const userRef = doc(db, "users", user.uid);
     await setDoc(userRef, {
@@ -155,6 +448,7 @@
     });
   }
 
+  // Fetch users based on filter
   async function fetchUsersByFilter(filter, uid) {
     const usersRef = collection(db, "users");
     let q;
@@ -172,11 +466,12 @@
     return users;
   }
 
+  // Render swipe deck
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
     const users = await fetchUsersByFilter(currentFilter, currentUserId);
     if (users.length === 0) {
-      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No more profiles ✨</div>';
+      document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No more profiles right now ✨</div>';
       return;
     }
     swipeCards = users;
@@ -188,19 +483,25 @@
     const container = document.getElementById("swipeContainer");
     if (!container) return;
     if (currentCardIndex >= swipeCards.length) {
-      container.innerHTML = '<div class="no-profiles">🎉 You\'ve seen everyone!</div>';
+      container.innerHTML = '<div class="no-profiles">🎉 You\'ve seen everyone! Check back later.</div>';
       return;
     }
     const user = swipeCards[currentCardIndex];
+    const lastActive = user.lastSeen ? formatLastActive(user.lastSeen) : "Recently";
     const card = document.createElement("div");
     card.className = "card";
+    card.style.transform = "translateX(0) rotate(0deg)";
     card.innerHTML = `
       <div class="card-img">${user.photoIcon || "👤"}</div>
       <div class="card-info">
-        <h3>${user.name}, ${user.age}</h3>
+        <h3>${user.name}, ${user.age || "?"}</h3>
         <div class="location"><i class="fas fa-map-marker-alt"></i> ${user.location || "Worldwide"}</div>
-        <div class="last-active"><i class="fas fa-clock"></i> ${user.lastSeen ? "recent" : "active"}</div>
+        <div class="last-active"><i class="fas fa-clock"></i> ${lastActive}</div>
         <p>${user.bio || ""}</p>
+        <div class="stats-row">
+          <span><i class="fas fa-heart"></i> ${user.likesReceived || 0}</span>
+          <span><i class="fas fa-eye"></i> 43</span>
+        </div>
       </div>
     `;
     container.innerHTML = "";
@@ -210,8 +511,18 @@
 
   function attachSwipeEvents(card, user) {
     let startX = 0, currentX = 0, isDragging = false;
-    const onStart = (e) => { isDragging = true; startX = e.clientX ?? e.touches[0].clientX; card.style.transition = "none"; };
-    const onMove = (e) => { if (!isDragging) return; currentX = (e.clientX ?? e.touches[0].clientX) - startX; card.style.transform = `translateX(${currentX}px) rotate(${currentX*0.02}deg)`; };
+    const onStart = (e) => {
+      isDragging = true;
+      const clientX = e.clientX ?? e.touches[0].clientX;
+      startX = clientX;
+      card.style.transition = "none";
+    };
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const clientX = e.clientX ?? e.touches[0].clientX;
+      currentX = clientX - startX;
+      card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.02}deg)`;
+    };
     const onEnd = async () => {
       if (!isDragging) return;
       isDragging = false;
@@ -255,6 +566,7 @@
     }
   }
 
+  // Render matches list (mutual matches)
   async function renderMatchesList() {
     contentArea.innerHTML = `<div id="matchesList" class="matches-list"></div>`;
     const matchesSnapshot = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
@@ -276,7 +588,13 @@
         const onlineDot = data.online ? '<span class="online-indicator"></span>' : '';
         const div = document.createElement("div");
         div.className = "match-card";
-        div.innerHTML = `<div class="match-avatar">${data.photoIcon || "👤"}</div><div class="match-info"><strong>${data.name}, ${data.age}</strong> ${onlineDot}<br><small>${data.location || ""}</small></div>`;
+        div.innerHTML = `
+          <div class="match-avatar">${data.photoIcon || "👤"}</div>
+          <div class="match-info">
+            <strong>${data.name}, ${data.age || "?"}</strong> ${onlineDot}<br>
+            <small>${data.location || "Worldwide"}</small>
+          </div>
+        `;
         div.addEventListener("click", () => openChat(id, data.name));
         container.appendChild(div);
       }
@@ -285,109 +603,13 @@
 
   async function openChat(otherUserId, otherName) {
     if (unsubscribeChat) unsubscribeChat();
-    contentArea.innerHTML = `<div class="chat-view"><div class="chat-header"><button id="chatBackBtn" class="back-btn"><i class="fas fa-arrow-left"></i></button><strong>${otherName}</strong></div><div id="chatMessagesArea" class="chat-messages"></div><div class="chat-input"><input type="text" id="chatInputField" placeholder="Message..."><button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button></div></div>`;
-    document.getElementById("chatBackBtn").addEventListener("click", () => { if (unsubscribeChat) unsubscribeChat(); renderMatchesList(); });
-    const roomId = [currentUserId, otherUserId].sort().join("__");
-    const messagesRef = collection(db, "chats", roomId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"));
-    unsubscribeChat = onSnapshot(q, (snapshot) => {
-      const container = document.getElementById("chatMessagesArea");
-      if (!container) return;
-      container.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const msg = docSnap.data();
-        const isMe = msg.senderId === currentUserId;
-        const div = document.createElement("div");
-        div.className = `message ${isMe ? "me" : "other"}`;
-        div.innerText = msg.text;
-        container.appendChild(div);
-      });
-      container.scrollTop = container.scrollHeight;
-    });
-    document.getElementById("chatSendBtn").addEventListener("click", async () => {
-      const input = document.getElementById("chatInputField");
-      const text = input.value.trim();
-      if (!text) return;
-      await addDoc(messagesRef, { text, senderId: currentUserId, timestamp: serverTimestamp() });
-      input.value = "";
-    });
-  }
-
-  async function refreshContent() {
-    if (currentMainTab === "swipe") await renderSwipeDeck();
-    else await renderMatchesList();
-  }
-
-  // Filter & tab listeners
-  filterChips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      filterChips.forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-      currentFilter = chip.getAttribute("data-filter");
-      if (currentMainTab === "swipe") refreshContent();
-    });
-  });
-  mainTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      mainTabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      currentMainTab = tab.getAttribute("data-main-tab");
-      refreshContent();
-    });
-  });
-
-  // Auth
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      currentUser = user;
-      currentUserId = user.uid;
-      currentUserEmailSpan.innerText = user.email;
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) await createUserProfile(user);
-      await setUserOnline(user.uid, true);
-      loginScreen.style.display = "none";
-      mainApp.style.display = "flex";
-      await refreshContent();
-      setInterval(() => setUserOnline(user.uid, true), 30000);
-    } else {
-      if (currentUserId) setUserOnline(currentUserId, false);
-      loginScreen.style.display = "flex";
-      mainApp.style.display = "none";
-      loginError.innerText = "";
-    }
-  });
-
-  loginBtn.onclick = async () => {
-    loginError.innerText = "";
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-    } catch (err) {
-      let msg = err.message;
-      if (msg.includes("auth/user-not-found")) msg = "No account found. Please click 'Create Account'.";
-      else if (msg.includes("auth/wrong-password")) msg = "Wrong password. Please try again.";
-      else if (msg.includes("auth/invalid-email")) msg = "Invalid email format.";
-      loginError.innerText = msg;
-    }
-  };
-  signupBtn.onclick = async () => {
-    loginError.innerText = "";
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-      await createUserProfile(cred.user);
-    } catch (err) {
-      let msg = err.message;
-      if (msg.includes("auth/email-already-in-use")) msg = "Email already in use. Please login.";
-      else if (msg.includes("auth/weak-password")) msg = "Password must be at least 6 characters.";
-      loginError.innerText = msg;
-    }
-  };
-  logoutMainBtn.onclick = async () => {
-    await signOut(auth);
-  };
-  window.addEventListener("beforeunload", () => {
-    if (currentUserId) setUserOnline(currentUserId, false);
-  });
-</script>
-</body>
-  </html>
+    contentArea.innerHTML = `
+      <div class="chat-view">
+        <div class="chat-header">
+          <button id="chatBackBtn" class="back-btn"><i class="fas fa-arrow-left"></i></button>
+          <strong>${otherName}</strong>
+        </div>
+        <div id="chatMessagesArea" class="chat-messages"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInputField" placeholder="Message...">
+          <button id="chatSendBtn"><i class="fas fa-pa
