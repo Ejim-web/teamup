@@ -1,1 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TeamUp Global – Swipe, Match, Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+    }
+    body {
+      background: #1a1a2e;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 500px;
+      height: 95vh;
+      background: white;
+      border-radius: 32px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 45px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 60px;
+      font-size: 0.9rem;
+      z-index: 2000;
+      animation: fadeInUp 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      max-width: 85%;
+      text-align: center;
+      pointer-events: none;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    /* Login */
+    .login-screen {
+      background: linear-gradient(145deg, #f9ecec, #ffe0e0);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 28px;
+      gap: 20px;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .custom-logo {
+      width: 90px;
+      height: 90px;
+      background: linear-gradient(135deg, #c44545, #e07a7a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 20px rgba(196,69,69,0.3);
+    }
+    .custom-logo span { font-size: 2.8rem; font-weight: 800; color: white; }
+    .login-screen h1 { font-size: 2.5rem; color: #c44545; font-weight: 800; }
+    .login-screen input {
+      width: 100%;
+      padding: 16px 24px;
+      border: 1px solid #ffc2c2;
+      border-radius: 60px;
+      background: white;
+      font-size: 1rem;
+    }
+    .login-screen button {
+      background: #c44545;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 60px;
+      width: 100%;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #signupBtn { background: #e07a7a; }
+    #loginBtn { display: none; }
+    #showLoginLink {
+      display: inline-block;
+      background: #c44545;
+      color: white !important;
+      text-decoration: none;
+      padding: 10px 24px;
+      border-radius: 60px;
+      font-weight: bold;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    .error-msg { color: #c44545; font-size: 0.85rem; text-align: center; }
+    /* Main header */
+    #mainApp {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+    }
+    .app-header {
+      padding: 20px 20px 12px;
+      background: white;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    .app-header h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #c44545, #e07a7a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+    }
+    .user-email {
+      font-size: 0.75rem;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+    .right-icons {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .notification-bell {
+      position: relative;
+      font-size: 1.4rem;
+      color: #c44545;
+      cursor: pointer;
+    }
+    .notification-badge {
+      position: absolute;
+      top: -6px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      font-size: 0.65rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 20px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .logout-btn {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #c44545;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #fafafa;
+      position: relative;
+    }
+    /* Swipe cards */
+    .swipe-container {
+      position: relative;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 500px;
+    }
+    .card {
+      position: absolute;
+      width: 100%;
+      max-width: 360px;
+      background: white;
+      border-radius: 36px;
+      box-shadow: 0 18px 36px rgba(0,0,0,0.15);
+      overflow: hidden;
+      will-change: transform;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    .card:active { cursor: grabbing; }
+    .card-img {
+      height: 300px;
+      background: #eaeef3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+    }
+    .card-info { padding: 24px; }
+    .card-info h3 { font-size: 1.9rem; font-weight: 800; margin-bottom: 8px; }
+    .location { font-size: 1rem; color: #5a6e85; margin: 8px 0; display: flex; align-items: center; gap: 6px; }
+    .last-active { font-size: 0.85rem; color: #22c55e; margin-bottom: 16px; }
+    .stats-row { display: flex; gap: 24px; margin-top: 16px; color: #555; font-size: 0.9rem; }
+    .swipe-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      z-index: 10;
+    }
+    .swipe-buttons button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease;
+    }
+    .swipe-buttons button:active { transform: scale(0.95); }
+    .btn-like { background: #22c55e; color: white; }
+    .btn-superlike { background: #3b82f6; color: white; }
+    .btn-pass { background: #ef4444; color: white; }
+    /* Matches & Chat */
+    .people-list { display: flex; flex-direction: column; gap: 14px; }
+    .person-card {
+      background: white;
+      border-radius: 28px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .person-avatar {
+      width: 64px;
+      height: 64px;
+      background: #f0d9d9;
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    .person-info strong { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    .online-indicator { width: 12px; height: 12px; background: #2ecc71; border-radius: 50%; display: inline-block; }
+    .last-message { font-size: 0.8rem; color: #888; margin-top: 6px; }
+    .chat-view { display: flex; flex-direction: column; height: 100%; }
+    .chat-header {
+      padding: 16px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .chat-header strong { font-size: 1.2rem; font-weight: 800; }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fefefe;
+    }
+    .message {
+      max-width: 80%;
+      padding: 12px 18px;
+      border-radius: 28px;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .message.me { align-self: flex-end; background: #c44545; color: white; border-bottom-right-radius: 8px; }
+    .message.other { align-self: flex-start; background: #eef2ff; color: #1f2a48; border-bottom-left-radius: 8px; }
+    .chat-input {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border-top: 1px solid #eee;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 50px;
+      border: 1px solid #ddd;
+      font-size: 1rem;
+    }
+    .chat-input button {
+      background: #c44545;
+      border: none;
+      color: white;
+      width: 54px;
+      border-radius: 54px;
+      font-size: 1.3rem;
+      cursor: pointer;
+    }
+    /* Profile editor */
+    .profile-editor {
+      background: white;
+      border-radius: 32px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      background: #f0d9d9;
+      border-radius: 50%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      cursor: pointer;
+    }
+    .profile-editor input, .profile-editor textarea, .profile-editor select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 60px;
+      border: 1px solid #ffc2c2;
+      font-size: 1rem;
+      background: white;
+    }
+    .profile-editor textarea { border-radius: 24px; resize: vertical; }
+    .profile-editor select { cursor: pointer; }
+    .save-profile-btn {
+      background: #c44545;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 60px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .location-info {
+      font-size: 0.85rem;
+      color: #3b82f6;
+      text-align: center;
+      margin-top: 8px;
+    }
+    .row-2cols {
+      display: flex;
+      gap: 12px;
+    }
+    .row-2cols > * { flex: 1; }
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      background: white;
+      border-top: 1px solid #eee;
+      padding: 10px 24px;
+      justify-content: space-around;
+    }
+    .tab {
+      font-size: 1.9rem;
+      color: #aaa;
+      cursor: pointer;
+      text-align: center;
+      flex: 1;
+      position: relative;
+    }
+    .tab.active { color: #c44545; }
+    .badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      background: #c44545;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 20px;
+    }
+    .no-profiles { text-align: center; padding: 60px 20px; color: #8892a0; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="custom-logo"><span>TU</span></div>
+    <h1>TeamUp Global</h1>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn">Login</button>
+    <button id="signupBtn">Create Account</button>
+    <div id="errorMsg" class="error-msg"></div>
+    <p>Already have an account? <a href="#" id="showLoginLink">Login</a></p>
+  </div>
 
+  <!-- MAIN APP -->
+  <div id="mainApp">
+    <div class="app-header">
+      <h2>TeamUp Global</h2>
+      <div class="header-actions">
+        <span class="user-email" id="userEmailDisplay"></span>
+        <div class="right-icons">
+          <div class="notification-bell" id="notificationBell">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+          </div>
+          <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+      </div>
+    </div>
+    <div class="content-area" id="contentArea"></div>
+    <div class="tab-bar">
+      <div class="tab active" data-tab="swipe"><i class="fas fa-fire"></i></div>
+      <div class="tab" data-tab="matches"><i class="fas fa-comment-dots"></i><span class="badge" id="matchesBadge" style="display: none;">0</span></div>
+      <div class="tab" data-tab="profile"><i class="fas fa-user"></i></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ======================== DATA LAYER ========================
+  // Sample profiles with gender
+  const SAMPLE_PROFILES = [
+    { id: "p1", name: "Alex Chen", age: 24, gender: "male", location: "San Francisco", lastActive: "Online", sport: "⚽ Soccer", avatar: "⚽", bio: "Love playing striker" },
+    { id: "p2", name: "Jordan Lee", age: 22, gender: "female", location: "New York", lastActive: "2h ago", sport: "🏀 Basketball", avatar: "🏀", bio: "Point guard" },
+    { id: "p3", name: "Taylor Smith", age: 26, gender: "non-binary", location: "Austin", lastActive: "1d ago", sport: "🎾 Tennis", avatar: "🎾", bio: "4.0 player" },
+    { id: "p4", name: "Casey Brown", age: 23, gender: "female", location: "Seattle", lastActive: "Online", sport: "🏋️ Gym", avatar: "🏋️", bio: "Fitness enthusiast" },
+    { id: "p5", name: "Riley Jones", age: 25, gender: "male", location: "Chicago", lastActive: "5h ago", sport: "🏃 Running", avatar: "🏃", bio: "Marathon training" }
+  ];
+
+  // Init localStorage
+  if (!localStorage.getItem('teamup_users')) localStorage.setItem('teamup_users', JSON.stringify([]));
+  if (!localStorage.getItem('teamup_matches')) localStorage.setItem('teamup_matches', JSON.stringify({}));
+  if (!localStorage.getItem('teamup_messages')) localStorage.setItem('teamup_messages', JSON.stringify({}));
+  if (!localStorage.getItem('teamup_profiles')) localStorage.setItem('teamup_profiles', JSON.stringify({}));
+
+  let currentUser = null;
+  let notificationCount = 0;
+  let lastSeenMatches = [];
+  let lastReadMessageTimestamps = {};
+
+  // Core data functions
+  function getMatches(userEmail) {
+    const all = JSON.parse(localStorage.getItem('teamup_matches'));
+    return all[userEmail] || [];
+  }
+  function addMatch(userEmail, profileId) {
+    let matches = JSON.parse(localStorage.getItem('teamup_matches'));
+    if (!matches[userEmail]) matches[userEmail] = [];
+    if (!matches[userEmail].includes(profileId)) {
+      matches[userEmail].push(profileId);
+      localStorage.setItem('teamup_matches', JSON.stringify(matches));
+      let messages = JSON.parse(localStorage.getItem('teamup_messages'));
+      const key = `${userEmail}_${profileId}`;
+      if (!messages[key]) messages[key] = [];
+      localStorage.setItem('teamup_messages', JSON.stringify(messages));
+      return true;
+    }
+    return false;
+  }
+
+  // Filter available profiles based on current user's gender preference
+  function getAvailableProfiles(userEmail) {
+    const userProfile = getUserProfile(userEmail);
+    const preference = userProfile.preference || "everyone";
+    const matches = getMatches(userEmail);
+    let filtered = SAMPLE_PROFILES.filter(p => !matches.includes(p.id));
+    if (preference === "men") {
+      filtered = filtered.filter(p => p.gender === "male");
+    } else if (preference === "women") {
+      filtered = filtered.filter(p => p.gender === "female");
+    }
+    // else "everyone" includes all genders
+    return filtered;
+  }
+
+  function getMatchedProfiles(userEmail) {
+    const matches = getMatches(userEmail);
+    return matches.map(id => SAMPLE_PROFILES.find(p => p.id === id)).filter(p => p);
+  }
+
+  function getMessages(userEmail, profileId) {
+    const all = JSON.parse(localStorage.getItem('teamup_messages'));
+    const key = `${userEmail}_${profileId}`;
+    return all[key] || [];
+  }
+
+  function addMessage(userEmail, profileId, text, isMe) {
+    const all = JSON.parse(localStorage.getItem('teamup_messages'));
+    const key = `${userEmail}_${profileId}`;
+    if (!all[key]) all[key] = [];
+    all[key].push({ text, sender: isMe ? userEmail : profileId, time: new Date().toISOString() });
+    localStorage.setItem('teamup_messages', JSON.stringify(all));
+  }
+
+  // User profile includes gender and preference
+  function getUserProfile(email) {
+    const profiles = JSON.parse(localStorage.getItem('teamup_profiles'));
+    if (profiles[email]) return profiles[email];
+    return {
+      name: email.split('@')[0],
+      bio: "Edit profile, add interests, and more!",
+      avatar: "👤",
+      gender: "other",
+      preference: "everyone"
+    };
+  }
+
+  function saveUserProfile(email, data) {
+    const profiles = JSON.parse(localStorage.getItem('teamup_profiles'));
+    profiles[email] = { ...getUserProfile(email), ...data };
+    localStorage.setItem('teamup_profiles', JSON.stringify(profiles));
+  }
+
+  // Notifications
+  function showToast(message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+  }
+
+  function recalcTotalNotifications() {
+    if (!currentUser) return;
+    let total = 0;
+    const matches = getMatches(currentUser.email);
+    const newMatches = matches.filter(m => !lastSeenMatches.includes(m));
+    total += newMatches.length;
+    for (const matchId of matches) {
+      const lastRead = lastReadMessageTimestamps[matchId] || 0;
+      const messages = getMessages(currentUser.email, matchId);
+      const unread = messages.filter(msg => msg.sender !== currentUser.email && new Date(msg.time).getTime() > lastRead).length;
+      total += unread;
+    }
+    notificationCount = total;
+    updateNotificationBadge();
+  }
+
+  function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (notificationCount > 0) {
+      badge.style.display = 'flex';
+      badge.innerText = notificationCount > 9 ? '9+' : notificationCount;
+    } else {
+      badge.style.display = 'none';
+    }
+    const matchesBadge = document.getElementById('matchesBadge');
+    const newMatchesCount = getMatches(currentUser.email).filter(m => !lastSeenMatches.includes(m)).length;
+    if (newMatchesCount > 0) {
+      matchesBadge.style.display = 'flex';
+      matchesBadge.innerText = newMatchesCount;
+    } else {
+      matchesBadge.style.display = 'none';
+    }
+  }
+
+  function markMatchesAsSeen() {
+    if (!currentUser) return;
+    lastSeenMatches = [...getMatches(currentUser.email)];
+    recalcTotalNotifications();
+  }
+
+  function markChatAsRead(matchId) {
+    lastReadMessageTimestamps[matchId] = Date.now();
+    recalcTotalNotifications();
+  }
+
+  function notifyNewMatch(profileName) {
+    showToast(`✨ It's a match! You and ${profileName} can now chat. ✨`, 4000);
+    recalcTotalNotifications();
+  }
+
+  function notifyNewMessage(senderName) {
+    showToast(`📩 New message from ${senderName}`, 3000);
+    recalcTotalNotifications();
+  }
+
+  // Override addMatch/addMessage for notifications
+  const originalAddMatch = addMatch;
+  function addMatchWithNotify(userEmail, profileId) {
+    const wasNew = originalAddMatch(userEmail, profileId);
+    if (wasNew) {
+      const profile = SAMPLE_PROFILES.find(p => p.id === profileId);
+      if (profile) notifyNewMatch(profile.name);
+    }
+    return wasNew;
+  }
+  const originalAddMessage = addMessage;
+  function addMessageWithNotify(userEmail, profileId, text, isMe) {
+    originalAddMessage(userEmail, profileId, text, isMe);
+    if (!isMe) {
+      const profile = SAMPLE_PROFILES.find(p => p.id === profileId);
+      if (profile) notifyNewMessage(profile.name);
+    } else {
+      markChatAsRead(profileId);
+    }
+    recalcTotalNotifications();
+  }
+  window.addMatch = addMatchWithNotify;
+  window.addMessage = addMessageWithNotify;
+
+  // ======================== SWIPE UI (fully responsive) ========================
+  let profilesQueue = [];
+  let currentCardIndex = 0;
+  let swipeContainer = null;
+
+  function loadSwipeScreen() {
+    if (!currentUser) return;
+    profilesQueue = getAvailableProfiles(currentUser.email);
+    currentCardIndex = 0;
+    const container = document.getElementById('contentArea');
+    container.innerHTML = `
+      <div class="swipe-container" id="swipeContainer">
+        <div class="no-profiles" id="noProfilesMsg"></div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="btn-pass" id="passBtn"><i class="fas fa-times"></i></button>
+        <button class="btn-superlike" id="superlikeBtn"><i class="fas fa-star"></i></button>
+        <button class="btn-like" id="likeBtn"><i class="fas fa-heart"></i></button>
+      </div>
+    `;
+    swipeContainer = document.getElementById('swipeContainer');
+    if (profilesQueue.length === 0) {
+      document.getElementById('noProfilesMsg').innerText = "No more profiles matching your preference. Adjust your settings in Profile.";
+      return;
+    }
+    renderNextCard();
+    document.getElementById('passBtn').onclick = () => swipeLeft();
+    document.getElementById('likeBtn').onclick = () => swipeRight(false);
+    document.getElementById('superlikeBtn').onclick = () => swipeRight(true);
+  }
+
+  function renderNextCard() {
+    if (!swipeContainer) return;
+    if (currentCardIndex >= profilesQueue.length) {
+      swipeContainer.innerHTML = `<div class="no-profiles">✨ No more new people nearby ✨</div>`;
+      return;
+    }
+    const profile = profilesQueue[currentCardIndex];
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('data-id', profile.id);
+    card.innerHTML = `
+      <div class="card-img">${profile.avatar}</div>
+      <div class="card-info">
+        <h3>${profile.name}, ${profile.age}</h3>
+        <div class="location"><i class="fas fa-map-marker-alt"></i> ${profile.location}</div>
+        <div class="last-active"><i class="fas fa-circle" style="font-size:10px; color:#22c55e;"></i> ${profile.lastActive}</div>
+        <div class="stats-row"><span><i class="fas fa-futbol"></i> ${profile.sport}</span></div>
+        <p style="margin-top:12px;">${profile.bio}</p>
+      </div>
+    `;
+    swipeContainer.innerHTML = '';
+    swipeContainer.appendChild(card);
+    attachSwipeEvents(card);
+  }
+
+  function attachSwipeEvents(card) {
+    let startX = 0, currentX = 0, isDragging = false;
+    const onStart = (e) => {
+      e.preventDefault();
+      const clientX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+      startX = clientX;
+      isDragging = true;
+      card.style.transition = 'none';
+    };
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+      const deltaX = clientX - startX;
+      const rotate = deltaX / 20;
+      currentX = deltaX;
+      card.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
+      card.style.opacity = 1 - Math.abs(deltaX) / 300;
+    };
+    const onEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      const threshold = 120;
+      if (Math.abs(currentX) > threshold) {
+        if (currentX > 0) swipeRight(false);
+        else swipeLeft();
+      } else {
+        card.style.transition = 'transform 0.3s ease';
+        card.style.transform = '';
+        card.style.opacity = '';
+      }
+      currentX = 0;
+    };
+    card.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    card.addEventListener('touchstart', onStart);
+    card.addEventListener('touchmove', onMove);
+    card.addEventListener('touchend', onEnd);
+  }
+
+  function swipeLeft() {
+    if (!swipeContainer || !swipeContainer.firstChild) return;
+    const card = swipeContainer.firstChild;
+    card.style.transition = 'transform 0.3s ease';
+    card.style.transform = 'translateX(-400px) rotate(-30deg)';
+    card.style.opacity = '0';
+    setTimeout(() => { currentCardIndex++; renderNextCard(); }, 300);
+  }
+
+  function swipeRight(isSuperlike) {
+    if (!swipeContainer || !swipeContainer.firstChild) return;
+    const card = swipeContainer.firstChild;
+    const profileId = card.getAttribute('data-id');
+    const profile = profilesQueue[currentCardIndex];
+    addMatchWithNotify(currentUser.email, profileId);
+    card.style.transition = 'transform 0.3s ease';
+    card.style.transform = 'translateX(400px) rotate(30deg)';
+    card.style.opacity = '0';
+    setTimeout(() => { currentCardIndex++; renderNextCard(); }, 300);
+    if (isSuperlike) showToast(`⭐ Superliked ${profile.name}! ⭐`, 2000);
+  }
+
+  // ======================== MATCHES & CHAT ========================
+  function loadMatchesScreen() {
+    markMatchesAsSeen();
+    const container = document.getElementById('contentArea');
+    const matches = getMatchedProfiles(currentUser.email);
+    if (matches.length === 0) {
+      container.innerHTML = `<div class="no-profiles">💬 No matches yet. Swipe right on someone to start chatting!</div>`;
+      return;
+    }
+    let html = `<div class="people-list">`;
+    matches.forEach(match => {
+      const lastMsg = getMessages(currentUser.email, match.id).slice(-1)[0];
+      const lastMsgText = lastMsg ? (lastMsg.sender === currentUser.email ? `You: ${lastMsg.text}` : `${match.name}: ${lastMsg.text}`) : "Say hi!";
+      html += `
+        <div class="person-card" data-matchid="${match.id}">
+          <div class="person-avatar">${match.avatar}</div>
+          <div class="person-info">
+            <strong>${match.name} <span class="online-indicator"></span></strong>
+            <div class="last-message">${lastMsgText}</div>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+    document.querySelectorAll('.person-card').forEach(el => {
+      el.addEventListener('click', () => openChat(el.getAttribute('data-matchid')));
+    });
+  }
+
+  function openChat(matchId) {
+    markChatAsRead(matchId);
+    const match = SAMPLE_PROFILES.find(p => p.id === matchId);
+    if (!match) return;
+    const container = document.getElementById('contentArea');
+    container.innerHTML = `
+      <div class="chat-view">
+        <div class="chat-header">
+          <button id="backToMatches" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">←</button>
+          <div class="person-avatar" style="width:48px; height:48px;">${match.avatar}</div>
+          <strong>${match.name}</strong>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Message...">
+          <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    `;
+    document.getElementById('backToMatches').onclick = () => loadMatchesScreen();
+    function renderMessages() {
+      const msgs = getMessages(currentUser.email, matchId);
+      const chatDiv = document.getElementById('chatMessages');
+      if (!chatDiv) return;
+      chatDiv.innerHTML = msgs.map(msg => `
+        <div class="message ${msg.sender === currentUser.email ? 'me' : 'other'}">
+          ${msg.text}
+          <div style="font-size:0.65rem; opacity:0.7; margin-top:4px;">${new Date(msg.time).toLocaleTimeString()}</div>
+        </div>
+      `).join('');
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+    renderMessages();
+    const sendBtn = document.getElementById('sendMsgBtn');
+    const input = document.getElementById('chatInput');
+    const send = () => {
+      const text = input.value.trim();
+      if (text) {
+        addMessageWithNotify(currentUser.email, matchId, text, true);
+        input.value = '';
+        renderMessages();
+      }
+    };
+    sendBtn.onclick = send;
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') send(); });
+  }
+
+  // ======================== PROFILE EDITOR (with gender & preference) ========================
+  function loadProfileScreen() {
+    const profile = getUserProfile(currentUser.email);
+    const container = document.getElementById('contentArea');
+    container.innerHTML = `
+      <div class="profile-editor">
+        <div class="profile-pic" id="avatarPicker">${profile.avatar}</div>
+        <input type="text" id="profileName" placeholder="Name" value="${profile.name.replace(/"/g, '&quot;')}">
+        <textarea id="profileBio" placeholder="Bio" rows="3">${profile.bio}</textarea>
+        <div class="row-2cols">
+          <select id="profileGender">
+            <option value="male" ${profile.gender === 'male' ? 'selected' : ''}>Male</option>
+            <option value="female" ${profile.gender === 'female' ? 'selected' : ''}>Female</option>
+            <option value="non-binary" ${profile.gender === 'non-binary' ? 'selected' : ''}>Non-binary</option>
+            <option value="other" ${profile.gender === 'other' ? 'selected' : ''}>Other</option>
+          </select>
+          <select id="profilePreference">
+            <option value="everyone" ${profile.preference === 'everyone' ? 'selected' : ''}>Show Everyone</option>
+            <option value="men" ${profile.preference === 'men' ? 'selected' : ''}>Show Men</option>
+            <option value="women" ${profile.preference === 'women' ? 'selected' : ''}>Show Women</option>
+          </select>
+        </div>
+        <button class="save-profile-btn" id="saveProfileBtn">Save Profile</button>
+        <div class="location-info" id="locationDisplay"><i class="fas fa-spinner fa-spin"></i> Getting your location...</div>
+      </div>
+    `;
+    // Avatar picker (simple cycle)
+    const avatars = ['👤', '😎', '🏃', '⚽', '🏀', '🎾', '🏋️', '🧘'];
+    let avatarIndex = avatars.indexOf(profile.avatar);
+    if (avatarIndex === -1) avatarIndex = 0;
+    const avatarEl = document.getElementById('avatarPicker');
+    avatarEl.onclick = () => {
+      avatarIndex = (avatarIndex + 1) % avatars.length;
+      avatarEl.innerText = avatars[avatarIndex];
+    };
+    document.getElementById('saveProfileBtn').onclick = () => {
+      const newName = document.getElementById('profileName').value;
+      const newBio = document.getElementById('profileBio').value;
+      const newAvatar = avatarEl.innerText;
+      const newGender = document.getElementById('profileGender').value;
+      const newPreference = document.getElementById('profilePreference').value;
+      saveUserProfile(currentUser.email, {
+        name: newName,
+        bio: newBio,
+        avatar: newAvatar,
+        gender: newGender,
+        preference: newPreference
+      });
+      showToast('Profile saved!', 1500);
+      // If we are on swipe tab, refresh queue
+      const activeTab = document.querySelector('.tab.active')?.getAttribute('data-tab');
+      if (activeTab === 'swipe') loadSwipeScreen();
+    };
+    // Geolocation (free)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || "Unknown";
+          const country = data.address?.country || "";
+          document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${city}, ${country}`;
+        } catch {
+          document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
+        }
+      }, () => {
+        document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> Location access denied.`;
+      });
+    } else {
+      document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> Geolocation not supported.`;
+    }
+  }
+
+  // ======================== AUTH & APP INIT ========================
+  function initAuth() {
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginScreen = document.getElementById('loginScreen');
+    const mainApp = document.getElementById('mainApp');
+    const userEmailSpan = document.getElementById('userEmailDisplay');
+    const errorMsg = document.getElementById('errorMsg');
+    const showLoginLink = document.getElementById('showLoginLink');
+
+    function showError(text) {
+      errorMsg.innerText = text;
+      setTimeout(() => errorMsg.innerText = '', 3000);
+    }
+
+    function handleLogin() {
+      const email = loginEmail.value.trim();
+      const pwd = loginPassword.value.trim();
+      if (!email || !pwd) return showError('Enter email and password');
+      let users = JSON.parse(localStorage.getItem('teamup_users'));
+      const user = users.find(u => u.email === email && u.password === pwd);
+      if (user) {
+        currentUser = user;
+        localStorage.setItem('teamup_current', JSON.stringify(currentUser));
+        loginScreen.style.display = 'none';
+        mainApp.style.display = 'flex';
+        userEmailSpan.innerText = currentUser.email;
+        const savedSeen = localStorage.getItem(`teamup_seen_${currentUser.email}`);
+        lastSeenMatches = savedSeen ? JSON.parse(savedSeen) : [];
+        const savedTimestamps = localStorage.getItem(`teamup_read_${currentUser.email}`);
+        lastReadMessageTimestamps = savedTimestamps ? JSON.parse(savedTimestamps) : {};
+        recalcTotalNotifications();
+        loadSwipeScreen();
+      } else {
+        showError('Invalid credentials');
+      }
+    }
+
+    function handleSignup() {
+      const email = loginEmail.value.trim();
+      const pwd = loginPassword.value.trim();
+      if (!email || !pwd) return showError('Enter email and password');
+      let users = JSON.parse(localStorage.getItem('teamup_users'));
+      if (users.find(u => u.email === email)) return showError('Account exists');
+      users.push({ email, password: pwd });
+      localStorage.setItem('teamup_users', JSON.stringify(users));
+      showError('Account created! Please login.');
+    }
+
+    function handleLogout() {
+      localStorage.setItem(`teamup_seen_${currentUser.email}`, JSON.stringify(lastSeenMatches));
+      localStorage.setItem(`teamup_read_${currentUser.email}`, JSON.stringify(lastReadMessageTimestamps));
+      currentUser = null;
+      localStorage.removeItem('teamup_current');
+      loginScreen.style.display = 'flex';
+      mainApp.style.display = 'none';
+      loginEmail.value = '';
+      loginPassword.value = '';
+    }
+
+    loginBtn.onclick = handleLogin;
+    signupBtn.onclick = handleSignup;
+    logoutBtn.onclick = handleLogout;
+    showLoginLink.onclick = (e) => {
+      e.preventDefault();
+      handleLogin();
+    };
+
+    // Auto login
+    const savedUser = localStorage.getItem('teamup_current');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      const users = JSON.parse(localStorage.getItem('teamup_users'));
+      if (users.find(u => u.email === currentUser.email)) {
+        loginScreen.style.display = 'none';
+        mainApp.style.display = 'flex';
+        userEmailSpan.innerText = currentUser.email;
+        const savedSeen = localStorage.getItem(`teamup_seen_${currentUser.email}`);
+        lastSeenMatches = savedSeen ? JSON.parse(savedSeen) : [];
+        const savedTimestamps = localStorage.getItem(`teamup_read_${currentUser.email}`);
+        lastReadMessageTimestamps = savedTimestamps ? JSON.parse(savedTimestamps) : [];
+        recalcTotalNotifications();
+        loadSwipeScreen();
+      } else {
+        localStorage.removeItem('teamup_current');
+      }
+    }
+
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const tabName = tab.getAttribute('data-tab');
+        if (tabName === 'swipe') loadSwipeScreen();
+        else if (tabName === 'matches') loadMatchesScreen();
+        else if (tabName === 'profile') loadProfileScreen();
+      });
+    });
+
+    document.getElementById('notificationBell').onclick = () => {
+      showToast(`You have ${notificationCount} unread notification${notificationCount !== 1 ? 's' : ''}`, 2000);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', initAuth);
+</script>
+</body>
+</html>
