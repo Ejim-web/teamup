@@ -1,1 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TeamUp Global – Real‑time Swipe & Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif; }
+    body { background: #1a1a2e; height: 100vh; display: flex; justify-content: center; align-items: center; }
+    .app-container { width: 100%; max-width: 500px; height: 95vh; background: white; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 45px rgba(0,0,0,0.2); }
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 60px; z-index: 2000; animation: fadeInUp 0.3s ease; text-align: center; pointer-events: none; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .login-screen { background: linear-gradient(145deg, #f9ecec, #ffe0e0); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 28px; gap: 20px; height: 100%; }
+    .custom-logo { width: 90px; height: 90px; background: linear-gradient(135deg, #c44545, #e07a7a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(196,69,69,0.3); }
+    .custom-logo span { font-size: 2.8rem; font-weight: 800; color: white; }
+    .login-screen h1 { font-size: 2.5rem; color: #c44545; font-weight: 800; }
+    .login-screen input { width: 100%; padding: 16px 24px; border: 1px solid #ffc2c2; border-radius: 60px; background: white; font-size: 1rem; }
+    .login-screen button { background: #c44545; color: white; border: none; padding: 14px; border-radius: 60px; width: 100%; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    #signupBtn { background: #e07a7a; }
+    #loginBtn { display: none; }
+    #showLoginLink { display: inline-block; background: #c44545; color: white !important; text-decoration: none; padding: 10px 24px; border-radius: 60px; font-weight: bold; margin-top: 12px; cursor: pointer; }
+    .error-msg { color: #c44545; font-size: 0.85rem; text-align: center; }
+    #mainApp { display: none; flex-direction: column; flex: 1; }
+    .app-header { padding: 20px 20px 12px; background: white; border-bottom: 2px solid #f0f0f0; }
+    .app-header h2 { font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #c44545, #e07a7a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+    .user-email { font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    .right-icons { display: flex; gap: 16px; align-items: center; }
+    .notification-bell { position: relative; font-size: 1.4rem; color: #c44545; cursor: pointer; }
+    .notification-badge { position: absolute; top: -6px; right: -10px; background: #ef4444; color: white; font-size: 0.65rem; font-weight: bold; padding: 2px 6px; border-radius: 20px; min-width: 18px; text-align: center; }
+    .logout-btn { background: none; border: none; font-size: 1rem; cursor: pointer; color: #c44545; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; background: #fafafa; }
+    .swipe-container { position: relative; height: 100%; display: flex; justify-content: center; align-items: center; min-height: 500px; }
+    .card { position: absolute; width: 100%; max-width: 360px; background: white; border-radius: 36px; box-shadow: 0 18px 36px rgba(0,0,0,0.15); overflow: hidden; will-change: transform; cursor: grab; touch-action: none; user-select: none; }
+    .card:active { cursor: grabbing; }
+    .card-img { height: 300px; background: #eaeef3; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .card-info { padding: 24px; }
+    .card-info h3 { font-size: 1.9rem; font-weight: 800; margin-bottom: 8px; }
+    .location { font-size: 1rem; color: #5a6e85; margin: 8px 0; display: flex; align-items: center; gap: 6px; }
+    .last-active { font-size: 0.85rem; color: #22c55e; margin-bottom: 16px; }
+    .stats-row { display: flex; gap: 24px; margin-top: 16px; color: #555; font-size: 0.9rem; }
+    .swipe-buttons { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 40px; z-index: 10; }
+    .swipe-buttons button { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 2rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.1s ease; }
+    .swipe-buttons button:active { transform: scale(0.95); }
+    .btn-like { background: #22c55e; color: white; }
+    .btn-pass { background: #ef4444; color: white; }
+    .people-list { display: flex; flex-direction: column; gap: 14px; }
+    .person-card { background: white; border-radius: 28px; padding: 14px; display: flex; align-items: center; gap: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .person-avatar { width: 64px; height: 64px; background: #f0d9d9; border-radius: 32px; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+    .person-info strong { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    .online-indicator { width: 12px; height: 12px; background: #2ecc71; border-radius: 50%; display: inline-block; }
+    .last-message { font-size: 0.8rem; color: #888; margin-top: 6px; }
+    .chat-view { display: flex; flex-direction: column; height: 100%; }
+    .chat-header { padding: 16px; background: white; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 14px; }
+    .chat-header strong { font-size: 1.2rem; font-weight: 800; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #fefefe; }
+    .message { max-width: 80%; padding: 12px 18px; border-radius: 28px; font-size: 1rem; font-weight: 500; }
+    .message.me { align-self: flex-end; background: #c44545; color: white; border-bottom-right-radius: 8px; }
+    .message.other { align-self: flex-start; background: #eef2ff; color: #1f2a48; border-bottom-left-radius: 8px; }
+    .chat-input { display: flex; gap: 12px; padding: 16px; background: white; border-top: 1px solid #eee; }
+    .chat-input input { flex: 1; padding: 14px 18px; border-radius: 50px; border: 1px solid #ddd; font-size: 1rem; }
+    .chat-input button { background: #c44545; border: none; color: white; width: 54px; border-radius: 54px; font-size: 1.3rem; cursor: pointer; }
+    .profile-editor { background: white; border-radius: 32px; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    .profile-pic { width: 100px; height: 100px; background: #f0d9d9; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; }
+    .profile-editor input, .profile-editor textarea, .profile-editor select { width: 100%; padding: 12px; border-radius: 60px; border: 1px solid #ffc2c2; font-size: 1rem; background: white; }
+    .profile-editor textarea { border-radius: 24px; resize: vertical; }
+    .save-profile-btn { background: #c44545; color: white; border: none; padding: 12px; border-radius: 60px; font-weight: bold; cursor: pointer; }
+    .location-info { font-size: 0.85rem; color: #3b82f6; text-align: center; margin-top: 8px; }
+    .row-2cols { display: flex; gap: 12px; }
+    .row-2cols > * { flex: 1; }
+    .tab-bar { display: flex; background: white; border-top: 1px solid #eee; padding: 10px 24px; justify-content: space-around; }
+    .tab { font-size: 1.9rem; color: #aaa; cursor: pointer; text-align: center; flex: 1; position: relative; }
+    .tab.active { color: #c44545; }
+    .badge { position: absolute; top: -6px; right: -8px; background: #c44545; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 20px; }
+    .no-profiles { text-align: center; padding: 60px 20px; color: #8892a0; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div id="loginScreen" class="login-screen">
+    <div class="custom-logo"><span>TU</span></div>
+    <h1>TeamUp Global</h1>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button id="signupBtn">Create Account</button>
+    <div id="errorMsg" class="error-msg"></div>
+    <p>Already have an account? <a href="#" id="showLoginLink">Login</a></p>
+  </div>
+  <div id="mainApp">
+    <div class="app-header">
+      <h2>TeamUp Global</h2>
+      <div class="header-actions">
+        <span class="user-email" id="userEmailDisplay"></span>
+        <div class="right-icons">
+          <div class="notification-bell" id="notificationBell"><i class="fas fa-bell"></i><span class="notification-badge" id="notificationBadge" style="display:none;">0</span></div>
+          <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+      </div>
+    </div>
+    <div class="content-area" id="contentArea"></div>
+    <div class="tab-bar">
+      <div class="tab active" data-tab="swipe"><i class="fas fa-fire"></i></div>
+      <div class="tab" data-tab="matches"><i class="fas fa-comment-dots"></i><span class="badge" id="matchesBadge" style="display:none;">0</span></div>
+      <div class="tab" data-tab="profile"><i class="fas fa-user"></i></div>
+    </div>
+  </div>
+</div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9",
+    measurementId: "G-EJ59MW0TMC"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // DOM elements
+  const loginScreen = document.getElementById('loginScreen');
+  const mainApp = document.getElementById('mainApp');
+  const userEmailSpan = document.getElementById('userEmailDisplay');
+  const errorMsgDiv = document.getElementById('errorMsg');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
+  const showLoginLink = document.getElementById('showLoginLink');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const contentArea = document.getElementById('contentArea');
+  const notificationBell = document.getElementById('notificationBell');
+  const notificationBadge = document.getElementById('notificationBadge');
+  const matchesBadge = document.getElementById('matchesBadge');
+
+  let currentUser = null;
+  let currentUserProfile = null;
+  let lastSeenMatches = [];
+
+  function showToast(msg, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+  }
+
+  async function loadUserProfile(user) {
+    const docRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      currentUserProfile = docSnap.data();
+      // Fix missing name
+      if (!currentUserProfile.name) {
+        const defaultName = user.email.split('@')[0];
+        await updateDoc(docRef, { name: defaultName });
+        currentUserProfile.name = defaultName;
+      }
+    } else {
+      const defaultName = user.email.split('@')[0];
+      const defaultProfile = {
+        email: user.email,
+        name: defaultName,
+        bio: "New to TeamUp!",
+        avatar: "👤",
+        gender: "other",
+        preference: "everyone",
+        location: "Unknown",
+        likes: [],
+        matches: []
+      };
+      await setDoc(docRef, defaultProfile);
+      currentUserProfile = defaultProfile;
+    }
+    return currentUserProfile;
+  }
+
+  async function getAvailableProfiles() {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const users = [];
+    usersSnapshot.forEach(doc => {
+      if (doc.id !== currentUser.uid) users.push({ uid: doc.id, ...doc.data() });
+    });
+    const outgoingLikes = currentUserProfile.likes || [];
+    const matches = currentUserProfile.matches || [];
+    let filtered = users.filter(u => !outgoingLikes.includes(u.uid) && !matches.includes(u.uid));
+    const pref = currentUserProfile.preference || "everyone";
+    if (pref === "men") filtered = filtered.filter(u => u.gender === "male");
+    else if (pref === "women") filtered = filtered.filter(u => u.gender === "female");
+    return filtered;
+  }
+
+  // Swipe logic
+  let currentProfiles = [];
+  let currentCardIndex = 0;
+  let swipeContainer = null;
+
+  async function renderSwipeCard() {
+    if (!swipeContainer) return;
+    if (currentCardIndex >= currentProfiles.length) {
+      swipeContainer.innerHTML = `<div class="no-profiles">✨ No more new people nearby ✨</div>`;
+      return;
+    }
+    const p = currentProfiles[currentCardIndex];
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('data-uid', p.uid);
+    card.innerHTML = `
+      <div class="card-img">${p.avatar || '👤'}</div>
+      <div class="card-info">
+        <h3>${p.name || 'User'}</h3>
+        <div class="location"><i class="fas fa-map-marker-alt"></i> ${p.location || 'Unknown'}</div>
+        <div class="last-active"><i class="fas fa-circle" style="font-size:10px; color:#22c55e;"></i> Online</div>
+        <div class="stats-row"><span><i class="fas fa-futbol"></i> TeamUp</span></div>
+        <p style="margin-top:12px;">${p.bio || ''}</p>
+      </div>
+    `;
+    swipeContainer.innerHTML = '';
+    swipeContainer.appendChild(card);
+    attachSwipeEvents(card);
+  }
+
+  function attachSwipeEvents(card) {
+    let startX = 0, currentX = 0, isDragging = false;
+    const onStart = (e) => {
+      e.preventDefault();
+      const cx = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+      startX = cx;
+      isDragging = true;
+      card.style.transition = 'none';
+    };
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const cx = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+      const dx = cx - startX;
+      const rot = dx / 20;
+      currentX = dx;
+      card.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+      card.style.opacity = 1 - Math.abs(dx) / 300;
+    };
+    const onEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (Math.abs(currentX) > 120) {
+        if (currentX > 0) swipeRight();
+        else swipeLeft();
+      } else {
+        card.style.transition = 'transform 0.3s ease';
+        card.style.transform = '';
+        card.style.opacity = '';
+      }
+      currentX = 0;
+    };
+    card.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    card.addEventListener('touchstart', onStart);
+    card.addEventListener('touchmove', onMove);
+    card.addEventListener('touchend', onEnd);
+  }
+
+  async function swipeLeft() {
+    if (!swipeContainer?.firstChild) return;
+    const card = swipeContainer.firstChild;
+    card.style.transition = 'transform 0.3s ease';
+    card.style.transform = 'translateX(-400px) rotate(-30deg)';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      currentCardIndex++;
+      renderSwipeCard();
+    }, 300);
+  }
+
+  async function swipeRight() {
+    if (!swipeContainer?.firstChild) return;
+    const card = swipeContainer.firstChild;
+    const likedUid = card.getAttribute('data-uid');
+    const profile = currentProfiles[currentCardIndex];
+    const userRef = doc(db, "users", currentUser.uid);
+    await updateDoc(userRef, { likes: arrayUnion(likedUid) });
+    const likedUserRef = doc(db, "users", likedUid);
+    const likedSnap = await getDoc(likedUserRef);
+    const likedUserLikes = likedSnap.data()?.likes || [];
+    if (likedUserLikes.includes(currentUser.uid)) {
+      await updateDoc(userRef, { matches: arrayUnion(likedUid) });
+      await updateDoc(likedUserRef, { matches: arrayUnion(currentUser.uid) });
+      showToast(`✨ It's a match! You and ${profile.name} can now chat. ✨`, 4000);
+    } else {
+      showToast(`👍 You liked ${profile.name}!`, 1500);
+    }
+    card.style.transition = 'transform 0.3s ease';
+    card.style.transform = 'translateX(400px) rotate(30deg)';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      currentCardIndex++;
+      renderSwipeCard();
+    }, 300);
+  }
+
+  async function loadSwipeScreen() {
+    currentProfiles = await getAvailableProfiles();
+    currentCardIndex = 0;
+    contentArea.innerHTML = `
+      <div class="swipe-container" id="swipeContainer"></div>
+      <div class="swipe-buttons">
+        <button class="btn-pass" id="passBtn"><i class="fas fa-times"></i></button>
+        <button class="btn-like" id="likeBtn"><i class="fas fa-heart"></i></button>
+      </div>
+    `;
+    swipeContainer = document.getElementById('swipeContainer');
+    if (currentProfiles.length === 0) swipeContainer.innerHTML = `<div class="no-profiles">No profiles matching your preference. Update in Profile.</div>`;
+    else renderSwipeCard();
+    document.getElementById('passBtn').onclick = () => swipeLeft();
+    document.getElementById('likeBtn').onclick = () => swipeRight();
+  }
+
+  // Matches screen
+  async function loadMatchesScreen() {
+    const matches = currentUserProfile.matches || [];
+    const newMatches = matches.filter(m => !lastSeenMatches.includes(m));
+    if (newMatches.length) {
+      lastSeenMatches = [...matches];
+      updateMatchBadge(0);
+    }
+    if (matches.length === 0) {
+      contentArea.innerHTML = `<div class="no-profiles">💬 No matches yet. Swipe right to find teammates!</div>`;
+      return;
+    }
+    let html = `<div class="people-list">`;
+    for (const matchUid of matches) {
+      const matchSnap = await getDoc(doc(db, "users", matchUid));
+      const matchData = matchSnap.data();
+      const q = query(collection(db, "messages"), where("participants", "array-contains", currentUser.uid), orderBy("timestamp", "desc"));
+      const msgsSnap = await getDocs(q);
+      let lastMsg = "Say hi!";
+      for (const msgDoc of msgsSnap.docs) {
+        const msg = msgDoc.data();
+        if (msg.participants.includes(matchUid)) {
+          lastMsg = msg.sender === currentUser.uid ? `You: ${msg.text}` : `${matchData.name}: ${msg.text}`;
+          break;
+        }
+      }
+      html += `<div class="person-card" data-uid="${matchUid}"><div class="person-avatar">${matchData.avatar || '👤'}</div><div class="person-info"><strong>${matchData.name || 'User'}</strong><div class="last-message">${lastMsg}</div></div></div>`;
+    }
+    html += `</div>`;
+    contentArea.innerHTML = html;
+    document.querySelectorAll('.person-card').forEach(el => el.addEventListener('click', () => openChat(el.getAttribute('data-uid'))));
+  }
+
+  let activeChatUnsubscribe = null;
+  async function openChat(partnerUid) {
+    if (activeChatUnsubscribe) activeChatUnsubscribe();
+    const partnerSnap = await getDoc(doc(db, "users", partnerUid));
+    const partner = partnerSnap.data();
+    contentArea.innerHTML = `
+      <div class="chat-view">
+        <div class="chat-header"><button id="backToMatches" style="background:none; border:none; font-size:1.5rem;">←</button><div class="person-avatar" style="width:48px;">${partner.avatar || '👤'}</div><strong>${partner.name || 'User'}</strong></div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input"><input id="chatInput" placeholder="Message"><button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button></div>
+      </div>
+    `;
+    document.getElementById('backToMatches').onclick = () => loadMatchesScreen();
+    const q = query(collection(db, "messages"), where("participants", "array-contains", currentUser.uid), orderBy("timestamp", "asc"));
+    activeChatUnsubscribe = onSnapshot(q, (snapshot) => {
+      const chatDiv = document.getElementById('chatMessages');
+      if (!chatDiv) return;
+      const relevant = [];
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        if (msg.participants.includes(partnerUid)) relevant.push(msg);
+      });
+      chatDiv.innerHTML = relevant.map(msg => `<div class="message ${msg.sender === currentUser.uid ? 'me' : 'other'}">${msg.text}<div style="font-size:0.65rem;">${msg.timestamp?.toDate().toLocaleTimeString()}</div></div>`).join('');
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+    const sendBtn = document.getElementById('sendMsgBtn');
+    const input = document.getElementById('chatInput');
+    const send = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      await addDoc(collection(db, "messages"), { text, sender: currentUser.uid, participants: [currentUser.uid, partnerUid], timestamp: serverTimestamp() });
+      input.value = '';
+    };
+    sendBtn.onclick = send;
+    input.addEventListener('keypress', e => { if (e.key === 'Enter') send(); });
+  }
+
+  function updateMatchBadge(count) {
+    matchesBadge.style.display = count > 0 ? 'flex' : 'none';
+    if (count > 0) matchesBadge.innerText = count > 9 ? '9+' : count;
+    notificationBadge.style.display = count > 0 ? 'flex' : 'none';
+    if (count > 0) notificationBadge.innerText = count > 9 ? '9+' : count;
+  }
+
+  // Profile editor with fixed location fallback
+  async function loadProfileScreen() {
+    const profile = currentUserProfile;
+    contentArea.innerHTML = `
+      <div class="profile-editor">
+        <div class="profile-pic" id="avatarPicker">${profile.avatar || '👤'}</div>
+        <input id="profileName" placeholder="Name" value="${(profile.name || '').replace(/"/g, '&quot;')}">
+        <textarea id="profileBio" rows="3">${profile.bio || ''}</textarea>
+        <div class="row-2cols">
+          <select id="profileGender"><option value="male" ${profile.gender==='male'?'selected':''}>Male</option><option value="female" ${profile.gender==='female'?'selected':''}>Female</option><option value="non-binary" ${profile.gender==='non-binary'?'selected':''}>Non-binary</option><option value="other" ${profile.gender==='other'?'selected':''}>Other</option></select>
+          <select id="profilePreference"><option value="everyone" ${profile.preference==='everyone'?'selected':''}>Everyone</option><option value="men" ${profile.preference==='men'?'selected':''}>Men</option><option value="women" ${profile.preference==='women'?'selected':''}>Women</option></select>
+        </div>
+        <button class="save-profile-btn" id="saveProfileBtn">Save Profile</button>
+        <div class="location-info" id="locationDisplay"><i class="fas fa-spinner fa-spin"></i> Getting location...</div>
+      </div>
+    `;
+    const avatars = ['👤','😎','🏃','⚽','🏀','🎾','🏋️','🧘'];
+    let idx = avatars.indexOf(profile.avatar);
+    if (idx === -1) idx = 0;
+    const avatarEl = document.getElementById('avatarPicker');
+    avatarEl.onclick = () => { idx = (idx+1)%avatars.length; avatarEl.innerText = avatars[idx]; };
+    document.getElementById('saveProfileBtn').onclick = async () => {
+      const updates = {
+        name: document.getElementById('profileName').value || currentUser.email.split('@')[0],
+        bio: document.getElementById('profileBio').value,
+        avatar: avatarEl.innerText,
+        gender: document.getElementById('profileGender').value,
+        preference: document.getElementById('profilePreference').value
+      };
+      await updateDoc(doc(db, "users", currentUser.uid), updates);
+      currentUserProfile = { ...currentUserProfile, ...updates };
+      showToast('Profile saved!', 1500);
+      if (document.querySelector('.tab.active')?.getAttribute('data-tab') === 'swipe') loadSwipeScreen();
+    };
+    // Location with timeout
+    let locationSet = false;
+    const timeout = setTimeout(() => {
+      if (!locationSet) document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> Location unavailable`;
+    }, 5000);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async pos => {
+        clearTimeout(timeout);
+        locationSet = true;
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || "Unknown";
+          document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${city}`;
+          await updateDoc(doc(db, "users", currentUser.uid), { location: city });
+          currentUserProfile.location = city;
+        } catch {
+          document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${latitude.toFixed(1)}, ${longitude.toFixed(1)}`;
+          await updateDoc(doc(db, "users", currentUser.uid), { location: `${latitude.toFixed(1)}, ${longitude.toFixed(1)}` });
+        }
+      }, () => {
+        clearTimeout(timeout);
+        locationSet = true;
+        document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> Location access denied.`;
+      });
+    } else {
+      clearTimeout(timeout);
+      document.getElementById('locationDisplay').innerHTML = `<i class="fas fa-map-marker-alt"></i> Geolocation not supported.`;
+    }
+  }
+
+  // Auth state
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadUserProfile(user);
+      loginScreen.style.display = 'none';
+      mainApp.style.display = 'flex';
+      userEmailSpan.innerText = user.email;
+      const userDocRef = doc(db, "users", currentUser.uid);
+      onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          currentUserProfile = docSnap.data();
+          const matches = currentUserProfile.matches || [];
+          const newMatches = matches.filter(m => !lastSeenMatches.includes(m));
+          updateMatchBadge(newMatches.length);
+          if (newMatches.length > 0 && document.querySelector('.tab.active')?.getAttribute('data-tab') === 'matches') loadMatchesScreen();
+        }
+      });
+      loadSwipeScreen();
+    } else {
+      loginScreen.style.display = 'flex';
+      mainApp.style.display = 'none';
+      if (activeChatUnsubscribe) activeChatUnsubscribe();
+      currentUser = null;
+    }
+  });
+
+  function showError(msg) { errorMsgDiv.innerText = msg; setTimeout(() => errorMsgDiv.innerText = '', 3000); }
+  loginBtn.onclick = async () => {
+    const email = loginEmail.value.trim();
+    const pwd = loginPassword.value.trim();
+    if (!email || !pwd) return showError('Enter email and password');
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (err) { showError(err.message); }
+  };
+  signupBtn.onclick = async () => {
+    const email = loginEmail.value.trim();
+    const pwd = loginPassword.value.trim();
+    if (!email || !pwd) return showError('Enter email and password');
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pwd);
+      const defaultName = email.split('@')[0];
+      await setDoc(doc(db, "users", cred.user.uid), {
+        email, name: defaultName, bio: "New to TeamUp!", avatar: "👤", gender: "other", preference: "everyone", location: "Unknown", likes: [], matches: []
+      });
+      showError('Account created! Logging in...');
+    } catch (err) { showError(err.message); }
+  };
+  showLoginLink.onclick = (e) => { e.preventDefault(); loginBtn.click(); };
+  logoutBtn.onclick = async () => { await signOut(auth); };
+
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const tabName = tab.getAttribute('data-tab');
+      if (tabName === 'swipe') loadSwipeScreen();
+      else if (tabName === 'matches') loadMatchesScreen();
+      else if (tabName === 'profile') loadProfileScreen();
+    });
+  });
+  notificationBell.onclick = () => showToast(`Check your matches and messages!`, 2000);
+</script>
+</body>
+</html>
