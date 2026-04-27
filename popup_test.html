@@ -1,1 +1,33 @@
-
+<!DOCTYPE html>
+<html>
+<head><title>Google Popup Test</title></head>
+<body>
+  <button id="googleBtn">Sign in with Google (popup)</button>
+  <pre id="result"></pre>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    const config = {
+      apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+      authDomain: "ejim-web.github.io",
+      projectId: "teamup-68a21",
+      storageBucket: "teamup-68a21.firebasestorage.app",
+      messagingSenderId: "379106762572",
+      appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+    };
+    const app = initializeApp(config);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    const resultDiv = document.getElementById("result");
+    document.getElementById("googleBtn").onclick = async () => {
+      resultDiv.innerText = "Opening popup...";
+      try {
+        const result = await signInWithPopup(auth, provider);
+        resultDiv.innerText = "✅ Success! Logged in as " + result.user.email;
+      } catch (err) {
+        resultDiv.innerText = "❌ Error: " + err.message;
+      }
+    };
+  </script>
+</body>
+</html>
