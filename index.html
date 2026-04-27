@@ -60,8 +60,7 @@
     .modal-content input,.modal-content select,.modal-content textarea{width:100%;margin:8px 0;padding:10px;border-radius:30px;border:1px solid #ddd}
     .modal-content button{background:#c44545;color:white;padding:10px;border-radius:40px;width:100%;border:none;margin-top:8px}
     .cancel-btn{background:#ccc !important}
-    /* Toast notification */
-    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:12px 24px;border-radius:60px;font-size:0.9rem;z-index:1100;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;animation: fadeInUp 0.3s ease;pointer-events:none}
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:12px 24px;border-radius:60px;font-size:0.9rem;z-index:1100;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;animation:fadeInUp 0.3s ease;pointer-events:none}
     @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   </style>
 </head>
@@ -157,8 +156,9 @@
   let currentUser = null, currentUserId = null;
   let currentMainTab = "swipe";
   let unsubscribeChat = null, swipeCards = [], currentCardIndex = 0;
+  let likedByUnsubscribe = null;
+  let prevLikedByCount = 0;
 
-  // ========== TOAST NOTIFICATION ==========
   function showToast(message, icon = "❤️") {
     const existing = document.querySelector(".toast");
     if(existing) existing.remove();
@@ -169,7 +169,6 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // ========== FIREBASE HELPERS ==========
   async function setUserOnline(uid, on) {
     try { await updateDoc(doc(db, "users", uid), { online: on, lastSeen: serverTimestamp() }); } catch(e) {}
   }
@@ -235,15 +234,12 @@
     else return `<div class="person-avatar">${user.photoIcon || "👤"}</div>`;
   }
 
-  // ========== SWIPE LOGIC (WITH NOTIFICATIONS) ==========
   async function handleSwipe(swipedUserId, liked) {
     if (!currentUserId) return;
     const userRef = doc(db, "users", currentUserId);
     if (liked) {
       await updateDoc(userRef, { swipedRight: arrayUnion(swipedUserId) });
       await updateDoc(doc(db, "users", swipedUserId), { likedBy: arrayUnion(currentUserId), likesReceived: increment(1) });
-      // notify the other user in real-time (if they are online, we'll show toast via listener)
-      // we can add a listener on likedBy later, but for simplicity, show toast to current user only when match
       const otherDoc = await getDoc(doc(db, "users", swipedUserId));
       const otherSwipedRight = otherDoc.data()?.swipedRight || [];
       if (otherSwipedRight.includes(currentUserId)) {
@@ -254,19 +250,14 @@
           await setDoc(matchRef, { users: [currentUserId, swipedUserId], createdAt: serverTimestamp() });
           showToast("New match! 💖", "🎉");
           if (currentMainTab === "messages") await renderMessages();
-          updateMatchBadge();
+          await updateMatchBadge();
         }
-      } else {
-        // user liked someone, but no match yet – optional: "You liked X"
-        // we can show subtle toast
-        // showToast(`You liked ${otherDoc.data()?.name || "someone"}`, "👍");
       }
     } else {
       await updateDoc(userRef, { swipedLeft: arrayUnion(swipedUserId) });
     }
   }
 
-  // ========== UI SWIPE DECK ==========
   async function renderSwipeDeck() {
     contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
     const candidates = await getSwipeCandidates(currentUserId);
@@ -335,7 +326,6 @@
     window.addEventListener("touchend", onEnd);
   }
 
-  // ========== MESSAGES (MATCHES) WITH BADGE ==========
   async function getLastMessage(otherId) {
     const roomId = [currentUserId, otherId].sort().join("__");
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("timestamp", "desc"), limit(1));
@@ -378,21 +368,16 @@
     await updateMatchBadge();
   }
 
-  // ========== LIKES (with toast when someone likes you) ==========
-  // We'll set up a real-time listener on current user's 'likedBy' field to show toast when new like arrives
-  let likedByUnsubscribe = null;
   function listenForNewLikes() {
     if (likedByUnsubscribe) likedByUnsubscribe();
     const userRef = doc(db, "users", currentUserId);
     likedByUnsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         const likedBy = docSnap.data().likedBy || [];
-        // compare with previous count (store in global)
-        if (window._prevLikedByCount === undefined) window._prevLikedByCount = likedBy.length;
-        else if (likedBy.length > window._prevLikedByCount) {
+        if (likedBy.length > prevLikedByCount) {
           showToast("Someone liked you! ❤️", "😍");
         }
-        window._prevLikedByCount = likedBy.length;
+        prevLikedByCount = likedBy.length;
       }
     });
   }
@@ -421,7 +406,6 @@
     }
   }
 
-  // ========== CHAT ==========
   async function openChat(otherId, otherName) {
     if (unsubscribeChat) unsubscribeChat();
     contentArea.innerHTML = `<div class="chat-view"><div class="chat-header"><button id="chatBackBtn" class="back-btn"><i class="fas fa-arrow-left"></i></button><strong>${otherName}</strong></div><div id="chatMessagesArea" class="chat-messages"></div><div class="chat-input"><input id="chatInputField" placeholder="Message..."><button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button></div></div>`;
@@ -429,15 +413,15 @@
     const roomId = [currentUserId, otherId].sort().join("__");
     const messagesRef = collection(db, "chats", roomId, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
-    let lastMessageCount = 0;
+    let lastMsgCount = 0;
     unsubscribeChat = onSnapshot(q, (snap) => {
       const container = document.getElementById("chatMessagesArea");
       if (!container) return;
       const newCount = snap.size;
-      if (newCount > lastMessageCount && lastMessageCount > 0 && window.location.href.includes("chat")) {
+      if (newCount > lastMsgCount && lastMsgCount > 0 && currentMainTab === "messages") {
         showToast("New message! 💬", "📨");
       }
-      lastMessageCount = newCount;
+      lastMsgCount = newCount;
       container.innerHTML = "";
       snap.forEach(d => { const msg = d.data(); const div = document.createElement("div"); div.className = `message ${msg.senderId === currentUserId ? "me" : "other"}`; div.innerText = msg.text; container.appendChild(div); });
       container.scrollTop = container.scrollHeight;
@@ -457,7 +441,6 @@
     else if (currentMainTab === "likes") await renderLikes();
   }
 
-  // ========== EVENT LISTENERS ==========
   mainTabs.forEach(tab => {
     tab.addEventListener("click", () => {
       mainTabs.forEach(t => t.classList.remove("active"));
@@ -501,7 +484,6 @@
     catch (err) { loginError.innerText = "❌ Google sign-in failed: " + err.message; }
   };
 
-  // ========== AUTH STATE ==========
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
@@ -515,7 +497,7 @@
       currentMainTab = "swipe";
       await refreshContent();
       await updateMatchBadge();
-      listenForNewLikes(); // start listening for new likes
+      listenForNewLikes();
       setInterval(() => setUserOnline(user.uid, true), 30000);
     } else {
       if (currentUserId) setUserOnline(currentUserId, false);
