@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>TeamUp Global – Login Test</title>
+  <style>
+    body{font-family:system-ui;background:#1a1a2e;color:white;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+    .card{background:white;color:#333;padding:40px;border-radius:32px;width:100%;max-width:400px;text-align:center}
+    input{display:block;width:100%;margin:12px 0;padding:12px;border-radius:60px;border:1px solid #ddd}
+    button{background:#c44545;color:white;border:none;padding:12px;border-radius:60px;width:100%;margin-top:8px;cursor:pointer}
+    .error{color:red;margin-top:8px}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>💙 TeamUp Global</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <div id="error" class="error"></div>
+  <button id="loginBtn">Login</button>
+  <button id="signupBtn">Create Account</button>
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "ejim-web.github.io",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const emailInput = document.getElementById("email");
+  const pwdInput = document.getElementById("password");
+  const errorDiv = document.getElementById("error");
+
+  document.getElementById("loginBtn").onclick = async () => {
+    errorDiv.innerText = "";
+    try {
+      await signInWithEmailAndPassword(auth, emailInput.value, pwdInput.value);
+      alert("Login successful! Redirecting to main app...");
+      window.location.href = "index.html"; // reload to full app
+    } catch (err) {
+      errorDiv.innerText = err.message;
+    }
+  };
+  document.getElementById("signupBtn").onclick = async () => {
+    errorDiv.innerText = "";
+    try {
+      await createUserWithEmailAndPassword(auth, emailInput.value, pwdInput.value);
+      alert("Account created! You are now logged in.");
+      window.location.href = "index.html";
+    } catch (err) {
+      errorDiv.innerText = err.message;
+    }
+  };
+</script>
+</body>
+</html>
