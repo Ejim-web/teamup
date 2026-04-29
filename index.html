@@ -1,1 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>TeamUp Global – Swipe, Match, Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    }
 
+    body {
+      background: #1a1a2e;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 500px;
+      height: 95vh;
+      background: white;
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
+    }
+
+    /* LOGIN */
+    .login-screen {
+      background: linear-gradient(145deg, #fef6f6, #ffe8e8);
+      justify-content: center;
+      align-items: center;
+      padding: 40px 28px;
+      gap: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .login-logo {
+      font-size: 4rem;
+      color: #c44545;
+    }
+
+    .login-screen h1 {
+      font-size: 2.5rem;
+      color: #c44545;
+      font-weight: 800;
+    }
+
+    .login-screen input {
+      width: 100%;
+      padding: 16px 24px;
+      border: 1px solid #ffc2c2;
+      border-radius: 60px;
+      background: white;
+      font-size: 1rem;
+    }
+
+    .login-screen button {
+      background: #c44545;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 60px;
+      width: 100%;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #signupBtn {
+      background: #e07a7a;
+    }
+
+    #loginBtn {
+      background: transparent;
+      color: #c44545;
+      border: 1px solid #c44545;
+      margin-top: 8px;
+    }
+
+    .error-msg {
+      color: #c44545;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* MAIN APP */
+    #mainApp {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .app-header {
+      padding: 24px 20px 12px;
+      background: white;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .app-header h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #c44545, #e07a7a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .user-email {
+      font-size: 0.75rem;
+      color: #888;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .refresh-btn, .icon-btn, .logout-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #c44545;
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    /* SWIPE CARD */
+    .swipe-container {
+      position: relative;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      max-width: 360px;
+      background: white;
+      border-radius: 36px;
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .card-img {
+      height: 320px;
+      background: #eaeef3;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+    }
+
+    .card-info {
+      padding: 24px;
+    }
+
+    .card-info h3 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .viewProfileBtn {
+      background: #4a6a8a;
+      border: none;
+      border-radius: 40px;
+      padding: 10px 16px;
+      color: white;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+
+    /* LISTS */
+    .people-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .person-card {
+      background: white;
+      border-radius: 28px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .person-avatar {
+      width: 60px;
+      height: 60px;
+      background: #f0d9d9;
+      border-radius: 30px;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    /* CHAT HEADER WITH BIG AVATAR */
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .chat-header {
+      padding: 14px 16px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .chat-avatar-large {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #eaeef3;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .chat-header strong {
+      font-size: 1.2rem;
+      font-weight: 800;
+      flex: 1;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fefefe;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+    }
+
+    .message.me {
+      align-self: flex-end;
+      background: #1e88e5;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.other {
+      align-self: flex-start;
+      background: #eef2ff;
+      color: #1f2a48;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 50px;
+      border: 1px solid #ddd;
+    }
+
+    .chat-input button {
+      background: #1e88e5;
+      border: none;
+      color: white;
+      width: 48px;
+      border-radius: 48px;
+      cursor: pointer;
+    }
+
+    /* TAB BAR */
+    .tab-bar {
+      display: flex;
+      background: white;
+      border-top: 1px solid #eee;
+      padding: 8px 20px;
+      justify-content: space-around;
+      flex-shrink: 0;
+    }
+
+    .tab {
+      font-size: 1.8rem;
+      color: #aaa;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tab.active {
+      color: #c44545;
+    }
+
+    .badge {
+      position: absolute;
+      top: -5px;
+      right: -12px;
+      background: #c44545;
+      color: white;
+      font-size: 0.7rem;
+      border-radius: 20px;
+      padding: 2px 6px;
+    }
+
+    /* MODALS - BIG & CLEAR */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      display: none;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background: white;
+      width: 92%;
+      max-width: 450px;
+      border-radius: 48px;
+      padding: 28px 22px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 30px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-content h3 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-content input, .modal-content select, .modal-content textarea {
+      width: 100%;
+      margin: 10px 0;
+      padding: 14px 18px;
+      border-radius: 60px;
+      border: 1px solid #ddd;
+      font-size: 0.95rem;
+    }
+
+    /* PHOTO UPLOAD PREVIEW (now using placeholders) */
+    .photo-upload-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 18px 0;
+      justify-content: center;
+    }
+
+    .photo-upload-item {
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      background: #f2f2f2;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .photo-preview {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .remove-photo {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border-radius: 30px;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .add-photo-btn {
+      background: #f0f0f0;
+      border: 2px dashed #c44545;
+      border-radius: 60px;
+      padding: 12px;
+      width: 100%;
+      font-weight: 600;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+
+    /* PROFILE MODAL */
+    .profile-modal .modal-content {
+      text-align: center;
+    }
+
+    .main-profile-avatar {
+      width: 130px;
+      height: 130px;
+      border-radius: 70px;
+      margin: 0 auto 16px;
+      background: #eaeef3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-avatar-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin: 18px 0;
+    }
+
+    .profile-photo-item {
+      width: 95px;
+      height: 95px;
+      border-radius: 20px;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+    }
+
+    .profile-name {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 12px 0 6px;
+    }
+
+    .profile-detail {
+      font-size: 1rem;
+      background: #f5f5f5;
+      padding: 8px 14px;
+      border-radius: 40px;
+      display: inline-block;
+      margin: 6px 8px;
+      color: #2c3e50;
+    }
+
+    .action-buttons {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-buttons button {
+      padding: 14px;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+    }
+
+    .block-report-row {
+      display: flex;
+      gap: 14px;
+    }
+
+    .block-report-row button {
+      flex: 1;
+      background: #e0e0e0;
+      font-weight: 600;
+    }
+
+    .block-report-row button:first-child {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .block-report-row button:last-child {
+      background: #ff9800;
+      color: white;
+    }
+
+    .cancel-btn {
+      background: #aaa !important;
+      color: white;
+    }
+
+    /* TOAST & SPINNER */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e2e;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 60px;
+      z-index: 1200;
+      font-weight: 600;
+      animation: fadeUp 0.2s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px);}
+      to { opacity: 1; transform: translateX(-50%) translateY(0);}
+    }
+
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      display: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #c44545;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-logo">💙</div>
+    <h1>TeamUp Global</h1>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <div id="loginError" class="error-msg"></div>
+    <button id="signupBtn">✨ Create Account</button>
+    <button id="loginBtn">🔐 Login</button>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="mainApp" style="display:none; flex-direction:column; flex:1;">
+    <div class="app-header">
+      <h2>TeamUp Global</h2>
+      <div class="header-actions">
+        <span class="user-email" id="currentUserEmail"></span>
+        <div>
+          <button id="refreshSwipeBtn" class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+          <button id="editProfileBtn" class="icon-btn"><i class="fas fa-user-edit"></i></button>
+          <button id="logoutMainBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </div>
+    <div id="contentArea" class="content-area"></div>
+    <div class="tab-bar">
+      <div class="tab" data-main-tab="swipe"><i class="fas fa-fire"></i></div>
+      <div class="tab" data-main-tab="messages"><i class="fas fa-comment-dots"></i><span id="matchBadge" class="badge" style="display:none;">0</span></div>
+      <div class="tab" data-main-tab="likes"><i class="fas fa-star"></i><span id="likesBadge" class="badge" style="display:none;">0</span></div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE MODAL (with placeholder photos) -->
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Edit Profile</h3>
+      <input type="text" id="editName" placeholder="Full Name">
+      <input type="number" id="editAge" placeholder="Age">
+      <input type="number" id="editMinAge" placeholder="Min age pref">
+      <input type="number" id="editMaxAge" placeholder="Max age pref">
+      <select id="editGender"><option>Select Gender</option><option>Male</option><option>Female</option><option>Non-binary</option></select>
+      <select id="editLookingFor"><option>I want to meet...</option><option>Male</option><option>Female</option><option>Everyone</option></select>
+      <input type="text" id="editLocation" placeholder="City, Country">
+      <div class="photo-upload-list" id="photoUploadList"></div>
+      <button id="addPhotoBtn" class="add-photo-btn" type="button"><i class="fas fa-plus-circle"></i> Generate Random Photo</button>
+      <input type="text" id="editAvatar" placeholder="Avatar emoji" maxlength="2">
+      <textarea id="editBio" placeholder="Bio" rows="2"></textarea>
+      <button id="saveProfileBtn">💾 Save Changes</button>
+      <button id="closeModalBtn" class="cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profileModal" class="modal-overlay profile-modal">
+    <div class="modal-content">
+      <div id="profileAvatarContainer" class="main-profile-avatar">👤</div>
+      <div id="profilePhotoGallery" class="profile-avatar-gallery"></div>
+      <div id="profileName" class="profile-name"></div>
+      <div id="profileAge" class="profile-detail"></div>
+      <div id="profileLocation" class="profile-detail"></div>
+      <div id="profileBio" class="profile-detail"></div>
+      <div id="profileGender" class="profile-detail"></div>
+      <div id="profileLookingFor" class="profile-detail"></div>
+      <div class="action-buttons">
+        <button id="profileChatBtn" style="background:#1e88e5;color:white;">💬 Send Message</button>
+        <div class="block-report-row">
+          <button id="profileBlockBtn">🚫 Block User</button>
+          <button id="profileReportBtn">⚠️ Report</button>
+        </div>
+        <button id="closeProfileBtn" class="cancel-btn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="globalSpinner" class="spinner-overlay"><div class="spinner"></div></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { 
+    getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, 
+    getDocs, addDoc, serverTimestamp, increment, arrayUnion, arrayRemove, 
+    orderBy, onSnapshot, limit 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "ejim-web.github.io",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // DOM elements
+  const loginScreen = document.getElementById("loginScreen");
+  const mainApp = document.getElementById("mainApp");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const signupBtn = document.getElementById("signupBtn");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutMainBtn = document.getElementById("logoutMainBtn");
+  const refreshSwipeBtn = document.getElementById("refreshSwipeBtn");
+  const editProfileBtn = document.getElementById("editProfileBtn");
+  const editModal = document.getElementById("editModal");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const photoUploadList = document.getElementById("photoUploadList");
+  const addPhotoBtn = document.getElementById("addPhotoBtn");
+  const contentArea = document.getElementById("contentArea");
+  const currentUserEmailSpan = document.getElementById("currentUserEmail");
+  const loginError = document.getElementById("loginError");
+  const matchBadge = document.getElementById("matchBadge");
+  const likesBadge = document.getElementById("likesBadge");
+  const profileModal = document.getElementById("profileModal");
+  const profileAvatarContainer = document.getElementById("profileAvatarContainer");
+  const profilePhotoGallery = document.getElementById("profilePhotoGallery");
+  const profileName = document.getElementById("profileName");
+  const profileAge = document.getElementById("profileAge");
+  const profileLocation = document.getElementById("profileLocation");
+  const profileBio = document.getElementById("profileBio");
+  const profileGender = document.getElementById("profileGender");
+  const profileLookingFor = document.getElementById("profileLookingFor");
+  const profileChatBtn = document.getElementById("profileChatBtn");
+  const profileReportBtn = document.getElementById("profileReportBtn");
+  const profileBlockBtn = document.getElementById("profileBlockBtn");
+  const closeProfileBtn = document.getElementById("closeProfileBtn");
+  const spinner = document.getElementById("globalSpinner");
+
+  let currentUserId = null;
+  let currentMainTab = "swipe";
+  let swipeCards = [], currentCardIndex = 0;
+  let refreshInterval = null;
+  let currentProfileUserId = null;
+  let tempPhotoUrls = [];
+  let unsubscribeChat = null;
+
+  // GUARANTEED WORKING PHOTOS from randomuser.me
+  const PLACEHOLDER_IMAGES = [
+    "https://randomuser.me/api/portraits/women/68.jpg",
+    "https://randomuser.me/api/portraits/men/32.jpg",
+    "https://randomuser.me/api/portraits/women/44.jpg",
+    "https://randomuser.me/api/portraits/men/75.jpg",
+    "https://randomuser.me/api/portraits/women/90.jpg",
+    "https://randomuser.me/api/portraits/men/45.jpg",
+    "https://randomuser.me/api/portraits/women/22.jpg"
+  ];
+  function getRandomPhoto() {
+    return PLACEHOLDER_IMAGES[Math.floor(Math.random() * PLACEHOLDER_IMAGES.length)];
+  }
+
+  function showSpinner() { spinner.style.display = "flex"; }
+  function hideSpinner() { spinner.style.display = "none"; }
+  function showToast(msg, icon = "💙") { const t = document.createElement("div"); t.className = "toast"; t.innerHTML = `${icon} ${msg}`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+
+  async function setUserOnline(uid, online) {
+    try { await updateDoc(doc(db, "users", uid), { online, lastSeen: serverTimestamp() }); } catch(e) { console.error(e); }
+  }
+
+  async function createOrUpdateUserProfile(user, name) {
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      // New user gets a random photo
+      const initialPhoto = getRandomPhoto();
+      await setDoc(ref, {
+        email: user.email,
+        name: name || user.email.split('@')[0],
+        age: Math.floor(Math.random() * (35 - 22 + 1) + 22),
+        minAge: 18,
+        maxAge: 99,
+        gender: Math.random() > 0.5 ? "Male" : "Female",
+        lookingFor: "Everyone",
+        location: "Earth",
+        bio: "Looking for meaningful connections!",
+        photoUrls: [initialPhoto],
+        photoIcon: "🧑",
+        online: true,
+        lastSeen: serverTimestamp(),
+        likesReceived: 0,
+        swipedRight: [],
+        swipedLeft: [],
+        likedBy: [],
+        blockedBy: []
+      });
+    } else {
+      // Ensure existing user has at least one photo
+      const existing = snap.data();
+      if (!existing.photoUrls || existing.photoUrls.length === 0) {
+        await updateDoc(ref, { photoUrls: [getRandomPhoto()] });
+      }
+    }
+  }
+
+  async function getSwipeCandidates(uid) {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const userData = userSnap.data();
+    const blocked = userData?.blockedBy || [];
+    const swipedRight = userData?.swipedRight || [];
+    const swipedLeft = userData?.swipedLeft || [];
+    const allUsers = [];
+    const q = query(collection(db, "users"), limit(100));
+    const snapshot = await getDocs(q);
+    snapshot.forEach(d => {
+      if (d.id !== uid && !blocked.includes(d.id)) {
+        let user = { id: d.id, ...d.data() };
+        if (!user.photoUrls || user.photoUrls.length === 0) {
+          user.photoUrls = [getRandomPhoto()];
+        }
+        allUsers.push(user);
+      }
+    });
+    return allUsers.filter(u => !swipedRight.includes(u.id) && !swipedLeft.includes(u.id));
+  }
+
+  async function handleSwipe(swipedUserId, liked) {
+    if (!currentUserId) return;
+    const userRef = doc(db, "users", currentUserId);
+    if (!liked) {
+      await updateDoc(userRef, { swipedLeft: arrayUnion(swipedUserId) });
+      showToast("Passed", "👎");
+      return;
+    }
+    await updateDoc(userRef, { swipedRight: arrayUnion(swipedUserId) });
+    await updateDoc(doc(db, "users", swipedUserId), { likedBy: arrayUnion(currentUserId), likesReceived: increment(1) });
+    showToast("You liked someone! 👍", "💕");
+    const otherSnap = await getDoc(doc(db, "users", swipedUserId));
+    if (otherSnap.data()?.swipedRight?.includes(currentUserId)) {
+      const matchId = [currentUserId, swipedUserId].sort().join("_");
+      if (!(await getDoc(doc(db, "matches", matchId))).exists()) {
+        await setDoc(doc(db, "matches", matchId), { users: [currentUserId, swipedUserId], createdAt: serverTimestamp() });
+        showToast("It's a MATCH! 💖", "🎉");
+        await updateMatchBadge();
+      }
+    }
+  }
+
+  async function updateMatchBadge() {
+    const snaps = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
+    const count = snaps.size;
+    if (count > 0) { matchBadge.style.display = "inline-block"; matchBadge.innerText = count; } else matchBadge.style.display = "none";
+  }
+
+  async function renderSwipeDeck() {
+    contentArea.innerHTML = `<div class="swipe-container" id="swipeContainer"></div>`;
+    showSpinner();
+    try {
+      const candidates = await getSwipeCandidates(currentUserId);
+      hideSpinner();
+      if (candidates.length === 0) {
+        document.getElementById("swipeContainer").innerHTML = '<div class="no-profiles">✨ No new profiles yet. Check back later!</div>';
+        return;
+      }
+      swipeCards = candidates;
+      currentCardIndex = 0;
+      displayNextCard();
+    } catch (err) {
+      hideSpinner();
+      showToast("Error loading profiles: " + err.message, "❌");
+    }
+  }
+
+  function displayNextCard() {
+    const container = document.getElementById("swipeContainer");
+    if (!container || currentCardIndex >= swipeCards.length) {
+      if (container) container.innerHTML = '<div class="no-profiles">🎉 All caught up!</div>';
+      return;
+    }
+    const user = swipeCards[currentCardIndex];
+    const cardDiv = document.createElement("div");
+    cardDiv.className = "card";
+    const photoUrl = (user.photoUrls && user.photoUrls.length > 0) ? user.photoUrls[0] : getRandomPhoto();
+    cardDiv.innerHTML = `
+      <div class="card-img" style="background-image: url('${photoUrl}'); background-size: cover; background-position: center;"></div>
+      <div class="card-info">
+        <h3>${escapeHtml(user.name) || "?"}, ${user.age || "?"}</h3>
+        <p>${escapeHtml(user.bio) || "Hey there!"}</p>
+        <button class="viewProfileBtn">👤 View Profile</button>
+      </div>`;
+    container.innerHTML = "";
+    container.appendChild(cardDiv);
+    cardDiv.querySelector(".viewProfileBtn").onclick = () => showUserProfile(user.id);
+    attachSwipeEvents(cardDiv, user);
+  }
+
+  function attachSwipeEvents(card, user) {
+    let startX = 0, currentX = 0, dragging = false;
+    const onStart = (e) => { dragging = true; startX = e.clientX ?? e.touches[0].clientX; };
+    const onMove = (e) => { if (!dragging) return; currentX = (e.clientX ?? e.touches[0].clientX) - startX; card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.02}deg)`; };
+    const onEnd = async () => {
+      if (!dragging) return; dragging = false;
+      card.style.transition = "transform 0.3s";
+      if (Math.abs(currentX) > 100) {
+        const liked = currentX > 0;
+        card.style.transform = `translateX(${liked ? 500 : -500}px)`;
+        setTimeout(async () => { await handleSwipe(user.id, liked); currentCardIndex++; displayNextCard(); }, 180);
+      } else { card.style.transform = "translateX(0)"; }
+      currentX = 0;
+    };
+    card.addEventListener("mousedown", onStart); card.addEventListener("touchstart", onStart, { passive: false });
+    window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onMove); window.addEventListener("touchend", onEnd);
+  }
+
+  async function showUserProfile(userId) {
+    const userSnap = await getDoc(doc(db, "users", userId));
+    if (!userSnap.exists()) return;
+    const data = userSnap.data();
+    currentProfileUserId = userId;
+    profileAvatarContainer.innerHTML = "";
+    profilePhotoGallery.innerHTML = "";
+    const photos = (data.photoUrls && Array.isArray(data.photoUrls)) ? data.photoUrls : [getRandomPhoto()];
+    const mainImg = document.createElement("img");
+    mainImg.src = photos[0];
+    mainImg.style.width = "130px"; mainImg.style.height = "130px"; mainImg.style.borderRadius = "70px"; mainImg.style.objectFit = "cover";
+    profileAvatarContainer.appendChild(mainImg);
+    photos.forEach(url => {
+      const thumb = document.createElement("div");
+      thumb.className = "profile-photo-item";
+      thumb.style.backgroundImage = `url('${url}')`;
+      thumb.style.backgroundSize = "cover";
+      thumb.style.backgroundPosition = "center";
+      profilePhotoGallery.appendChild(thumb);
+    });
+    profileName.innerText = escapeHtml(data.name) || "User";
+    profileAge.innerText = `🎂 Age: ${data.age || "?"}`;
+    profileLocation.innerText = `📍 ${escapeHtml(data.location) || "World"}`;
+    profileBio.innerText = `📝 ${escapeHtml(data.bio) || "No bio yet"}`;
+    profileGender.innerText = `⚥ ${data.gender || "Not set"}`;
+    profileLookingFor.innerText = `🎯 Looking for: ${data.lookingFor || "Everyone"}`;
+    profileModal.style.display = "flex";
+  }
+
+  async function blockUser(targetId) {
+    await updateDoc(doc(db, "users", currentUserId), { blockedBy: arrayUnion(targetId) });
+    showToast("User blocked", "🚫");
+    profileModal.style.display = "none";
+    refreshContent();
+  }
+  async function reportUser(targetId, reason) {
+    await addDoc(collection(db, "reports"), { reporterId: currentUserId, reportedId: targetId, reason: reason || "No reason", timestamp: serverTimestamp() });
+    showToast("Report sent", "⚠️");
+  }
+
+  profileBlockBtn.onclick = async () => { if (currentProfileUserId) await blockUser(currentProfileUserId); };
+  profileReportBtn.onclick = async () => { const r = prompt("Reason for reporting?"); if (currentProfileUserId) await reportUser(currentProfileUserId, r || "Inappropriate"); };
+  profileChatBtn.onclick = () => { if (currentProfileUserId) { openChat(currentProfileUserId, profileName.innerText); profileModal.style.display = "none"; } };
+  closeProfileBtn.onclick = () => profileModal.style.display = "none";
+
+  async function openChat(otherId, otherName) {
+    if (unsubscribeChat) unsubscribeChat();
+    const otherUserSnap = await getDoc(doc(db, "users", otherId));
+    const otherData = otherUserSnap.exists() ? otherUserSnap.data() : {};
+    const photos = (otherData.photoUrls && Array.isArray(otherData.photoUrls)) ? otherData.photoUrls : [getRandomPhoto()];
+    const photoUrl = photos[0];
+    const avatarHtml = `<div class="chat-avatar-large" style="background-image: url('${photoUrl}'); background-size: cover; background-position: center;"></div>`;
+    contentArea.innerHTML = `
+      <div class="chat-view">
+        <div class="chat-header">
+          <button id="chatBackBtn" class="back-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">←</button>
+          ${avatarHtml}
+          <strong>${escapeHtml(otherName)}</strong>
+          <button id="blockInChatBtn" style="background:none; border:none; font-size:1.2rem; margin-left:auto; cursor:pointer;">🚫</button>
+        </div>
+        <div id="chatMessagesArea" class="chat-messages"></div>
+        <div class="chat-input">
+          <input id="chatInputField" placeholder="Message...">
+          <button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    `;
+    const messagesContainer = document.getElementById("chatMessagesArea");
+    document.getElementById("chatBackBtn")?.addEventListener("click", () => { if(unsubscribeChat) unsubscribeChat(); renderMessages(); });
+    document.getElementById("blockInChatBtn")?.addEventListener("click", async () => { if(confirm("Block this user?")){ await blockUser(otherId); if(unsubscribeChat) unsubscribeChat(); renderMessages(); } });
+    const roomId = [currentUserId, otherId].sort().join("__");
+    const messagesRef = collection(db, "chats", roomId, "messages");
+    const qChat = query(messagesRef, orderBy("timestamp", "asc"));
+    unsubscribeChat = onSnapshot(qChat, (snap) => {
+      if (!messagesContainer) return;
+      messagesContainer.innerHTML = "";
+      snap.forEach(docSnap => {
+        const msg = docSnap.data();
+        const div = document.createElement("div");
+        div.className = `message ${msg.senderId === currentUserId ? "me" : "other"}`;
+        div.innerText = msg.text;
+        messagesContainer.appendChild(div);
+      });
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+    document.getElementById("chatSendBtn")?.addEventListener("click", async () => {
+      const input = document.getElementById("chatInputField");
+      const text = input.value.trim();
+      if (!text) return;
+      await addDoc(messagesRef, { text, senderId: currentUserId, timestamp: serverTimestamp() });
+      input.value = "";
+    });
+    document.getElementById("chatInputField")?.addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById("chatSendBtn")?.click(); });
+  }
+
+  function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+  async function renderMessages() {
+    contentArea.innerHTML = `<div class="people-list" id="messagesList"></div>`;
+    const matchesSnap = await getDocs(query(collection(db, "matches"), where("users", "array-contains", currentUserId)));
+    const matchIds = [];
+    matchesSnap.forEach(d => { const other = d.data().users.find(id => id !== currentUserId); if(other) matchIds.push(other); });
+    const container = document.getElementById("messagesList");
+    if (matchIds.length === 0) { container.innerHTML = '<div class="no-profiles">💬 No matches yet. Swipe right!</div>'; return; }
+    for (const id of matchIds) {
+      const userSnap = await getDoc(doc(db, "users", id));
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        const photos = data.photoUrls || [getRandomPhoto()];
+        const photoUrl = photos[0];
+        const avatarHtml = `<div class="person-avatar" style="background-image: url('${photoUrl}');"></div>`;
+        const div = document.createElement("div");
+        div.className = "person-card";
+        div.innerHTML = `${avatarHtml}<div class="person-info"><strong>${escapeHtml(data.name) || "?"}, ${data.age || "?"}</strong></div>`;
+        div.addEventListener("click", () => openChat(id, data.name));
+        container.appendChild(div);
+      }
+    }
+  }
+
+  async function renderLikes() { 
+    contentArea.innerHTML = `<div class="people-list" id="likesList"></div>`;
+    const userDoc = await getDoc(doc(db, "users", currentUserId));
+    const likedByIds = userDoc.data()?.likedBy || [];
+    const container = document.getElementById("likesList");
+    if (likedByIds.length === 0) { container.innerHTML = '<div class="no-profiles">🌟 People who liked you appear here.</div>'; return; }
+    for (const id of likedByIds) {
+      const userSnap = await getDoc(doc(db, "users", id));
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        const photos = data.photoUrls || [getRandomPhoto()];
+        const photoUrl = photos[0];
+        const avatarHtml = `<div class="person-avatar" style="background-image: url('${photoUrl}');"></div>`;
+        const div = document.createElement("div");
+        div.className = "person-card";
+        div.innerHTML = `${avatarHtml}<div class="person-info"><strong>${escapeHtml(data.name) || "?"}, ${data.age || "?"}</strong><br><small>liked you</small></div>`;
+        div.addEventListener("click", () => showUserProfile(id));
+        container.appendChild(div);
+      }
+    }
+  }
+
+  async function refreshContent() { 
+    if (currentMainTab === "swipe") await renderSwipeDeck();
+    else if (currentMainTab === "messages") await renderMessages();
+    else if (currentMainTab === "likes") await renderLikes();
+  }
+
+  // Edit profile with random photo generator (no upload needed)
+  function updatePhotoPreviewList() {
+    photoUploadList.innerHTML = "";
+    tempPhotoUrls.forEach((url, idx) => {
+      const div = document.createElement("div"); div.className = "photo-upload-item";
+      div.innerHTML = `<div class="photo-preview" style="background-image: url('${url}');"></div><span class="remove-photo" data-idx="${idx}">🗑️</span>`;
+      div.querySelector(".remove-photo").onclick = () => { tempPhotoUrls.splice(idx, 1); updatePhotoPreviewList(); };
+      photoUploadList.appendChild(div);
+    });
+  }
+  addPhotoBtn.onclick = () => { 
+    if (tempPhotoUrls.length >= 3) { showToast("Max 3 photos", "⚠️"); return; }
+    const newPhoto = getRandomPhoto();
+    tempPhotoUrls.push(newPhoto);
+    updatePhotoPreviewList();
+    showToast("Random photo added", "📸");
+  };
+  editProfileBtn.onclick = async () => { 
+    const d = (await getDoc(doc(db, "users", currentUserId))).data(); 
+    editName.value = d.name || ""; 
+    editAge.value = d.age || ""; 
+    editMinAge.value = d.minAge || 18; 
+    editMaxAge.value = d.maxAge || 99; 
+    editGender.value = d.gender || ""; 
+    editLookingFor.value = d.lookingFor || "Everyone"; 
+    editLocation.value = d.location || ""; 
+    editAvatar.value = d.photoIcon || "🧑"; 
+    editBio.value = d.bio || ""; 
+    tempPhotoUrls = d.photoUrls ? [...d.photoUrls] : [getRandomPhoto()]; 
+    updatePhotoPreviewList(); 
+    editModal.style.display = "flex"; 
+  };
+  saveProfileBtn.onclick = async () => { 
+    await updateDoc(doc(db, "users", currentUserId), { 
+      name: editName.value, 
+      age: parseInt(editAge.value) || null, 
+      minAge: parseInt(editMinAge.value) || 18, 
+      maxAge: parseInt(editMaxAge.value) || 99, 
+      gender: editGender.value, 
+      lookingFor: editLookingFor.value, 
+      location: editLocation.value, 
+      photoIcon: editAvatar.value || "🧑", 
+      bio: editBio.value, 
+      photoUrls: tempPhotoUrls.length ? tempPhotoUrls : [getRandomPhoto()]
+    }); 
+    editModal.style.display = "none"; 
+    refreshContent(); 
+  };
+  closeModalBtn.onclick = () => editModal.style.display = "none";
+  refreshSwipeBtn.onclick = () => { if (currentMainTab === "swipe") renderSwipeDeck(); };
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentMainTab = tab.getAttribute("data-main-tab");
+      refreshContent();
+    });
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUserId = user.uid;
+      currentUserEmailSpan.innerText = user.email;
+      await createOrUpdateUserProfile(user, user.displayName);
+      await setUserOnline(user.uid, true);
+      loginScreen.style.display = "none";
+      mainApp.style.display = "flex";
+      document.querySelector('.tab[data-main-tab="swipe"]').classList.add("active");
+      currentMainTab = "swipe";
+      await renderSwipeDeck();
+      await updateMatchBadge();
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(() => { if (currentMainTab === "swipe") renderSwipeDeck(); }, 30000);
+    } else {
+      if (refreshInterval) clearInterval(refreshInterval);
+      loginScreen.style.display = "flex";
+      mainApp.style.display = "none";
+      loginError.innerText = "";
+    }
+  });
+
+  loginBtn.onclick = async () => { 
+    loginError.innerText = "";
+    showSpinner();
+    try { 
+      await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); 
+    } catch(e) { 
+      loginError.innerText = "❌ Invalid email or password"; 
+    } finally { hideSpinner(); }
+  };
+  signupBtn.onclick = async () => { 
+    loginError.innerText = "";
+    showSpinner();
+    try { 
+      const cred = await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); 
+      await createOrUpdateUserProfile(cred.user, cred.user.email.split('@')[0]); 
+      showToast("Account created! 🎉"); 
+    } catch(e) { 
+      loginError.innerText = "❌ " + (e.message.includes("email-already-in-use") ? "Email already in use" : "Weak password (min 6 chars)"); 
+    } finally { hideSpinner(); }
+  };
+  logoutMainBtn.onclick = () => signOut(auth);
+  window.addEventListener("beforeunload", () => { if (currentUserId) setUserOnline(currentUserId, false); if (refreshInterval) clearInterval(refreshInterval); });
+</script>
+</body>
+</html>
