@@ -1,1 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>TeamUp Global – Connect for purpose</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #075E54;
+      --primary-dark: #054a42;
+      --secondary: #128C7E;
+      --accent: #25D366;
+      --light-bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-dark: #1f2a3a;
+      --text-muted: #6c757d;
+      --danger: #dc3545;
+      --success: #28a745;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: var(--text-dark); }
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: linear-gradient(135deg, #075E54 0%, #128C7E 100%);
+    }
+    .auth-card {
+      background: white;
+      max-width: 550px;
+      width: 100%;
+      border-radius: 2rem;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+    }
+    .main-logo { text-align: center; margin-bottom: 1rem; }
+    .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .logo-icon svg { width: 40px; height: 40px; fill: white; }
+    .logo-text { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text .team { color: var(--primary); }
+    .logo-text .up { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .logo-text .global { font-size: 1rem; background: none; color: var(--text-muted); font-weight: 400; margin-left: 0.2rem; }
+    .logo-sub { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .auth-tabs { display: flex; gap: 1rem; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+    .auth-tab { flex: 1; text-align: center; padding: 0.5rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 2rem; }
+    .auth-tab.active { background: var(--primary); color: white; }
+    .method-tabs { display: flex; gap: 0.5rem; margin: 1rem 0; }
+    .method-tab { flex: 1; text-align: center; padding: 0.4rem; background: #f1f3f5; border-radius: 2rem; cursor: pointer; font-size: 0.85rem; }
+    .method-tab.active { background: var(--primary); color: white; }
+    .input-group { margin-bottom: 1rem; }
+    .input-group label { display: block; font-size: 0.85rem; margin-bottom: 0.3rem; font-weight: 500; }
+    .input-group input, .input-group select { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 1.5rem; font-size: 1rem; }
+    .interests-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-chip { background: #e9ecef; padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+    .interest-chip.selected { background: var(--primary); color: white; }
+    .btn { width: 100%; padding: 0.8rem; border: none; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .error-msg { color: var(--danger); font-size: 0.8rem; text-align: center; margin-top: 0.5rem; }
+    .main-app { display: none; max-width: 550px; margin: 0 auto; background: var(--light-bg); min-height: 100vh; position: relative; }
+    .app-header { background: var(--primary); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .app-header .logo-small { display: flex; align-items: center; gap: 0.5rem; }
+    .app-header .logo-small .small-icon { background: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .app-header .logo-small .small-icon svg { width: 20px; height: 20px; fill: var(--primary); }
+    .app-header .logo-small .text { font-weight: 700; font-size: 1.2rem; }
+    .app-header .logo-small .text .team { color: white; } .app-header .logo-small .text .up { color: var(--accent); }
+    .logout-icon { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 550px; margin: 0 auto; background: white; display: flex; justify-content: space-around; padding: 0.6rem 0.5rem; border-top: 1px solid #eee; z-index: 100; }
+    .nav-item { text-align: center; flex: 1; color: var(--text-muted); cursor: pointer; }
+    .nav-item i { font-size: 1.5rem; display: block; }
+    .nav-item span { font-size: 0.7rem; }
+    .nav-item.active { color: var(--primary); }
+    .page { display: none; padding: 1rem; padding-bottom: 5rem; }
+    .page.active { display: block; }
+    .card-stack { position: relative; min-height: 65vh; margin-bottom: 1rem; }
+    .swipe-card { background: var(--card-bg); border-radius: 1.5rem; box-shadow: var(--shadow-md); padding: 1rem; margin-bottom: 1rem; }
+    .card-avatar-img { width: 100%; height: 240px; object-fit: cover; border-radius: 1rem; background: #e9ecef; }
+    .card-name { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+    .card-interests { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-tag { background: #e0f2f1; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
+    .swipe-actions { display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; position: sticky; bottom: 0; background: var(--light-bg); padding: 0.5rem; z-index: 10; }
+    .swipe-btn { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; box-shadow: var(--shadow-md); }
+    .swipe-like { background: #e8f5e9; color: var(--success); }
+    .swipe-dislike { background: #ffebee; color: var(--danger); }
+    .nearby-list, .chat-list { list-style: none; }
+    .nearby-item, .chat-item { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
+    .chat-item { cursor: pointer; gap: 1rem; }
+    .chat-avatar-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: var(--primary); }
+    .nearby-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; display: block; border: 3px solid var(--primary); }
+    .chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 200; display: flex; flex-direction: column; max-width: 550px; margin: 0 auto; }
+    .chat-header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .message { max-width: 75%; padding: 0.6rem 1rem; border-radius: 1.5rem; font-size: 0.9rem; }
+    .message.my { background: var(--primary); color: white; align-self: flex-end; }
+    .message.other { background: #e9ecef; align-self: flex-start; }
+    .chat-input-area { display: flex; padding: 0.8rem; border-top: 1px solid #eee; gap: 0.5rem; }
+    .chat-input-area input { flex: 1; padding: 0.8rem; border: 1px solid #ddd; border-radius: 2rem; }
+    .chat-input-area button { width: auto; padding: 0 1rem; }
+    .profile-card { background: white; border-radius: 1.5rem; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .invite-section { background: #e8f0fe; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; text-align: center; }
+    .invite-code { font-family: monospace; font-size: 1.2rem; font-weight: bold; background: white; display: inline-block; padding: 0.2rem 0.8rem; border-radius: 1rem; margin: 0.5rem 0; }
+    .ad-banner { text-align: center; padding: 0.5rem; font-size: 0.7rem; background: #f1f3f5; color: var(--text-muted); position: fixed; bottom: 60px; width: 100%; max-width: 550px; z-index: 99; }
+    .premium-badge { background: linear-gradient(135deg, #FFD700, #FFA500); display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: bold; }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 300; }
+    .modal-content { background: white; max-width: 300px; width: 90%; padding: 1.5rem; border-radius: 1.5rem; text-align: center; }
+  </style>
+</head>
+<body>
+<!-- AUTH CONTAINER -->
+<div id="authContainer" class="auth-container">
+  <div class="auth-card">
+    <div class="main-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 14c-2.7 0-5.1-1.6-6.2-4.1.2-1.4 2.3-2.2 6.2-2.2s6 .8 6.2 2.2c-1.1 2.5-3.5 4.1-6.2 4.1z"/></svg></div>
+      <div class="logo-text"><span class="team">Team</span><span class="up">Up</span><span class="global"> Global</span></div>
+      <div class="logo-sub">❤️ Dating • 👥 Friendship • 🎮 Gaming • 📚 Study • 💼 Business</div>
+    </div>
+    <div class="auth-tabs"><div class="auth-tab active" data-auth="login">Login</div><div class="auth-tab" data-auth="signup">Sign Up</div></div>
+    <div id="loginArea">
+      <div class="method-tabs"><div class="method-tab active" data-method="email">Email</div><div class="method-tab" data-method="phone">Phone</div></div>
+      <div id="emailLoginForm">
+        <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+        <button class="btn btn-primary" id="doLoginBtn">Login</button>
+      </div>
+      <div id="phoneLoginForm" style="display:none;">
+        <div class="input-group"><label>Phone number</label><input type="tel" id="loginPhone" placeholder="+1234567890"></div>
+        <button class="btn btn-primary" id="sendOTPBtn">Send OTP</button>
+        <div id="otpSectionLogin" style="display:none;" class="verification-area">
+          <div class="input-group"><label>Verification code</label><input type="text" id="otpCodeLogin" placeholder="123456"></div>
+          <button class="btn btn-primary" id="verifyOTPBtn">Verify & Login</button>
+        </div>
+      </div>
+    </div>
+    <div id="signupArea" style="display:none;">
+      <div class="method-tabs"><div class="method-tab active" data-method="email">Email</div><div class="method-tab" data-method="phone">Phone</div></div>
+      <div id="emailSignupForm">
+        <div class="input-group"><label>Full Name</label><input type="text" id="signupName" placeholder="John Doe"></div>
+        <div class="input-group"><label>Age</label><input type="number" id="signupAge" placeholder="18"></div>
+        <div class="input-group"><label>Gender</label><select id="signupGender"><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+        <div class="input-group"><label>Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="signupPassword" placeholder="••••••"></div>
+        <div class="input-group"><label>Invite code (optional)</label><input type="text" id="signupInviteCode" placeholder="Friend's code"></div>
+        <div class="input-group"><label>Interests</label><div class="interests-grid" id="interestsGrid"><span class="interest-chip" data-interest="dating">❤️ Dating</span><span class="interest-chip" data-interest="friendship">👥 Friendship</span><span class="interest-chip" data-interest="gaming">🎮 Gaming</span><span class="interest-chip" data-interest="study">📚 Study</span><span class="interest-chip" data-interest="business">💼 Business</span></div></div>
+        <button class="btn btn-primary" id="doSignupBtn">Create Account</button>
+      </div>
+      <div id="phoneSignupForm" style="display:none;">
+        <div class="input-group"><label>Full Name</label><input type="text" id="phoneSignupName" placeholder="John Doe"></div>
+        <div class="input-group"><label>Age</label><input type="number" id="phoneSignupAge" placeholder="18"></div>
+        <div class="input-group"><label>Gender</label><select id="phoneSignupGender"><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+        <div class="input-group"><label>Phone number</label><input type="tel" id="signupPhone" placeholder="+1234567890"></div>
+        <div class="input-group"><label>Invite code (optional)</label><input type="text" id="phoneSignupInviteCode" placeholder="Friend's code"></div>
+        <div class="input-group"><label>Interests</label><div class="interests-grid" id="phoneInterestsGrid"><span class="interest-chip" data-interest="dating">❤️ Dating</span><span class="interest-chip" data-interest="friendship">👥 Friendship</span><span class="interest-chip" data-interest="gaming">🎮 Gaming</span><span class="interest-chip" data-interest="study">📚 Study</span><span class="interest-chip" data-interest="business">💼 Business</span></div></div>
+        <button class="btn btn-primary" id="sendSignupOTPBtn">Send OTP</button>
+        <div id="otpSectionSignup" style="display:none;" class="verification-area">
+          <div class="input-group"><label>Verification code</label><input type="text" id="otpCodeSignup" placeholder="123456"></div>
+          <button class="btn btn-primary" id="verifySignupOTPBtn">Verify & Create Account</button>
+        </div>
+      </div>
+      <div id="recaptcha-container" style="display:none;"></div>
+    </div>
+    <div id="authError" class="error-msg"></div>
+  </div>
+</div>
 
+<!-- MAIN APP -->
+<div id="mainApp" class="main-app">
+  <div class="app-header">
+    <div class="logo-small"><div class="small-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="white"/><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></div><span class="text"><span class="team">Team</span><span class="up">Up</span></span></div>
+      <button class="logout-icon" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+  <div id="swipePage" class="page active">
+    <div class="card-stack" id="cardsContainer"></div>
+    <div class="swipe-actions">
+      <div class="swipe-btn swipe-dislike" id="dislikeBtn"><i class="fas fa-times"></i></div>
+      <div class="swipe-btn swipe-like" id="likeBtn"><i class="fas fa-heart"></i></div>
+    </div>
+  </div>
+  <div id="nearbyPage" class="page">
+    <div class="input-group"><label>Distance radius (km)</label><input type="range" id="distanceRange" min="1" max="100" value="20"></div>
+    <ul id="nearbyList" class="nearby-list"></ul>
+  </div>
+  <div id="chatsPage" class="page">
+    <ul id="chatList" class="chat-list"></ul>
+  </div>
+  <div id="profilePage" class="page">
+    <div class="profile-card">
+      <img id="profileAvatarImg" class="profile-avatar" src="https://via.placeholder.com/120?text=User" alt="Profile">
+      <button class="btn btn-outline" id="uploadPhotoBtn">📸 Upload Photo</button>
+      <input type="file" id="photoUploadInput" accept="image/*" style="display:none;">
+      <h3 id="profileName"></h3>
+      <p><span id="profileAge"></span> yrs • <span id="profileGender"></span></p>
+      <p><span id="profileInterests"></span></p>
+      <div class="invite-section">
+        <p>🎁 Invite friends, get boosts!</p>
+        <div>Your code: <span id="inviteCodeDisplay" class="invite-code"></span></div>
+        <button id="shareInviteBtn" class="btn btn-outline" style="margin-top:0.5rem;">📢 Copy invite link</button>
+      </div>
+      <p><span id="premiumStatus" class="premium-badge">Free</span></p>
+      <button class="btn btn-outline" id="editProfileBtn">Edit Details</button>
+      <button class="btn btn-danger" id="reportUserBtn">🚫 Block / Report</button>
+    </div>
+    <div class="profile-card">
+      <h4>✨ Upgrade to Premium</h4>
+      <button class="btn btn-success" id="subscribeBtn">Subscribe (No Ads)</button>
+      <button class="btn btn-outline" id="cancelSubBtn">Cancel Subscription</button>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" data-page="swipe"><i class="fas fa-fire"></i><span>Swipe</span></div>
+    <div class="nav-item" data-page="nearby"><i class="fas fa-map-marker-alt"></i><span>Nearby</span></div>
+    <div class="nav-item" data-page="chats"><i class="fas fa-comment-dots"></i><span>Chats</span></div>
+    <div class="nav-item" data-page="profile"><i class="fas fa-user"></i><span>Profile</span></div>
+  </div>
+  <div id="adBanner" class="ad-banner">📢 Support TeamUp – Upgrade to Premium to remove ads.</div>
+</div>
+
+<!-- CHAT OVERLAY -->
+<div id="chatOverlay" class="chat-overlay" style="display:none;">
+  <div class="chat-header">
+    <button id="closeChatBtn" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+    <span id="chatPartnerName"></span>
+  </div>
+  <div id="chatMessages" class="chat-messages"></div>
+  <div class="chat-input-area">
+    <input type="text" id="chatInput" placeholder="Type a message...">
+    <button id="sendMsgBtn" class="btn btn-primary">Send</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, onSnapshot, orderBy, GeoPoint, arrayUnion, arrayRemove, serverTimestamp, limit, startAfter, increment } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // DOM refs
+  const authContainer = document.getElementById('authContainer');
+  const mainApp = document.getElementById('mainApp');
+  const loginArea = document.getElementById('loginArea');
+  const signupArea = document.getElementById('signupArea');
+  const authError = document.getElementById('authError');
+  const adBanner = document.getElementById('adBanner');
+
+  // Helper: distance
+  function getDistance(loc1, loc2) {
+    if (!loc1 || !loc2) return 1000;
+    const R = 6371;
+    const lat1 = loc1.latitude, lon1 = loc1.longitude;
+    const lat2 = loc2.latitude, lon2 = loc2.longitude;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  // ---------- TAB SWITCHING ----------
+  const authTabs = document.querySelectorAll('.auth-tab');
+  authTabs.forEach(tab => {
+    tab.onclick = () => {
+      authTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const type = tab.dataset.auth;
+      loginArea.style.display = type === 'login' ? 'block' : 'none';
+      signupArea.style.display = type === 'signup' ? 'block' : 'none';
+    };
+  });
+
+  function setupMethodSwitching(container, emailId, phoneId) {
+    const tabs = container.querySelectorAll('.method-tab');
+    tabs.forEach(tab => {
+      tab.onclick = () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const method = tab.dataset.method;
+        container.querySelector(emailId).style.display = method === 'email' ? 'block' : 'none';
+        container.querySelector(phoneId).style.display = method === 'phone' ? 'block' : 'none';
+      };
+    });
+  }
+  setupMethodSwitching(loginArea, '#emailLoginForm', '#phoneLoginForm');
+  setupMethodSwitching(signupArea, '#emailSignupForm', '#phoneSignupForm');
+
+  // Interest chips for email signup
+  let selectedInterests = [];
+  function setupChips(containerId) {
+    document.querySelectorAll(containerId + ' .interest-chip').forEach(chip => {
+      chip.onclick = () => {
+        chip.classList.toggle('selected');
+        const val = chip.dataset.interest;
+        if (selectedInterests.includes(val)) selectedInterests = selectedInterests.filter(v => v !== val);
+        else selectedInterests.push(val);
+      };
+    });
+  }
+  setupChips('#interestsGrid');
+  let phoneSelectedInterests = [];
+  document.querySelectorAll('#phoneInterestsGrid .interest-chip').forEach(chip => {
+    chip.onclick = () => {
+      chip.classList.toggle('selected');
+      const val = chip.dataset.interest;
+      if (phoneSelectedInterests.includes(val)) phoneSelectedInterests = phoneSelectedInterests.filter(v => v !== val);
+      else phoneSelectedInterests.push(val);
+    };
+  });
+
+  // ---------- AUTH: EMAIL SIGNUP ----------
+  document.getElementById('doSignupBtn').onclick = async () => {
+    const name = document.getElementById('signupName').value;
+    const age = parseInt(document.getElementById('signupAge').value);
+    const gender = document.getElementById('signupGender').value;
+    const email = document.getElementById('signupEmail').value;
+    const pwd = document.getElementById('signupPassword').value;
+    const inviteCode = document.getElementById('signupInviteCode').value;
+    if (!name || !age || !selectedInterests.length) { authError.innerText = "Fill all fields and select interests"; return; }
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+      const ownCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      // Handle referral
+      if (inviteCode) {
+        const refQuery = await getDocs(query(collection(db, 'users'), where('inviteCode', '==', inviteCode)));
+        if (!refQuery.empty) {
+          const referrerId = refQuery.docs[0].id;
+          await updateDoc(doc(db, 'users', referrerId), { boosts: increment(1) });
+        }
+      }
+      await setDoc(doc(db, 'users', userCred.user.uid), {
+        name, age, gender, email, interests: selectedInterests, createdAt: new Date().toISOString(),
+        likes: [], dislikes: [], matches: [], blocked: [], location: null, premium: false, boosts: 0,
+        inviteCode: ownCode, referredBy: inviteCode || null, photoURL: null
+      });
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // EMAIL LOGIN
+  document.getElementById('doLoginBtn').onclick = async () => {
+    const email = document.getElementById('loginEmail').value;
+    const pwd = document.getElementById('loginPassword').value;
+    try { await signInWithEmailAndPassword(auth, email, pwd); } catch (e) { authError.innerText = e.message; }
+  };
+
+  // PHONE SIGNUP
+  let signupVerificationId = null;
+  function initRecaptcha() {
+    if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+  }
+  document.getElementById('sendSignupOTPBtn').onclick = async () => {
+    const phone = document.getElementById('signupPhone').value;
+    if (!phone) { authError.innerText = "Enter phone number"; return; }
+    try {
+      initRecaptcha();
+      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+      signupVerificationId = confirmation.verificationId;
+      document.getElementById('otpSectionSignup').style.display = 'block';
+      authError.innerText = "OTP sent!";
+    } catch (e) { authError.innerText = e.message; }
+  };
+  document.getElementById('verifySignupOTPBtn').onclick = async () => {
+    const code = document.getElementById('otpCodeSignup').value;
+    if (!code || !signupVerificationId) { authError.innerText = "Enter OTP"; return; }
+    try {
+      const credential = PhoneAuthProvider.credential(signupVerificationId, code);
+      const userCred = await auth.signInWithCredential(credential);
+      const name = document.getElementById('phoneSignupName').value;
+      const age = parseInt(document.getElementById('phoneSignupAge').value);
+      const gender = document.getElementById('phoneSignupGender').value;
+      const inviteCode = document.getElementById('phoneSignupInviteCode').value;
+      if (!name || !age || !phoneSelectedInterests.length) { authError.innerText = "Fill all fields and interests"; return; }
+      const ownCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      if (inviteCode) {
+        const refQuery = await getDocs(query(collection(db, 'users'), where('inviteCode', '==', inviteCode)));
+        if (!refQuery.empty) {
+          const referrerId = refQuery.docs[0].id;
+          await updateDoc(doc(db, 'users', referrerId), { boosts: increment(1) });
+        }
+      }
+      await setDoc(doc(db, 'users', userCred.user.uid), {
+        name, age, gender, phone, interests: phoneSelectedInterests, createdAt: new Date().toISOString(),
+        likes: [], dislikes: [], matches: [], blocked: [], location: null, premium: false, boosts: 0,
+        inviteCode: ownCode, referredBy: inviteCode || null, photoURL: null
+      });
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // PHONE LOGIN
+  let loginVerificationId = null;
+  document.getElementById('sendOTPBtn').onclick = async () => {
+    const phone = document.getElementById('loginPhone').value;
+    if (!phone) { authError.innerText = "Enter phone number"; return; }
+    try {
+      initRecaptcha();
+      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+      loginVerificationId = confirmation.verificationId;
+      document.getElementById('otpSectionLogin').style.display = 'block';
+      authError.innerText = "OTP sent!";
+    } catch (e) { authError.innerText = e.message; }
+  };
+  document.getElementById('verifyOTPBtn').onclick = async () => {
+    const code = document.getElementById('otpCodeLogin').value;
+    if (!code || !loginVerificationId) { authError.innerText = "Enter OTP"; return; }
+    try {
+      const credential = PhoneAuthProvider.credential(loginVerificationId, code);
+      await auth.signInWithCredential(credential);
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // ---------- MAIN APP STATE ----------
+  let currentUserObj = null;
+  let swipeCards = [];
+  let currentCardIndex = 0;
+  let lastUserDoc = null;
+  let allUsersLoaded = false;
+  let loadingMore = false;
+  let currentChatId = null;
+  let lastMessageTime = 0;
+
+  // Helper: update location
+  async function updateLocation(uid) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      await updateDoc(doc(db, 'users', uid), { location: new GeoPoint(pos.coords.latitude, pos.coords.longitude) });
+    }, () => {});
+  }
+
+  // SMART MATCHING + PAGINATION
+  async function loadMoreUsers() {
+    if (loadingMore || allUsersLoaded) return;
+    loadingMore = true;
+    const userSnap = await getDoc(doc(db, 'users', currentUserObj.uid));
+    const myData = userSnap.data();
+    const myInterests = myData.interests || [];
+    const myLoc = myData.location;
+    const liked = myData.likes || [];
+    const disliked = myData.dislikes || [];
+    const matched = myData.matches || [];
+    const blocked = myData.blocked || [];
+    const excluded = new Set([currentUserObj.uid, ...liked, ...disliked, ...matched, ...blocked]);
+
+    let q = query(collection(db, 'users'), limit(20));
+    if (lastUserDoc) q = query(collection(db, 'users'), startAfter(lastUserDoc), limit(20));
+    const snap = await getDocs(q);
+    if (snap.empty) { allUsersLoaded = true; loadingMore = false; return; }
+    lastUserDoc = snap.docs[snap.docs.length-1];
+
+    const newCards = snap.docs
+      .filter(d => !excluded.has(d.id))
+      .map(d => ({ id: d.id, ...d.data() }))
+      .map(c => {
+        let score = 0;
+        const common = c.interests?.filter(i => myInterests.includes(i)).length || 0;
+        score += common * 20;
+        if (myLoc && c.location) {
+          const dist = getDistance(myLoc, c.location);
+          score += Math.max(0, 50 - dist);
+        }
+        const daysOld = (Date.now() - new Date(c.createdAt).getTime()) / (1000*3600*24);
+        score += Math.max(0, 30 - daysOld);
+        return { ...c, score };
+      })
+      .sort((a,b) => b.score - a.score);
+    swipeCards.push(...newCards);
+    loadingMore = false;
+    if (currentCardIndex === 0) renderCard();
+  }
+
+  function renderCard() {
+    const container = document.getElementById('cardsContainer');
+    if (currentCardIndex >= swipeCards.length && !allUsersLoaded) {
+      container.innerHTML = '<div class="swipe-card">Loading more people...</div>';
+      loadMoreUsers();
+      return;
+    }
+    if (currentCardIndex >= swipeCards.length) {
+      container.innerHTML = '<div class="swipe-card" style="text-align:center;">✨ No more people. Invite friends! ✨</div>';
+      return;
+    }
+    const u = swipeCards[currentCardIndex];
+    const photoHtml = u.photoURL ? `<img class="card-avatar-img" src="${u.photoURL}" onerror="this.src='https://via.placeholder.com/240'">` : `<div class="card-avatar-img" style="display:flex;align-items:center;justify-content:center;">👤</div>`;
+    container.innerHTML = `<div class="swipe-card">${photoHtml}<div class="card-name">${u.name}, ${u.age} (${u.gender || 'Not specified'})</div><div class="card-interests">${(u.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('')}</div><p>${u.bio || 'Ready to TeamUp!'}</p></div>`;
+  }
+
+  async function swipeLike() {
+    if (!swipeCards[currentCardIndex]) return;
+    const liked = swipeCards[currentCardIndex];
+    const userRef = doc(db, 'users', currentUserObj.uid);
+    await updateDoc(userRef, { likes: arrayUnion(liked.id) });
+    const likedRef = doc(db, 'users', liked.id);
+    const likedSnap = await getDoc(likedRef);
+    if (likedSnap.data().likes?.includes(currentUserObj.uid)) {
+      const matchId = [currentUserObj.uid, liked.id].sort().join('_');
+      await setDoc(doc(db, 'matches', matchId), { users: [currentUserObj.uid, liked.id], createdAt: new Date().toISOString() });
+      await updateDoc(userRef, { matches: arrayUnion(liked.id) });
+      await updateDoc(likedRef, { matches: arrayUnion(currentUserObj.uid) });
+      alert(`🔥 Match! You can now chat with ${liked.name}`);
+    }
+    currentCardIndex++;
+    renderCard();
+    if (currentCardIndex + 5 >= swipeCards.length && !allUsersLoaded) loadMoreUsers();
+  }
+  async function swipeDislike() {
+    if (!swipeCards[currentCardIndex]) return;
+    await updateDoc(doc(db, 'users', currentUserObj.uid), { dislikes: arrayUnion(swipeCards[currentCardIndex].id) });
+    currentCardIndex++;
+    renderCard();
+    if (currentCardIndex + 5 >= swipeCards.length && !allUsersLoaded) loadMoreUsers();
+  }
+
+  // NEARBY
+  async function loadNearby(radiusKm) {
+    const userSnap = await getDoc(doc(db, 'users', currentUserObj.uid));
+    const myLoc = userSnap.data().location;
+    if (!myLoc) { document.getElementById('nearbyList').innerHTML = '<li>📍 Enable location to see nearby people</li>'; return; }
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const nearby = [];
+    for (const docSnap of usersSnap.docs) {
+      if (docSnap.id === currentUserObj.uid) continue;
+      const data = docSnap.data();
+      if (data.location && getDistance(myLoc, data.location) <= radiusKm) {
+        nearby.push({ id: docSnap.id, ...data, distance: getDistance(myLoc, data.location).toFixed(1) });
+      }
+    }
+    const html = nearby.map(u => `<li class="nearby-item"><div style="display:flex;gap:0.5rem;align-items:center;">${u.photoURL ? `<img class="nearby-avatar" src="${u.photoURL}">` : '<div class="nearby-avatar" style="background:var(--primary);display:flex;align-items:center;justify-content:center;">👤</div>'}<div><strong>${u.name}</strong> (${u.gender || ''}) ${u.distance} km<br>${(u.interests||[]).join(', ')}</div></div><button class="btn-outline connect-nearby" data-id="${u.id}" style="width:auto; padding:0.3rem 1rem;">Connect</button></li>`).join('');
+    document.getElementById('nearbyList').innerHTML = html || '<li>No one nearby</li>';
+    document.querySelectorAll('.connect-nearby').forEach(btn => btn.onclick = () => alert(`👍 Interest sent. If they like you back, chat will open.`));
+  }
+
+  // CHATS
+  async function loadChats() {
+    const userSnap = await getDoc(doc(db, 'users', currentUserObj.uid));
+    const matches = userSnap.data().matches || [];
+    const listDiv = document.getElementById('chatList');
+    if (!matches.length) { listDiv.innerHTML = '<li>💬 No chats yet. Swipe to match!</li>'; return; }
+    let html = '';
+    for (const matchId of matches) {
+      const otherSnap = await getDoc(doc(db, 'users', matchId));
+      if (otherSnap.exists()) {
+        const other = otherSnap.data();
+        const avatarHtml = other.photoURL ? `<img class="chat-avatar-img" src="${other.photoURL}" style="width:50px;height:50px;">` : `<div class="chat-avatar-img" style="background:var(--primary);display:flex;align-items:center;justify-content:center;">${other.name[0]}</div>`;
+        html += `<li class="chat-item" data-uid="${matchId}">${avatarHtml}<div><strong>${other.name}</strong><br>${other.gender || ''}</div></li>`;
+      }
+    }
+    listDiv.innerHTML = html;
+    document.querySelectorAll('.chat-item').forEach(el => el.addEventListener('click', () => openChat(el.dataset.uid)));
+  }
+
+  async function openChat(otherUid) {
+    const chatId = [currentUserObj.uid, otherUid].sort().join('_');
+    currentChatId = chatId;
+    const otherSnap = await getDoc(doc(db, 'users', otherUid));
+    document.getElementById('chatPartnerName').innerText = otherSnap.data().name;
+    document.getElementById('chatOverlay').style.display = 'flex';
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp'));
+    onSnapshot(q, (snap) => {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      snap.forEach(docMsg => {
+        const msg = docMsg.data();
+        const div = document.createElement('div');
+        div.className = `message ${msg.sender === currentUserObj.uid ? 'my' : 'other'}`;
+        div.innerText = msg.text;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    });
+  }
+
+  document.getElementById('sendMsgBtn').onclick = async () => {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const now = Date.now();
+    if (now - lastMessageTime < 6000) { alert('Please wait a few seconds between messages'); return; }
+    lastMessageTime = now;
+    await addDoc(collection(db, 'chats', currentChatId, 'messages'), { text: text.slice(0,500), sender: currentUserObj.uid, timestamp: serverTimestamp() });
+    input.value = '';
+  };
+  document.getElementById('closeChatBtn').onclick = () => { document.getElementById('chatOverlay').style.display = 'none'; currentChatId = null; };
+
+  // PROFILE
+  async function loadProfile() {
+    const snap = await getDoc(doc(db, 'users', currentUserObj.uid));
+    const data = snap.data();
+    document.getElementById('profileName').innerText = data.name;
+    document.getElementById('profileAge').innerText = data.age;
+    document.getElementById('profileGender').innerText = data.gender || 'Not set';
+    document.getElementById('profileInterests').innerHTML = (data.interests || []).join(', ');
+    document.getElementById('inviteCodeDisplay').innerText = data.inviteCode || 'Generate';
+    const premium = data.premium || false;
+    document.getElementById('premiumStatus').innerHTML = premium ? '✨ Premium (No Ads)' : 'Free (Ads)';
+    adBanner.style.display = premium ? 'none' : 'block';
+    if (data.photoURL) document.getElementById('profileAvatarImg').src = data.photoURL;
+  }
+
+  document.getElementById('uploadPhotoBtn').onclick = () => document.getElementById('photoUploadInput').click();
+  document.getElementById('photoUploadInput').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const storageRef = ref(storage, `profile_photos/${currentUserObj.uid}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    await updateDoc(doc(db, 'users', currentUserObj.uid), { photoURL: url });
+    loadProfile();
+    alert('Photo updated!');
+  };
+
+  document.getElementById('shareInviteBtn').onclick = async () => {
+    const snap = await getDoc(doc(db, 'users', currentUserObj.uid));
+    const code = snap.data().inviteCode;
+    const url = `${window.location.origin}?ref=${code}`;
+    navigator.clipboard.writeText(url);
+    alert('Invite link copied! Share with friends.');
+  };
+
+  document.getElementById('editProfileBtn').onclick = () => {
+    const newName = prompt("New name", document.getElementById('profileName').innerText);
+    const newAge = prompt("New age", document.getElementById('profileAge').innerText);
+    const newGender = prompt("Gender (Male/Female/Non-binary/Prefer not to say)", document.getElementById('profileGender').innerText);
+    if (newName && newAge && newGender) updateDoc(doc(db, 'users', currentUserObj.uid), { name: newName, age: parseInt(newAge), gender: newGender }).then(() => loadProfile());
+  };
+
+  // PREMIUM SIMULATION
+  document.getElementById('subscribeBtn').onclick = async () => {
+    if (confirm('Simulate subscription? (No real payment yet) This will remove ads.')) {
+      await updateDoc(doc(db, 'users', currentUserObj.uid), { premium: true });
+      loadProfile();
+      alert('Premium activated! Ads removed.');
+    }
+  };
+  document.getElementById('cancelSubBtn').onclick = async () => {
+    await updateDoc(doc(db, 'users', currentUserObj.uid), { premium: false });
+    loadProfile();
+    alert('Subscription cancelled. Ads will reappear.');
+  };
+
+  // BLOCK MODAL
+  const modal = document.createElement('div'); modal.className = 'modal'; modal.innerHTML = `<div class="modal-content"><h3>Block user</h3><p>Enter user ID to block (from swipe/nearby).</p><input id="blockUserId" placeholder="User ID"><button id="confirmBlockBtn" class="btn btn-danger">Block</button><button id="closeModalBtn" class="btn btn-outline">Cancel</button></div>`;
+  document.body.appendChild(modal);
+  document.getElementById('reportUserBtn').onclick = () => modal.style.display = 'flex';
+  document.getElementById('closeModalBtn').onclick = () => modal.style.display = 'none';
+  document.getElementById('confirmBlockBtn').onclick = async () => {
+    const blockId = document.getElementById('blockUserId').value;
+    if (blockId && confirm(`Block user ${blockId}?`)) {
+      await updateDoc(doc(db, 'users', currentUserObj.uid), { blocked: arrayUnion(blockId) });
+      alert('Blocked');
+      modal.style.display = 'none';
+      // reset swipe to refresh
+      swipeCards = []; lastUserDoc = null; allUsersLoaded = false; currentCardIndex = 0;
+      loadMoreUsers();
+    }
+  };
+
+  // NAVIGATION
+  const pages = ['swipe', 'nearby', 'chats', 'profile'];
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.onclick = () => {
+      const page = item.dataset.page;
+      document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(page + 'Page').classList.add('active');
+      if (page === 'swipe') {
+        if (swipeCards.length === 0) loadMoreUsers();
+        else renderCard();
+      }
+      if (page === 'nearby') loadNearby(parseInt(document.getElementById('distanceRange').value));
+      if (page === 'chats') loadChats();
+      if (page === 'profile') loadProfile();
+    };
+  });
+  document.getElementById('distanceRange').addEventListener('input', (e) => loadNearby(parseInt(e.target.value)));
+  document.getElementById('likeBtn').onclick = swipeLike;
+  document.getElementById('dislikeBtn').onclick = swipeDislike;
+  document.getElementById('logoutBtn').onclick = async () => { await signOut(auth); window.location.reload(); };
+
+  // AUTH STATE
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUserObj = user;
+      authContainer.style.display = 'none';
+      mainApp.style.display = 'block';
+      await updateLocation(user.uid);
+      await loadProfile();
+      loadNearby(20);
+      loadChats();
+      loadMoreUsers();
+    } else {
+      authContainer.style.display = 'flex';
+      mainApp.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
