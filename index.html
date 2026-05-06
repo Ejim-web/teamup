@@ -1,1 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>TeamUp Global – Connect for purpose</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #075E54;
+      --primary-dark: #054a42;
+      --secondary: #128C7E;
+      --accent: #25D366;
+      --light-bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-dark: #1f2a3a;
+      --text-muted: #6c757d;
+      --danger: #dc3545;
+      --success: #28a745;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: var(--text-dark); }
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: linear-gradient(135deg, #075E54 0%, #128C7E 100%);
+    }
+    .auth-card {
+      background: white;
+      max-width: 450px;
+      width: 100%;
+      border-radius: 2rem;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+    }
+    .main-logo { text-align: center; margin-bottom: 1rem; }
+    .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .logo-icon svg { width: 40px; height: 40px; fill: white; }
+    .logo-text { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text .team { color: var(--primary); }
+    .logo-text .up { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .logo-text .global { font-size: 1rem; background: none; color: var(--text-muted); font-weight: 400; margin-left: 0.2rem; }
+    .logo-sub { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .auth-tabs { display: flex; gap: 1rem; margin: 1.5rem 0; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+    .auth-tab { flex: 1; text-align: center; padding: 0.5rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 2rem; }
+    .auth-tab.active { background: var(--primary); color: white; }
+    .method-tabs { display: flex; gap: 0.5rem; margin: 1rem 0; }
+    .method-tab { flex: 1; text-align: center; padding: 0.4rem; background: #f1f3f5; border-radius: 2rem; cursor: pointer; font-size: 0.85rem; }
+    .method-tab.active { background: var(--primary); color: white; }
+    .input-group { margin-bottom: 1rem; }
+    .input-group label { display: block; font-size: 0.85rem; margin-bottom: 0.3rem; font-weight: 500; }
+    .input-group input, .input-group select { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 1.5rem; font-size: 1rem; }
+    .interests-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-chip { background: #e9ecef; padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+    .interest-chip.selected { background: var(--primary); color: white; }
+    .btn { width: 100%; padding: 0.8rem; border: none; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .error-msg { color: var(--danger); font-size: 0.8rem; text-align: center; margin-top: 0.5rem; }
+    .main-app { display: none; max-width: 550px; margin: 0 auto; background: var(--light-bg); min-height: 100vh; position: relative; }
+    .app-header { background: var(--primary); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .app-header .logo-small { display: flex; align-items: center; gap: 0.5rem; }
+    .app-header .logo-small .small-icon { background: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .app-header .logo-small .small-icon svg { width: 20px; height: 20px; fill: var(--primary); }
+    .app-header .logo-small .text { font-weight: 700; font-size: 1.2rem; }
+    .app-header .logo-small .text .team { color: white; } .app-header .logo-small .text .up { color: var(--accent); }
+    .logout-icon { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 550px; margin: 0 auto; background: white; display: flex; justify-content: space-around; padding: 0.6rem 0.5rem; border-top: 1px solid #eee; z-index: 100; }
+    .nav-item { text-align: center; flex: 1; color: var(--text-muted); cursor: pointer; }
+    .nav-item i { font-size: 1.5rem; display: block; }
+    .nav-item span { font-size: 0.7rem; }
+    .nav-item.active { color: var(--primary); }
+    .page { display: none; padding: 1rem; padding-bottom: 5rem; }
+    .page.active { display: block; }
+    .card-stack { position: relative; height: 65vh; margin-bottom: 1rem; }
+    .swipe-card { position: absolute; width: 100%; background: var(--card-bg); border-radius: 1.5rem; box-shadow: var(--shadow-md); padding: 1rem; }
+    .card-avatar { width: 100%; height: 240px; background: #e9ecef; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: var(--text-muted); }
+    .card-name { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+    .card-interests { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-tag { background: #e0f2f1; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
+    .swipe-actions { display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; }
+    .swipe-btn { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; box-shadow: var(--shadow-md); }
+    .swipe-like { background: #e8f5e9; color: var(--success); }
+    .swipe-dislike { background: #ffebee; color: var(--danger); }
+    .nearby-list, .chat-list { list-style: none; }
+    .nearby-item, .chat-item { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
+    .chat-item { cursor: pointer; gap: 1rem; }
+    .chat-avatar { width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 200; display: flex; flex-direction: column; max-width: 550px; margin: 0 auto; }
+    .chat-header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .message { max-width: 75%; padding: 0.6rem 1rem; border-radius: 1.5rem; font-size: 0.9rem; }
+    .message.my { background: var(--primary); color: white; align-self: flex-end; }
+    .message.other { background: #e9ecef; align-self: flex-start; }
+    .chat-input-area { display: flex; padding: 0.8rem; border-top: 1px solid #eee; gap: 0.5rem; }
+    .chat-input-area input { flex: 1; padding: 0.8rem; border: 1px solid #ddd; border-radius: 2rem; }
+    .profile-card { background: white; border-radius: 1.5rem; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 300; }
+    .modal-content { background: white; max-width: 300px; width: 90%; padding: 1.5rem; border-radius: 1.5rem; text-align: center; }
+    .ad-banner { text-align: center; padding: 0.5rem; font-size: 0.7rem; background: #f1f3f5; color: var(--text-muted); position: fixed; bottom: 60px; width: 100%; max-width: 550px; z-index: 99; }
+    .premium-badge { background: linear-gradient(135deg, #FFD700, #FFA500); display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: bold; }
+    .verification-area { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+<!-- AUTH SCREEN -->
+<div id="authContainer" class="auth-container">
+  <div class="auth-card">
+    <div class="main-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 14c-2.7 0-5.1-1.6-6.2-4.1.2-1.4 2.3-2.2 6.2-2.2s6 .8 6.2 2.2c-1.1 2.5-3.5 4.1-6.2 4.1z"/></svg></div>
+      <div class="logo-text"><span class="team">Team</span><span class="up">Up</span><span class="global"> Global</span></div>
+      <div class="logo-sub">❤️ Dating • 👥 Friendship • 🎮 Gaming • 📚 Study • 💼 Business</div>
+    </div>
+    <div class="auth-tabs"><div class="auth-tab active" data-auth="login">Login</div><div class="auth-tab" data-auth="signup">Sign Up</div></div>
+    
+    <!-- Login area (with method choice) -->
+    <div id="loginArea">
+      <div class="method-tabs">
+        <div class="method-tab active" data-method="email">Email</div>
+        <div class="method-tab" data-method="phone">Phone</div>
+      </div>
+      <div id="emailLoginForm">
+        <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+        <button class="btn btn-primary" id="doLoginBtn">Login</button>
+      </div>
+      <div id="phoneLoginForm" style="display:none;">
+        <div class="input-group"><label>Phone number</label><input type="tel" id="loginPhone" placeholder="+1234567890"></div>
+        <button class="btn btn-primary" id="sendOTPBtn">Send OTP</button>
+        <div id="otpSectionLogin" style="display:none;" class="verification-area">
+          <div class="input-group"><label>Verification code</label><input type="text" id="otpCodeLogin" placeholder="123456"></div>
+          <button class="btn btn-primary" id="verifyOTPBtn">Verify & Login</button>
+        </div>
+      </div>
+    </div>
 
+    <!-- Signup area (with method choice) -->
+    <div id="signupArea" style="display:none;">
+      <div class="method-tabs">
+        <div class="method-tab active" data-method="email">Email</div>
+        <div class="method-tab" data-method="phone">Phone</div>
+      </div>
+      <div id="emailSignupForm">
+        <div class="input-group"><label>Full Name</label><input type="text" id="signupName" placeholder="John Doe"></div>
+        <div class="input-group"><label>Age</label><input type="number" id="signupAge" placeholder="18"></div>
+        <div class="input-group"><label>Gender</label>
+          <select id="signupGender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div class="input-group"><label>Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="signupPassword" placeholder="••••••"></div>
+        <div class="input-group"><label>Interests (select at least one)</label>
+          <div class="interests-grid" id="interestsGrid">
+            <span class="interest-chip" data-interest="dating">❤️ Dating</span>
+            <span class="interest-chip" data-interest="friendship">👥 Friendship</span>
+            <span class="interest-chip" data-interest="gaming">🎮 Gaming</span>
+            <span class="interest-chip" data-interest="study">📚 Study</span>
+            <span class="interest-chip" data-interest="business">💼 Business</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="doSignupBtn">Create Account</button>
+      </div>
+      <div id="phoneSignupForm" style="display:none;">
+        <div class="input-group"><label>Full Name</label><input type="text" id="phoneSignupName" placeholder="John Doe"></div>
+        <div class="input-group"><label>Age</label><input type="number" id="phoneSignupAge" placeholder="18"></div>
+        <div class="input-group"><label>Gender</label>
+          <select id="phoneSignupGender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div class="input-group"><label>Phone number</label><input type="tel" id="signupPhone" placeholder="+1234567890"></div>
+        <div class="input-group"><label>Interests (select at least one)</label>
+          <div class="interests-grid" id="phoneInterestsGrid">
+            <span class="interest-chip" data-interest="dating">❤️ Dating</span>
+            <span class="interest-chip" data-interest="friendship">👥 Friendship</span>
+            <span class="interest-chip" data-interest="gaming">🎮 Gaming</span>
+            <span class="interest-chip" data-interest="study">📚 Study</span>
+            <span class="interest-chip" data-interest="business">💼 Business</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="sendSignupOTPBtn">Send OTP</button>
+        <div id="otpSectionSignup" style="display:none;" class="verification-area">
+          <div class="input-group"><label>Verification code</label><input type="text" id="otpCodeSignup" placeholder="123456"></div>
+          <button class="btn btn-primary" id="verifySignupOTPBtn">Verify & Create Account</button>
+        </div>
+      </div>
+    </div>
+    <div id="authError" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- MAIN APP (same as before) -->
+<div id="mainApp" class="main-app">
+  <div class="app-header">
+    <div class="logo-small"><div class="small-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="white"/><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></div><span class="text"><span class="team">Team</span><span class="up">Up</span></span></div>
+    <button class="logout-icon" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+  <div id="swipePage" class="page active"><div class="card-stack" id="cardsContainer"></div><div class="swipe-actions"><div class="swipe-btn swipe-dislike" id="dislikeBtn"><i class="fas fa-times"></i></div><div class="swipe-btn swipe-like" id="likeBtn"><i class="fas fa-heart"></i></div></div></div>
+  <div id="nearbyPage" class="page"><div class="input-group"><label>Distance radius (km)</label><input type="range" id="distanceRange" min="1" max="100" value="20"></div><ul id="nearbyList" class="nearby-list"></ul></div>
+  <div id="chatsPage" class="page"><ul id="chatList" class="chat-list"></ul></div>
+  <div id="profilePage" class="page">
+    <div class="profile-card">
+      <div class="card-avatar" style="width:80px; height:80px; margin:0 auto; border-radius:50%;"><i class="fas fa-user fa-3x"></i></div>
+      <h3 id="profileName"></h3>
+      <p><span id="profileAge"></span> yrs • <span id="profileGender"></span></p>
+      <p><span id="profileInterests"></span></p>
+      <p><span id="premiumStatus" class="premium-badge" style="background:#ccc;">Free</span></p>
+      <button class="btn btn-outline" id="editProfileBtn">Edit Profile</button>
+      <button class="btn btn-danger" id="reportUserBtn" style="margin-top:0.5rem;">🚫 Block / Report</button>
+    </div>
+    <div class="profile-card">
+      <h4>✨ Upgrade to Premium</h4>
+      <button class="btn btn-success" id="subscribeBtn">Subscribe (No Ads)</button>
+      <button class="btn btn-outline" id="cancelSubBtn" style="margin-top:0.5rem;">Cancel Subscription</button>
+      <p style="font-size:0.7rem; margin-top:0.5rem;">Premium removes all ads and supports TeamUp.</p>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" data-page="swipe"><i class="fas fa-fire"></i><span>Swipe</span></div>
+    <div class="nav-item" data-page="nearby"><i class="fas fa-map-marker-alt"></i><span>Nearby</span></div>
+    <div class="nav-item" data-page="chats"><i class="fas fa-comment-dots"></i><span>Chats</span></div>
+    <div class="nav-item" data-page="profile"><i class="fas fa-user"></i><span>Profile</span></div>
+  </div>
+  <div id="adBanner" class="ad-banner">📢 Support TeamUp – One ad helps keep the app free. Upgrade to Premium to remove ads.</div>
+</div>
+
+<div id="chatOverlay" class="chat-overlay" style="display:none;">
+  <div class="chat-header"><button id="closeChatBtn" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button><span id="chatPartnerName"></span></div>
+  <div id="chatMessages" class="chat-messages"></div>
+  <div class="chat-input-area"><input type="text" id="chatInput" placeholder="Type a message..."><button id="sendMsgBtn" class="btn btn-primary" style="width:auto; padding:0 1rem;">Send</button></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, addDoc, onSnapshot, orderBy, GeoPoint, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // DOM elements for auth
+  const authContainer = document.getElementById('authContainer');
+  const mainApp = document.getElementById('mainApp');
+  const loginArea = document.getElementById('loginArea');
+  const signupArea = document.getElementById('signupArea');
+  const authError = document.getElementById('authError');
+  const adBanner = document.getElementById('adBanner');
+
+  // Tab switching between Login / Signup
+  const authTabs = document.querySelectorAll('.auth-tab');
+  authTabs.forEach(tab => {
+    tab.onclick = () => {
+      authTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const type = tab.dataset.auth;
+      if (type === 'login') {
+        loginArea.style.display = 'block';
+        signupArea.style.display = 'none';
+      } else {
+        loginArea.style.display = 'none';
+        signupArea.style.display = 'block';
+      }
+    };
+  });
+
+  // Method switching inside login and signup
+  function setupMethodSwitching(container, emailId, phoneId) {
+    const methodTabs = container.querySelectorAll('.method-tab');
+    methodTabs.forEach(tab => {
+      tab.onclick = () => {
+        methodTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const method = tab.dataset.method;
+        container.querySelector(emailId).style.display = method === 'email' ? 'block' : 'none';
+        container.querySelector(phoneId).style.display = method === 'phone' ? 'block' : 'none';
+      };
+    });
+  }
+  setupMethodSwitching(loginArea, '#emailLoginForm', '#phoneLoginForm');
+  setupMethodSwitching(signupArea, '#emailSignupForm', '#phoneSignupForm');
+
+  // Interest chips
+  let selectedInterests = [];
+  function setupInterestChips(containerId) {
+    document.querySelectorAll(containerId + ' .interest-chip').forEach(chip => {
+      chip.onclick = () => {
+        chip.classList.toggle('selected');
+        const val = chip.dataset.interest;
+        if (selectedInterests.includes(val)) selectedInterests = selectedInterests.filter(v => v !== val);
+        else selectedInterests.push(val);
+      };
+    });
+  }
+  setupInterestChips('#interestsGrid');
+  let phoneSelectedInterests = [];
+  document.querySelectorAll('#phoneInterestsGrid .interest-chip').forEach(chip => {
+    chip.onclick = () => {
+      chip.classList.toggle('selected');
+      const val = chip.dataset.interest;
+      if (phoneSelectedInterests.includes(val)) phoneSelectedInterests = phoneSelectedInterests.filter(v => v !== val);
+      else phoneSelectedInterests.push(val);
+    };
+  });
+
+  // Email signup
+  document.getElementById('doSignupBtn').onclick = async () => {
+    const name = document.getElementById('signupName').value;
+    const age = parseInt(document.getElementById('signupAge').value);
+    const gender = document.getElementById('signupGender').value;
+    const email = document.getElementById('signupEmail').value;
+    const pwd = document.getElementById('signupPassword').value;
+    if (!name || !age || !selectedInterests.length) { authError.innerText = "Fill all fields and select interests"; return; }
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+      await setDoc(doc(db, 'users', userCred.user.uid), { name, age, gender, email, interests: selectedInterests, createdAt: new Date().toISOString(), likes: [], dislikes: [], matches: [], blocked: [], location: null, premium: false, boosts: 0 });
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // Email login
+  document.getElementById('doLoginBtn').onclick = async () => {
+    const email = document.getElementById('loginEmail').value;
+    const pwd = document.getElementById('loginPassword').value;
+    try { await signInWithEmailAndPassword(auth, email, pwd); } catch (e) { authError.innerText = e.message; }
+  };
+
+  // Phone signup flow
+  let signupVerificationId = null;
+  window.recaptchaVerifier = null;
+  function initRecaptcha(containerId) {
+    if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, { size: 'invisible' });
+  }
+  document.getElementById('sendSignupOTPBtn').onclick = async () => {
+    const phone = document.getElementById('signupPhone').value;
+    if (!phone) { authError.innerText = "Enter phone number"; return; }
+    try {
+      initRecaptcha('signupArea');
+      const appVerifier = window.recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+      signupVerificationId = confirmationResult.verificationId;
+      document.getElementById('otpSectionSignup').style.display = 'block';
+      authError.innerText = "OTP sent!";
+    } catch (e) { authError.innerText = e.message; }
+  };
+  document.getElementById('verifySignupOTPBtn').onclick = async () => {
+    const code = document.getElementById('otpCodeSignup').value;
+    if (!code || !signupVerificationId) { authError.innerText = "Enter OTP"; return; }
+    try {
+      const credential = PhoneAuthProvider.credential(signupVerificationId, code);
+      const userCred = await auth.signInWithCredential(credential);
+      const name = document.getElementById('phoneSignupName').value;
+      const age = parseInt(document.getElementById('phoneSignupAge').value);
+      const gender = document.getElementById('phoneSignupGender').value;
+      if (!name || !age || !phoneSelectedInterests.length) { authError.innerText = "Fill all fields and interests"; return; }
+      await setDoc(doc(db, 'users', userCred.user.uid), { name, age, gender, phone, interests: phoneSelectedInterests, createdAt: new Date().toISOString(), likes: [], dislikes: [], matches: [], blocked: [], location: null, premium: false, boosts: 0 });
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // Phone login flow
+  let loginVerificationId = null;
+  document.getElementById('sendOTPBtn').onclick = async () => {
+    const phone = document.getElementById('loginPhone').value;
+    if (!phone) { authError.innerText = "Enter phone number"; return; }
+    try {
+      initRecaptcha('loginArea');
+      const appVerifier = window.recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+      loginVerificationId = confirmationResult.verificationId;
+      document.getElementById('otpSectionLogin').style.display = 'block';
+      authError.innerText = "OTP sent!";
+    } catch (e) { authError.innerText = e.message; }
+  };
+  document.getElementById('verifyOTPBtn').onclick = async () => {
+    const code = document.getElementById('otpCodeLogin').value;
+    if (!code || !loginVerificationId) { authError.innerText = "Enter OTP"; return; }
+    try {
+      const credential = PhoneAuthProvider.credential(loginVerificationId, code);
+      await auth.signInWithCredential(credential);
+    } catch (e) { authError.innerText = e.message; }
+  };
+
+  // ---- Rest of the app (swipe, chat, nearby, premium, block) unchanged ----
+  let currentUser = null;
+  let swipeCards = [];
+  let currentCardIndex = 0;
+  let currentChatId = null;
+
+  async function updateLocation(uid) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      await updateDoc(doc(db, 'users', uid), { location: new GeoPoint(pos.coords.latitude, pos.coords.longitude) });
+    }, () => {});
+  }
+  async function loadSwipeCards() {
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.data();
+    const liked = userData.likes || [];
+    const disliked = userData.dislikes || [];
+    const matched = userData.matches || [];
+    const blocked = userData.blocked || [];
+    const excluded = new Set([currentUser.uid, ...liked, ...disliked, ...matched, ...blocked]);
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let candidates = usersSnap.docs.filter(d => !excluded.has(d.id)).map(d => ({ id: d.id, ...d.data() }));
+    candidates = candidates.filter(c => c.interests?.some(i => userData.interests.includes(i)));
+    swipeCards = candidates;
+    currentCardIndex = 0;
+    renderCard();
+  }
+  function renderCard() {
+    const container = document.getElementById('cardsContainer');
+    if (currentCardIndex >= swipeCards.length) { container.innerHTML = '<div class="swipe-card" style="position:relative; text-align:center;">✨ No more people. Invite friends ✨</div>'; return; }
+    const u = swipeCards[currentCardIndex];
+    container.innerHTML = `<div class="swipe-card"><div class="card-avatar"><i class="fas fa-user-circle fa-5x"></i></div><div class="card-name">${u.name}, ${u.age} (${u.gender || 'Not specified'})</div><div class="card-interests">${(u.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('')}</div><p>${u.bio || 'Ready to TeamUp!'}</p></div>`;
+  }
+  async function swipeLike() {
+    const liked = swipeCards[currentCardIndex];
+    if (!liked) return;
+    const userRef = doc(db, 'users', currentUser.uid);
+    const likedRef = doc(db, 'users', liked.id);
+    await updateDoc(userRef, { likes: arrayUnion(liked.id) });
+    const likedSnap = await getDoc(likedRef);
+    const likedLikes = likedSnap.data().likes || [];
+    if (likedLikes.includes(currentUser.uid)) {
+      const matchId = [currentUser.uid, liked.id].sort().join('_');
+      await setDoc(doc(db, 'matches', matchId), { users: [currentUser.uid, liked.id], createdAt: new Date().toISOString() });
+      await updateDoc(userRef, { matches: arrayUnion(liked.id) });
+      await updateDoc(likedRef, { matches: arrayUnion(currentUser.uid) });
+      alert(`🔥 Match! You can now chat with ${liked.name}`);
+    }
+    currentCardIndex++;
+    renderCard();
+  }
+  async function swipeDislike() {
+    if (!swipeCards[currentCardIndex]) return;
+    await updateDoc(doc(db, 'users', currentUser.uid), { dislikes: arrayUnion(swipeCards[currentCardIndex].id) });
+    currentCardIndex++;
+    renderCard();
+  }
+  async function loadNearby(radiusKm) {
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const myLoc = userSnap.data().location;
+    if (!myLoc) { document.getElementById('nearbyList').innerHTML = '<li>📍 Enable location to see people nearby</li>'; return; }
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const nearby = [];
+    for (const docSnap of usersSnap.docs) {
+      if (docSnap.id === currentUser.uid) continue;
+      const data = docSnap.data();
+      if (data.location) {
+        const R = 6371;
+        const lat1 = myLoc.latitude, lon1 = myLoc.longitude;
+        const lat2 = data.location.latitude, lon2 = data.location.longitude;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const dist = R * c;
+        if (dist <= radiusKm) nearby.push({ id: docSnap.id, ...data, distance: dist.toFixed(1) });
+      }
+    }
+    const html = nearby.map(u => `<li class="nearby-item"><div><strong>${u.name}</strong> (${u.gender || ''}) ${u.distance} km<br>${(u.interests||[]).join(', ')}</div><button class="btn-outline connect-nearby" data-id="${u.id}" style="width:auto; padding:0.3rem 1rem;">Connect</button></li>`).join('');
+    document.getElementById('nearbyList').innerHTML = html || '<li>No one nearby</li>';
+    document.querySelectorAll('.connect-nearby').forEach(btn => btn.onclick = () => alert(`👍 Interest sent. If they like you back, chat will open.`));
+  }
+  async function loadChats() {
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const matches = userSnap.data().matches || [];
+    const listDiv = document.getElementById('chatList');
+    if (!matches.length) { listDiv.innerHTML = '<li>💬 No chats yet. Swipe to match!</li>'; return; }
+    let html = '';
+    for (const matchId of matches) {
+      const otherSnap = await getDoc(doc(db, 'users', matchId));
+      if (otherSnap.exists()) {
+        const other = otherSnap.data();
+        html += `<li class="chat-item" data-uid="${matchId}"><div class="chat-avatar">${other.name[0]}</div><div><strong>${other.name}</strong><br>${other.gender || ''}</div></li>`;
+      }
+    }
+    listDiv.innerHTML = html;
+    document.querySelectorAll('.chat-item').forEach(el => el.addEventListener('click', () => openChat(el.dataset.uid)));
+  }
+  async function openChat(otherUid) {
+    const chatId = [currentUser.uid, otherUid].sort().join('_');
+    currentChatId = chatId;
+    const otherSnap = await getDoc(doc(db, 'users', otherUid));
+    document.getElementById('chatPartnerName').innerText = otherSnap.data().name;
+    document.getElementById('chatOverlay').style.display = 'flex';
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp'));
+    onSnapshot(q, (snap) => {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      snap.forEach(docMsg => {
+        const msg = docMsg.data();
+        const div = document.createElement('div');
+        div.className = `message ${msg.sender === currentUser.uid ? 'my' : 'other'}`;
+        div.innerText = msg.text;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    });
+  }
+  document.getElementById('sendMsgBtn').onclick = async () => {
+    const input = document.getElementById('chatInput');
+    if (!input.value.trim()) return;
+    await addDoc(collection(db, 'chats', currentChatId, 'messages'), { text: input.value, sender: currentUser.uid, timestamp: serverTimestamp() });
+    input.value = '';
+  };
+  document.getElementById('closeChatBtn').onclick = () => { document.getElementById('chatOverlay').style.display = 'none'; currentChatId = null; };
+
+  async function loadProfile() {
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    const data = snap.data();
+    document.getElementById('profileName').innerText = data.name;
+    document.getElementById('profileAge').innerText = data.age;
+    document.getElementById('profileGender').innerText = data.gender || 'Not set';
+    document.getElementById('profileInterests').innerHTML = (data.interests || []).join(', ');
+    const premium = data.premium || false;
+    document.getElementById('premiumStatus').innerHTML = premium ? '✨ Premium (No Ads)' : 'Free (Ads)';
+    if (adBanner) adBanner.style.display = premium ? 'none' : 'block';
+  }
+
+  document.getElementById('subscribeBtn').onclick = async () => {
+    if (confirm('Simulate subscription? (No real payment yet) This will remove ads.')) {
+      await updateDoc(doc(db, 'users', currentUser.uid), { premium: true });
+      loadProfile();
+      alert('You are now a Premium user! Ads removed.');
+    }
+  };
+  document.getElementById('cancelSubBtn').onclick = async () => {
+    if (confirm('Cancel subscription? Ads will reappear.')) {
+      await updateDoc(doc(db, 'users', currentUser.uid), { premium: false });
+      loadProfile();
+      alert('Subscription cancelled. Ads will now show.');
+    }
+  };
+
+  // Block report modal
+  const reportModal = document.createElement('div'); reportModal.className = 'modal'; reportModal.innerHTML = `<div class="modal-content"><h3>Block user</h3><p>Enter user ID to block (from swipe/nearby).</p><input id="blockUserId" placeholder="User ID"><button id="confirmBlockBtn" class="btn btn-danger">Block</button><button id="closeModalBtn" class="btn btn-outline">Cancel</button></div>`;
+  document.body.appendChild(reportModal);
+  document.getElementById('reportUserBtn').onclick = () => reportModal.style.display = 'flex';
+  document.getElementById('closeModalBtn').onclick = () => reportModal.style.display = 'none';
+  document.getElementById('confirmBlockBtn').onclick = async () => {
+    const blockId = document.getElementById('blockUserId').value;
+    if (blockId && confirm(`Block user ${blockId}? They won't appear anymore.`)) {
+      await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(blockId) });
+      alert('Blocked');
+      reportModal.style.display = 'none';
+      loadSwipeCards();
+    }
+  };
+
+  document.getElementById('editProfileBtn').onclick = () => {
+    const newName = prompt("New name", document.getElementById('profileName').innerText);
+    const newAge = prompt("New age", document.getElementById('profileAge').innerText);
+    const newGender = prompt("New gender (Male/Female/Non-binary/Prefer not to say)", document.getElementById('profileGender').innerText);
+    if (newName && newAge && newGender) updateDoc(doc(db, 'users', currentUser.uid), { name: newName, age: parseInt(newAge), gender: newGender }).then(() => loadProfile());
+  };
+
+  const pages = ['swipe', 'nearby', 'chats', 'profile'];
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.onclick = () => {
+      const page = item.dataset.page;
+      document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(page + 'Page').classList.add('active');
+      if (page === 'swipe') loadSwipeCards();
+      if (page === 'nearby') loadNearby(parseInt(document.getElementById('distanceRange').value));
+      if (page === 'chats') loadChats();
+      if (page === 'profile') loadProfile();
+    };
+  });
+  document.getElementById('distanceRange').addEventListener('input', (e) => loadNearby(parseInt(e.target.value)));
+  document.getElementById('likeBtn').onclick = swipeLike;
+  document.getElementById('dislikeBtn').onclick = swipeDislike;
+  document.getElementById('logoutBtn').onclick = async () => { await signOut(auth); window.location.reload(); };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      authContainer.style.display = 'none';
+      mainApp.style.display = 'block';
+      await updateLocation(user.uid);
+      await loadProfile();
+      loadSwipeCards(); loadNearby(20); loadChats();
+    } else {
+      authContainer.style.display = 'flex';
+      mainApp.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
