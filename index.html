@@ -1,1 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>TeamUp Global – Connect for purpose</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #075E54;
+      --primary-dark: #054a42;
+      --secondary: #128C7E;
+      --accent: #25D366;
+      --light-bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-dark: #1f2a3a;
+      --text-muted: #6c757d;
+      --danger: #dc3545;
+      --success: #28a745;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: var(--text-dark); }
+    /* Auth */
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; background: linear-gradient(135deg, #075E54 0%, #128C7E 100%); }
+    .auth-card { background: white; max-width: 550px; width: 100%; border-radius: 2rem; padding: 2rem; box-shadow: var(--shadow-md); }
+    .main-logo { text-align: center; margin-bottom: 1rem; }
+    .logo-icon { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--accent)); width: 70px; height: 70px; border-radius: 50%; margin-bottom: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .logo-icon svg { width: 40px; height: 40px; fill: white; }
+    .logo-text { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text .team { color: var(--primary); }
+    .logo-text .up { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .logo-text .global { font-size: 1rem; background: none; color: var(--text-muted); font-weight: 400; margin-left: 0.2rem; }
+    .logo-sub { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .auth-tabs { display: flex; gap: 1rem; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+    .auth-tab { flex: 1; text-align: center; padding: 0.5rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 2rem; transition: all 0.2s; }
+    .auth-tab.active { background: var(--primary); color: white; }
+    .input-group { margin-bottom: 1rem; }
+    .input-group label { display: block; font-size: 0.85rem; margin-bottom: 0.3rem; font-weight: 500; }
+    .input-group input, .input-group select { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 1.5rem; font-size: 1rem; }
+    .interests-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-chip { background: #e9ecef; padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+    .interest-chip.selected { background: var(--primary); color: white; }
+    .btn { width: 100%; padding: 0.8rem; border: none; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; transition: transform 0.1s, background 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .error-msg { color: var(--danger); font-size: 0.8rem; text-align: center; margin-top: 0.5rem; }
+    /* Main app */
+    .main-app { display: none; max-width: 550px; margin: 0 auto; background: var(--light-bg); min-height: 100vh; position: relative; }
+    .app-header { background: var(--primary); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .app-header .logo-small { display: flex; align-items: center; gap: 0.5rem; }
+    .app-header .logo-small .small-icon { background: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .app-header .logo-small .small-icon svg { width: 20px; height: 20px; fill: var(--primary); }
+    .app-header .logo-small .text { font-weight: 700; font-size: 1.2rem; }
+    .app-header .logo-small .text .team { color: white; } .app-header .logo-small .text .up { color: var(--accent); }
+    .logout-icon { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 550px; margin: 0 auto; background: white; display: flex; justify-content: space-around; padding: 0.6rem 0.5rem; border-top: 1px solid #eee; z-index: 100; }
+    .nav-item { text-align: center; flex: 1; color: var(--text-muted); cursor: pointer; transition: color 0.2s; }
+    .nav-item i { font-size: 1.5rem; display: block; }
+    .nav-item span { font-size: 0.7rem; }
+    .nav-item.active { color: var(--primary); }
+    .page { display: none; padding: 1rem; padding-bottom: 5rem; opacity: 0; transition: opacity 0.2s ease; }
+    .page.active { display: block; opacity: 1; }
+    /* Swipe cards */
+    .card-stack { position: relative; height: 65vh; margin-bottom: 1rem; overflow: hidden; }
+    .swipe-card { position: absolute; width: 100%; background: var(--card-bg); border-radius: 1.5rem; box-shadow: var(--shadow-md); padding: 1rem; cursor: grab; transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1); will-change: transform; }
+    .card-avatar-img { width: 100%; height: 240px; object-fit: cover; border-radius: 1rem; background: #e9ecef; }
+    .card-name { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+    .card-interests { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+    .interest-tag { background: #e0f2f1; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
+    .swipe-actions { display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; }
+    .swipe-btn { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; box-shadow: var(--shadow-md); transition: transform 0.1s; }
+    .swipe-btn:active { transform: scale(0.9); }
+    .swipe-like { background: #e8f5e9; color: var(--success); }
+    .swipe-dislike { background: #ffebee; color: var(--danger); }
+    /* Empty states */
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); background: white; border-radius: 1.5rem; margin: 1rem; }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; color: var(--primary); }
+    .online-count { font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 1rem; margin-left: 0.5rem; }
+    /* Nearby, chats, profile */
+    .nearby-list, .chat-list { list-style: none; }
+    .nearby-item, .chat-item { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
+    .chat-item { cursor: pointer; gap: 1rem; }
+    .chat-avatar-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: var(--primary); }
+    .nearby-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; display: block; border: 3px solid var(--primary); }
+    .chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 200; display: flex; flex-direction: column; max-width: 550px; margin: 0 auto; }
+    .chat-header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .message { max-width: 75%; padding: 0.6rem 1rem; border-radius: 1.5rem; font-size: 0.9rem; }
+    .message.my { background: var(--primary); color: white; align-self: flex-end; }
+    .message.other { background: #e9ecef; align-self: flex-start; }
+    .chat-input-area { display: flex; padding: 0.8rem; border-top: 1px solid #eee; gap: 0.5rem; }
+    .chat-input-area input { flex: 1; padding: 0.8rem; border: 1px solid #ddd; border-radius: 2rem; }
+    .chat-input-area button { width: auto; padding: 0 1rem; }
+    .profile-card { background: white; border-radius: 1.5rem; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .invite-section { background: #e8f0fe; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; text-align: center; }
+    .invite-code { font-family: monospace; font-size: 1.2rem; font-weight: bold; background: white; display: inline-block; padding: 0.2rem 0.8rem; border-radius: 1rem; margin: 0.5rem 0; }
+    .ad-banner { text-align: center; padding: 0.5rem; font-size: 0.7rem; background: #f1f3f5; color: var(--text-muted); position: fixed; bottom: 60px; width: 100%; max-width: 550px; z-index: 99; }
+    .premium-badge { background: linear-gradient(135deg, #FFD700, #FFA500); display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: bold; }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 300; backdrop-filter: blur(4px); }
+    .modal-content { background: white; max-width: 350px; width: 90%; padding: 1.5rem; border-radius: 1.5rem; text-align: center; animation: fadeInScale 0.2s ease; }
+    .modal-content input, .modal-content select { width: 100%; margin: 0.5rem 0; padding: 0.5rem; border: 1px solid #ddd; border-radius: 1rem; }
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .modal-actions button { flex: 1; }
+    @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 50px; font-size: 0.9rem; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .onboarding { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; }
+    .onboarding-card { background: white; max-width: 350px; width: 90%; border-radius: 2rem; padding: 2rem; text-align: center; animation: fadeInScale 0.2s ease; }
+    .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 1rem; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .match-celebration { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--primary); color: white; padding: 1rem 2rem; border-radius: 3rem; z-index: 1500; font-weight: bold; text-align: center; white-space: nowrap; animation: bounce 0.5s ease forwards; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+    @keyframes bounce { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 80% { transform: translate(-50%, -50%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    .online-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #4caf50; margin-left: 5px; }
+    .verified-badge { color: #1DA1F2; margin-left: 5px; font-size: 0.8rem; }
+    .trust-footer { font-size: 0.7rem; text-align: center; margin-top: 1rem; color: var(--text-muted); }
+    .trust-footer a { color: var(--primary); text-decoration: none; margin: 0 0.5rem; }
+  </style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
 
+<!-- AUTH CONTAINER -->
+<div id="authContainer" class="auth-container">
+  <div class="auth-card">
+    <div class="main-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 14c-2.7 0-5.1-1.6-6.2-4.1.2-1.4 2.3-2.2 6.2-2.2s6 .8 6.2 2.2c-1.1 2.5-3.5 4.1-6.2 4.1z"/></svg></div>
+      <div class="logo-text"><span class="team">Team</span><span class="up">Up</span><span class="global"> Global</span></div>
+      <div class="logo-sub">❤️ Dating • 👥 Friendship • 🎮 Gaming • 📚 Study • 💼 Business</div>
+    </div>
+    <div class="auth-tabs"><div class="auth-tab active" data-auth="login">Login</div><div class="auth-tab" data-auth="signup">Sign Up</div></div>
+    <div id="loginArea">
+      <div id="emailLoginForm">
+        <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+        <button class="btn btn-primary" id="doLoginBtn">Login</button>
+      </div>
+    </div>
+    <div id="signupArea" style="display:none;">
+      <div id="emailSignupForm">
+        <div class="input-group"><label>Full Name</label><input type="text" id="signupName" placeholder="John Doe"></div>
+        <div class="input-group"><label>Age</label><input type="number" id="signupAge" placeholder="18"></div>
+        <div class="input-group"><label>Gender</label><select id="signupGender"><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+        <div class="input-group"><label>Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="signupPassword" placeholder="••••••"></div>
+        <div class="input-group"><label>Invite code (optional)</label><input type="text" id="signupInviteCode" placeholder="Friend's code"></div>
+        <div class="input-group"><label>Interests</label>
+          <div class="interests-grid" id="interestsGrid">
+            <span class="interest-chip" data-interest="dating">❤️ Dating</span>
+            <span class="interest-chip" data-interest="friendship">👥 Friendship</span>
+            <span class="interest-chip" data-interest="gaming">🎮 Gaming</span>
+            <span class="interest-chip" data-interest="study">📚 Study</span>
+            <span class="interest-chip" data-interest="business">💼 Business</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="doSignupBtn">Create Account</button>
+      </div>
+    </div>
+    <div id="authError" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="main-app">
+  <div class="app-header">
+    <div class="logo-small"><div class="small-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="white"/><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></div><span class="text"><span class="team">Team</span><span class="up">Up</span></span></div>
+    <button class="logout-icon" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+  <div id="swipePage" class="page active"><div class="card-stack" id="cardsContainer"><div class="swipe-card shimmer" style="height:400px;"></div></div><div class="swipe-actions"><div class="swipe-btn swipe-dislike" id="dislikeBtn"><i class="fas fa-times"></i></div><div class="swipe-btn swipe-like" id="likeBtn"><i class="fas fa-heart"></i></div></div></div>
+  <div id="nearbyPage" class="page"><div class="input-group"><label>Distance radius (km)</label><input type="range" id="distanceRange" min="1" max="100" value="20"></div><ul id="nearbyList" class="nearby-list"><li class="shimmer" style="height:60px; margin-bottom:0.5rem;"></li></ul></div>
+  <div id="chatsPage" class="page"><ul id="chatList" class="chat-list"><li class="shimmer" style="height:60px; margin-bottom:0.5rem;"></li></ul></div>
+  <div id="profilePage" class="page">
+    <div class="profile-card">
+      <img id="profileAvatarImg" class="profile-avatar" src="https://via.placeholder.com/120?text=User">
+      <button class="btn btn-outline" id="uploadPhotoBtn">📸 Upload Photo</button>
+      <input type="file" id="photoUploadInput" accept="image/*" style="display:none;">
+      <h3 id="profileName"></h3>
+      <p><span id="profileAge"></span> yrs • <span id="profileGender"></span> <span id="verifiedBadge" class="verified-badge"><i class="fas fa-check-circle"></i></span></p>
+      <p><span id="profileInterests"></span></p>
+      <div class="invite-section">
+        <p>🎁 Invite friends, get boosts!</p>
+        <div>Your code: <span id="inviteCodeDisplay" class="invite-code"></span></div>
+        <button id="shareInviteBtn" class="btn btn-outline" style="margin-top:0.5rem;">📢 Copy invite link</button>
+      </div>
+      <p><span id="premiumStatus" class="premium-badge">Free</span></p>
+      <button class="btn btn-outline" id="editProfileBtn">Edit Details</button>
+      <button class="btn btn-danger" id="reportUserBtn">🚫 Block / Report</button>
+    </div>
+    <div class="profile-card">
+      <h4>✨ Upgrade to Premium</h4>
+      <button class="btn btn-success" id="subscribeBtn">Subscribe (No Ads)</button>
+      <button class="btn btn-outline" id="cancelSubBtn">Cancel Subscription</button>
+    </div>
+    <div class="trust-footer">
+      <span><i class="fas fa-user-shield"></i> Safe & moderated</span>
+      <a href="#">Terms</a> • <a href="#">Privacy</a>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" data-page="swipe"><i class="fas fa-fire"></i><span>Swipe</span></div>
+    <div class="nav-item" data-page="nearby"><i class="fas fa-map-marker-alt"></i><span>Nearby</span></div>
+    <div class="nav-item" data-page="chats"><i class="fas fa-comment-dots"></i><span>Chats</span></div>
+    <div class="nav-item" data-page="profile"><i class="fas fa-user"></i><span>Profile</span></div>
+  </div>
+  <div id="adBanner" class="ad-banner">📢 Support TeamUp – Upgrade to Premium to remove ads.</div>
+</div>
+
+<!-- CHAT OVERLAY -->
+<div id="chatOverlay" class="chat-overlay" style="display:none;">
+  <div class="chat-header"><button id="closeChatBtn" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button><span id="chatPartnerName"></span><span id="typingIndicator" class="typing-indicator"></span><span id="onlineStatus" class="online-dot" style="display:inline-block;"></span></div>
+  <div id="chatMessages" class="chat-messages"></div>
+  <div class="chat-input-area"><input type="text" id="chatInput" placeholder="Type a message..."><button id="sendMsgBtn" class="btn btn-primary">Send</button></div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding" class="onboarding">
+  <div class="onboarding-card">
+    <h3>Welcome to TeamUp!</h3>
+    <p>Choose your main purpose</p>
+    <div class="interests-grid" id="onboardingInterests"></div>
+    <button id="uploadOnboardingPhoto" class="btn btn-outline">Upload Photo</button>
+    <input type="file" id="onboardPhotoInput" accept="image/*" style="display:none;">
+    <button id="enableLocationBtn" class="btn btn-primary" style="margin-top:0.5rem;">Enable Location</button>
+    <button id="completeOnboarding" class="btn btn-success">Get Started</button>
+  </div>
+</div>
+
+<!-- MODAL TEMPLATES (dynamic) -->
+<div id="modalContainer"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, onSnapshot, orderBy, GeoPoint, arrayUnion, arrayRemove, serverTimestamp, limit, startAfter, increment } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk_rTdccHGEr49Zec_eGSJwfOOJPeHYdY",
+    authDomain: "teamup-68a21.firebaseapp.com",
+    projectId: "teamup-68a21",
+    storageBucket: "teamup-68a21.firebasestorage.app",
+    messagingSenderId: "379106762572",
+    appId: "1:379106762572:web:a1537754ed17d3a60339e9"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // Toast helper
+  function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+
+  // Custom modal (replaces prompt/alert)
+  function showModal(options) {
+    return new Promise((resolve) => {
+      const modalDiv = document.createElement('div');
+      modalDiv.className = 'modal';
+      modalDiv.innerHTML = `
+        <div class="modal-content">
+          <h3>${options.title || ''}</h3>
+          ${options.inputFields ? options.inputFields.map(f => `<input type="${f.type}" id="${f.id}" placeholder="${f.placeholder}" value="${f.value || ''}">`).join('') : ''}
+          ${options.select ? `<select id="${options.select.id}">${options.select.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>` : ''}
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="modalConfirm">${options.confirmText || 'OK'}</button>
+            ${options.cancelText ? `<button class="btn btn-outline" id="modalCancel">${options.cancelText}</button>` : ''}
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+      modalDiv.style.display = 'flex';
+      const confirmBtn = modalDiv.querySelector('#modalConfirm');
+      const cancelBtn = modalDiv.querySelector('#modalCancel');
+      confirmBtn.onclick = () => {
+        const result = {};
+        if (options.inputFields) options.inputFields.forEach(f => result[f.id] = document.getElementById(f.id).value);
+        if (options.select) result[options.select.id] = document.getElementById(options.select.id).value;
+        modalDiv.remove();
+        resolve(result);
+      };
+      if (cancelBtn) cancelBtn.onclick = () => { modalDiv.remove(); resolve(null); };
+    });
+  }
+
+  // Match celebration
+  function showMatchCelebration(name) {
+    const div = document.createElement('div');
+    div.className = 'match-celebration';
+    div.innerHTML = `🔥 It's a match with ${name}! 🔥`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+  }
+
+  // Helper distance
+  function getDistance(loc1, loc2) { if (!loc1 || !loc2) return 1000; const R = 6371; const lat1 = loc1.latitude, lon1 = loc1.longitude; const lat2 = loc2.latitude, lon2 = loc2.longitude; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2; const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c; }
+
+  // Auth UI switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('loginArea').style.display = tab.dataset.auth === 'login' ? 'block' : 'none';
+      document.getElementById('signupArea').style.display = tab.dataset.auth === 'signup' ? 'block' : 'none';
+    };
+  });
+
+  let selectedInterests = [];
+  document.querySelectorAll('#interestsGrid .interest-chip').forEach(chip => {
+    chip.onclick = () => { chip.classList.toggle('selected'); const val = chip.dataset.interest; if (selectedInterests.includes(val)) selectedInterests = selectedInterests.filter(v => v !== val); else selectedInterests.push(val); };
+  });
+
+  // Signup
+  document.getElementById('doSignupBtn').onclick = async (e) => {
+    const btn = e.target; btn.disabled = true; btn.innerText = "Loading...";
+    const name = document.getElementById('signupName').value, age = parseInt(document.getElementById('signupAge').value), gender = document.getElementById('signupGender').value, email = document.getElementById('signupEmail').value, pwd = document.getElementById('signupPassword').value, inviteCode = document.getElementById('signupInviteCode').value;
+    if (!name || !age || !selectedInterests.length) { showToast("Fill all fields and select interests"); btn.disabled = false; btn.innerText = "Create Account"; return; }
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+      await sendEmailVerification(userCred.user);
+      const ownCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      if (inviteCode) { const refQuery = await getDocs(query(collection(db, 'users'), where('inviteCode', '==', inviteCode))); if (!refQuery.empty) await updateDoc(doc(db, 'users', refQuery.docs[0].id), { boosts: increment(1) }); }
+      await setDoc(doc(db, 'users', userCred.user.uid), { name, age, gender, email, interests: selectedInterests, createdAt: new Date().toISOString(), likes: [], dislikes: [], matches: [], blocked: [], location: null, premium: false, boosts: 0, inviteCode: ownCode, referredBy: inviteCode || null, photoURL: null, online: false, lastSeen: serverTimestamp() });
+      showToast("Verification email sent! Please verify before login.");
+      document.querySelector('.auth-tab[data-auth="login"]').click();
+    } catch (err) { showToast(err.message); }
+    btn.disabled = false; btn.innerText = "Create Account";
+  };
+
+  // Login with email verification check
+  document.getElementById('doLoginBtn').onclick = async (e) => {
+    const btn = e.target; btn.disabled = true; btn.innerText = "Loading...";
+    const email = document.getElementById('loginEmail').value, pwd = document.getElementById('loginPassword').value;
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, email, pwd);
+      if (!userCred.user.emailVerified) { await signOut(auth); showToast("Please verify your email first."); btn.disabled = false; btn.innerText = "Login"; return; }
+    } catch (err) { showToast(err.message); }
+    btn.disabled = false; btn.innerText = "Login";
+  };
+
+  // Main app state
+  let currentUser = null, swipeCards = [], currentIndex = 0, lastDoc = null, allLoaded = false, loadingMore = false, chatUnsub = null, typingTimeout = null, onlinePresenceUnsub = null;
+
+  async function updateLocation(uid) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => { await updateDoc(doc(db, 'users', uid), { location: new GeoPoint(pos.coords.latitude, pos.coords.longitude) }); }, () => {});
+  }
+
+  // Swipe gestures and loading
+  function attachDragEvents(cardElement, onSwipeLeft, onSwipeRight) {
+    let startX = 0, currentX = 0, isDragging = false, startTime = 0;
+    const handleStart = (e) => { const touch = e.touches ? e.touches[0] : e; startX = touch.clientX; currentX = startX; startTime = Date.now(); isDragging = true; cardElement.style.transition = 'none'; };
+    const handleMove = (e) => { if (!isDragging) return; const touch = e.touches ? e.touches[0] : e; currentX = touch.clientX; const diff = currentX - startX; cardElement.style.transform = `translateX(${diff}px) rotate(${diff * 0.05}deg)`; };
+    const handleEnd = () => { isDragging = false; const diff = currentX - startX; const time = Date.now() - startTime; const velocity = Math.abs(diff) / time; cardElement.style.transition = 'transform 0.3s'; if (diff > 80 || (velocity > 0.5 && diff > 30)) { cardElement.style.transform = 'translateX(500px) rotate(30deg)'; setTimeout(() => { onSwipeRight(); cardElement.remove(); }, 200); } else if (diff < -80 || (velocity > 0.5 && diff < -30)) { cardElement.style.transform = 'translateX(-500px) rotate(-30deg)'; setTimeout(() => { onSwipeLeft(); cardElement.remove(); }, 200); } else { cardElement.style.transform = ''; } };
+    cardElement.addEventListener('mousedown', handleStart); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleEnd);
+    cardElement.addEventListener('touchstart', handleStart); window.addEventListener('touchmove', handleMove); window.addEventListener('touchend', handleEnd);
+  }
+
+  async function loadMoreUsers() {
+    if (loadingMore || allLoaded) return;
+    loadingMore = true;
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const myData = userSnap.data();
+    const myInterests = myData.interests || [], myLoc = myData.location, liked = myData.likes || [], disliked = myData.dislikes || [], matched = myData.matches || [], blocked = myData.blocked || [];
+    const excluded = new Set([currentUser.uid, ...liked, ...disliked, ...matched, ...blocked]);
+    let q = query(collection(db, 'users'), limit(20));
+    if (lastDoc) q = query(collection(db, 'users'), startAfter(lastDoc), limit(20));
+    const snap = await getDocs(q);
+    if (snap.empty) { allLoaded = true; loadingMore = false; return; }
+    lastDoc = snap.docs[snap.docs.length-1];
+    const newCards = snap.docs.filter(d => !excluded.has(d.id)).map(d => ({ id: d.id, ...d.data() })).map(c => {
+      let score = 0; const common = c.interests?.filter(i => myInterests.includes(i)).length || 0; score += common * 20;
+      if (myLoc && c.location) score += Math.max(0, 50 - getDistance(myLoc, c.location));
+      score += Math.max(0, 30 - (Date.now() - new Date(c.createdAt).getTime()) / (1000*3600*24));
+      return { ...c, score };
+    }).sort((a,b) => b.score - a.score);
+    swipeCards.push(...newCards); loadingMore = false; if (currentIndex === 0) renderCard();
+  }
+
+  function renderCard() {
+    const container = document.getElementById('cardsContainer');
+    if (currentIndex >= swipeCards.length && !allLoaded) { container.innerHTML = '<div class="swipe-card shimmer" style="height:400px;"></div>'; loadMoreUsers(); return; }
+    if (currentIndex >= swipeCards.length) { container.innerHTML = `<div class="empty-state"><i class="fas fa-users-slash"></i><h3>No more people</h3><p>Invite friends or check back later</p><button class="btn btn-primary" id="emptyInviteBtn">📢 Invite friends</button></div>`; if (document.getElementById('emptyInviteBtn')) document.getElementById('emptyInviteBtn').onclick = shareInvite; return; }
+    const u = swipeCards[currentIndex];
+    const photoHtml = u.photoURL ? `<img class="card-avatar-img" src="${u.photoURL}" onerror="this.src='https://via.placeholder.com/240'">` : `<div class="card-avatar-img" style="display:flex;align-items:center;justify-content:center;">👤</div>`;
+    const cardDiv = document.createElement('div'); cardDiv.className = 'swipe-card'; cardDiv.innerHTML = `${photoHtml}<div class="card-name">${u.name}, ${u.age} (${u.gender || 'Not specified'})${u.emailVerified ? '<i class="fas fa-check-circle verified-badge"></i>' : ''}</div><div class="card-interests">${(u.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('')}</div><p>${u.bio || 'Ready to TeamUp!'}</p>`;
+    container.innerHTML = ''; container.appendChild(cardDiv);
+    attachDragEvents(cardDiv, () => swipeDislike(), () => swipeLike());
+  }
+
+  async function swipeLike() { if (!swipeCards[currentIndex]) return; const liked = swipeCards[currentIndex]; await updateDoc(doc(db, 'users', currentUser.uid), { likes: arrayUnion(liked.id) }); const likedRef = doc(db, 'users', liked.id); const likedSnap = await getDoc(likedRef); if (likedSnap.data().likes?.includes(currentUser.uid)) { const matchId = [currentUser.uid, liked.id].sort().join('_'); await setDoc(doc(db, 'matches', matchId), { users: [currentUser.uid, liked.id], createdAt: new Date().toISOString() }); await updateDoc(doc(db, 'users', currentUser.uid), { matches: arrayUnion(liked.id) }); await updateDoc(likedRef, { matches: arrayUnion(currentUser.uid) }); showMatchCelebration(liked.name); } currentIndex++; renderCard(); if (currentIndex + 5 >= swipeCards.length && !allLoaded) loadMoreUsers(); }
+  async function swipeDislike() { if (!swipeCards[currentIndex]) return; await updateDoc(doc(db, 'users', currentUser.uid), { dislikes: arrayUnion(swipeCards[currentIndex].id) }); currentIndex++; renderCard(); if (currentIndex + 5 >= swipeCards.length && !allLoaded) loadMoreUsers(); }
+  document.getElementById('likeBtn').onclick = () => swipeLike(); document.getElementById('dislikeBtn').onclick = () => swipeDislike();
+
+  // Nearby (simplified, with empty state)
+  async function loadNearby(radiusKm) {
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const myLoc = userSnap.data().location;
+    if (!myLoc) { document.getElementById('nearbyList').innerHTML = '<li class="empty-state"><i class="fas fa-location-dot"></i> Enable location to see nearby people</li>'; return; }
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const nearby = []; usersSnap.forEach(d => { if (d.id !== currentUser.uid) { const data = d.data(); if (data.location && getDistance(myLoc, data.location) <= radiusKm) nearby.push({ id: d.id, ...data, distance: getDistance(myLoc, data.location).toFixed(1) }); } });
+    if (nearby.length === 0) { document.getElementById('nearbyList').innerHTML = '<li class="empty-state"><i class="fas fa-map-marker-alt"></i> No one nearby. Invite friends!</li>'; return; }
+    const html = nearby.map(u => `<li class="nearby-item"><div style="display:flex;gap:0.5rem;align-items:center;">${u.photoURL ? `<img class="nearby-avatar" src="${u.photoURL}">` : '<div class="nearby-avatar" style="background:var(--primary);display:flex;align-items:center;justify-content:center;">👤</div>'}<div><strong>${u.name}</strong> ${u.emailVerified ? '<i class="fas fa-check-circle verified-badge"></i>' : ''}<br>${u.gender || ''} • ${u.distance} km<br>${(u.interests||[]).join(', ')}</div></div><button class="btn-outline connect-nearby" data-id="${u.id}">Connect</button></li>`).join('');
+    document.getElementById('nearbyList').innerHTML = html;
+    document.querySelectorAll('.connect-nearby').forEach(btn => btn.onclick = () => showToast(`👍 Interest sent. If they like you back, chat will open.`));
+  }
+
+  // Chat (typing, online status, empty state)
+  async function loadChats() {
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const matches = userSnap.data().matches || [];
+    if (matches.length === 0) { document.getElementById('chatList').innerHTML = '<li class="empty-state"><i class="fas fa-comments"></i> No chats yet. Swipe to match!</li>'; return; }
+    let html = '';
+    for (const matchId of matches) {
+      const otherSnap = await getDoc(doc(db, 'users', matchId));
+      if (otherSnap.exists()) { const other = otherSnap.data(); html += `<li class="chat-item" data-uid="${matchId}">${other.photoURL ? `<img class="chat-avatar-img" src="${other.photoURL}">` : `<div class="chat-avatar-img">${other.name[0]}</div>`}<div><strong>${other.name}</strong> ${other.online ? '<span class="online-dot"></span>' : ''}<br>${other.gender || ''}</div></li>`; }
+    }
+    document.getElementById('chatList').innerHTML = html;
+    document.querySelectorAll('.chat-item').forEach(el => el.addEventListener('click', () => openChat(el.dataset.uid)));
+  }
+
+  let currentChatId = null, lastMessageTime = 0, typingRef = null;
+  async function openChat(otherUid) {
+    if (chatUnsub) chatUnsub();
+    const chatId = [currentUser.uid, otherUid].sort().join('_'); currentChatId = chatId;
+    const otherSnap = await getDoc(doc(db, 'users', otherUid));
+    document.getElementById('chatPartnerName').innerHTML = `${otherSnap.data().name} ${otherSnap.data().online ? '<span class="online-dot"></span>' : ''}`;
+    document.getElementById('chatOverlay').style.display = 'flex';
+    if (onlinePresenceUnsub) onlinePresenceUnsub();
+    onlinePresenceUnsub = onSnapshot(doc(db, 'users', otherUid), (docSnap) => { const online = docSnap.data()?.online || false; document.getElementById('onlineStatus').style.display = online ? 'inline-block' : 'none'; });
+    typingRef = doc(db, 'typing', chatId);
+    onSnapshot(typingRef, (docSnap) => { if (docSnap.exists() && docSnap.data().userId !== currentUser.uid && (Date.now() - docSnap.data().timestamp?.toDate?.()?.getTime() || 0) < 3000) document.getElementById('typingIndicator').innerText = 'Typing...'; else document.getElementById('typingIndicator').innerText = ''; });
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    chatUnsub = onSnapshot(query(messagesRef, orderBy('timestamp')), (snap) => { const container = document.getElementById('chatMessages'); container.innerHTML = ''; snap.forEach(docMsg => { const msg = docMsg.data(); const div = document.createElement('div'); div.className = `message ${msg.sender === currentUser.uid ? 'my' : 'other'}`; div.innerText = msg.text; container.appendChild(div); }); container.scrollTop = container.scrollHeight; });
+  }
+
+  document.getElementById('sendMsgBtn').onclick = async () => {
+    const input = document.getElementById('chatInput'); const text = input.value.trim(); if (!text) return;
+    if (Date.now() - lastMessageTime < 6000) { showToast("Please wait a few seconds"); return; }
+    lastMessageTime = Date.now();
+    const profanity = ['stupid', 'idiot', 'fuck', 'shit']; let clean = text; profanity.forEach(w => { clean = clean.replace(new RegExp(w, 'gi'), '***'); });
+    await addDoc(collection(db, 'chats', currentChatId, 'messages'), { text: clean, sender: currentUser.uid, timestamp: serverTimestamp() });
+    input.value = '';
+    if (typingRef) await setDoc(typingRef, { userId: null, timestamp: null });
+  };
+  document.getElementById('chatInput').addEventListener('input', async () => { if (typingRef) await setDoc(typingRef, { userId: currentUser.uid, timestamp: serverTimestamp() }); if (typingTimeout) clearTimeout(typingTimeout); typingTimeout = setTimeout(async () => { if (typingRef) await setDoc(typingRef, { userId: null, timestamp: null }); }, 1500); });
+  document.getElementById('closeChatBtn').onclick = () => { if (chatUnsub) chatUnsub(); if (onlinePresenceUnsub) onlinePresenceUnsub(); document.getElementById('chatOverlay').style.display = 'none'; currentChatId = null; };
+
+  // Profile
+  async function loadProfile() {
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    const data = snap.data();
+    document.getElementById('profileName').innerText = data.name; document.getElementById('profileAge').innerText = data.age; document.getElementById('profileGender').innerText = data.gender; document.getElementById('profileInterests').innerHTML = (data.interests || []).join(', '); document.getElementById('inviteCodeDisplay').innerText = data.inviteCode;
+    const premium = data.premium || false; document.getElementById('premiumStatus').innerHTML = premium ? '✨ Premium' : 'Free'; document.getElementById('adBanner').style.display = premium ? 'none' : 'block';
+    if (data.photoURL) document.getElementById('profileAvatarImg').src = data.photoURL;
+    document.getElementById('verifiedBadge').style.display = data.emailVerified ? 'inline' : 'none';
+    // Update online count (trust signal)
+    const onlineQuery = await getDocs(query(collection(db, 'users'), where('online', '==', true)));
+    document.querySelector('.online-count')?.remove();
+    const onlineSpan = document.createElement('span'); onlineSpan.className = 'online-count'; onlineSpan.innerHTML = `<i class="fas fa-circle"></i> ${onlineQuery.size} online now`;
+    document.querySelector('.app-header')?.appendChild(onlineSpan);
+  }
+
+  document.getElementById('uploadPhotoBtn').onclick = () => document.getElementById('photoUploadInput').click();
+  document.getElementById('photoUploadInput').onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try { const storageRef = ref(storage, `profile_photos/${currentUser.uid}`); await uploadBytes(storageRef, file); const url = await getDownloadURL(storageRef); await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: url }); loadProfile(); showToast("Photo updated!"); } catch (err) { showToast("Upload failed: " + err.message); }
+  };
+  async function shareInvite() { const snap = await getDoc(doc(db, 'users', currentUser.uid)); navigator.clipboard.writeText(`${window.location.origin}?ref=${snap.data().inviteCode}`); showToast("Invite link copied!"); }
+  document.getElementById('shareInviteBtn').onclick = shareInvite;
+
+  document.getElementById('editProfileBtn').onclick = async () => {
+    const currentName = document.getElementById('profileName').innerText, currentAge = document.getElementById('profileAge').innerText, currentGender = document.getElementById('profileGender').innerText;
+    const result = await showModal({ title: "Edit Profile", inputFields: [{ type: 'text', id: 'editName', placeholder: 'Name', value: currentName }, { type: 'number', id: 'editAge', placeholder: 'Age', value: currentAge }], select: { id: 'editGender', options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'] }, confirmText: "Save", cancelText: "Cancel" });
+    if (result && result.editName && result.editAge && result.editGender) await updateDoc(doc(db, 'users', currentUser.uid), { name: result.editName, age: parseInt(result.editAge), gender: result.editGender }).then(() => loadProfile());
+  };
+  document.getElementById('subscribeBtn').onclick = async () => { const confirm = await showModal({ title: "Subscribe to Premium", confirmText: "Subscribe", cancelText: "Cancel" }); if (confirm) { await updateDoc(doc(db, 'users', currentUser.uid), { premium: true }); loadProfile(); showToast("Premium activated!"); } };
+  document.getElementById('cancelSubBtn').onclick = async () => { await updateDoc(doc(db, 'users', currentUser.uid), { premium: false }); loadProfile(); showToast("Subscription cancelled."); };
+
+  // Report modal (simplified via custom modal)
+  document.getElementById('reportUserBtn').onclick = async () => {
+    const targetId = await showModal({ title: "Report user", inputFields: [{ type: 'text', id: 'reportUserId', placeholder: 'User ID (from profile)' }], confirmText: "Next", cancelText: "Cancel" });
+    if (targetId && targetId.reportUserId) {
+      const reason = await showModal({ title: "Reason", select: { id: 'reason', options: ['Spam', 'Harassment', 'Fake profile', 'Inappropriate content'] }, confirmText: "Submit", cancelText: "Cancel" });
+      if (reason) await addDoc(collection(db, 'reports'), { reportedUserId: targetId.reportUserId, reporterId: currentUser.uid, reason: reason.reason, timestamp: serverTimestamp() });
+      showToast("Report submitted.");
+    }
+  };
+
+  // Onboarding
+  let onboardingPurpose = [];
+  const onboardChips = document.getElementById('onboardingInterests');
+  ['dating','friendship','gaming','study','business'].forEach(p => { const chip = document.createElement('span'); chip.className = 'interest-chip'; chip.innerText = p; chip.onclick = () => { chip.classList.toggle('selected'); if (onboardingPurpose.includes(p)) onboardingPurpose = onboardingPurpose.filter(v => v !== p); else onboardingPurpose.push(p); }; onboardChips.appendChild(chip); });
+  document.getElementById('uploadOnboardingPhoto').onclick = () => document.getElementById('onboardPhotoInput').click();
+  document.getElementById('onboardPhotoInput').onchange = async (e) => { const file = e.target.files[0]; if (!file) return; const storageRef = ref(storage, `profile_photos/${currentUser.uid}`); await uploadBytes(storageRef, file); const url = await getDownloadURL(storageRef); await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: url }); showToast("Photo uploaded!"); };
+  document.getElementById('enableLocationBtn').onclick = () => { if (navigator.geolocation) navigator.geolocation.getCurrentPosition(async (pos) => { await updateDoc(doc(db, 'users', currentUser.uid), { location: new GeoPoint(pos.coords.latitude, pos.coords.longitude) }); showToast("Location enabled!"); }, () => showToast("Location permission denied")); };
+  document.getElementById('completeOnboarding').onclick = async () => { if (onboardingPurpose.length) await updateDoc(doc(db, 'users', currentUser.uid), { interests: onboardingPurpose, onboardingCompleted: true }); document.getElementById('onboarding').style.display = 'none'; loadProfile(); loadNearby(20); loadMoreUsers(); };
+
+  // Navigation & presence
+  const pages = ['swipe', 'nearby', 'chats', 'profile'];
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.onclick = () => { const page = item.dataset.page; document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active')); item.classList.add('active'); document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(page + 'Page').classList.add('active'); if (page === 'swipe') { if (swipeCards.length === 0) loadMoreUsers(); else renderCard(); } if (page === 'nearby') loadNearby(parseInt(document.getElementById('distanceRange').value)); if (page === 'chats') loadChats(); if (page === 'profile') loadProfile(); };
+  });
+  document.getElementById('distanceRange').addEventListener('input', (e) => loadNearby(parseInt(e.target.value)));
+  document.getElementById('logoutBtn').onclick = async () => { await updateDoc(doc(db, 'users', currentUser.uid), { online: false, lastSeen: serverTimestamp() }); await signOut(auth); window.location.reload(); };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user && user.emailVerified) {
+      currentUser = user; document.getElementById('authContainer').style.display = 'none'; document.getElementById('mainApp').style.display = 'block';
+      await updateDoc(doc(db, 'users', user.uid), { online: true, lastSeen: serverTimestamp() });
+      // Presence on disconnect (simplified – requires onDisconnect, but we skip for brevity)
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!userSnap.data()?.onboardingCompleted) document.getElementById('onboarding').style.display = 'flex';
+      await updateLocation(user.uid);
+      loadProfile(); loadNearby(20); loadChats(); loadMoreUsers();
+    } else { document.getElementById('authContainer').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none'; if (chatUnsub) chatUnsub(); swipeCards = []; allLoaded = false; currentIndex = 0; lastDoc = null; }
+  });
+</script>
+<!-- SECURITY RULES – COPY TO FIREBASE CONSOLE -->
+<!-- 
+  FIRESTORE RULES:
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /users/{userId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null && request.auth.uid == userId && 
+          !("premium" in request.resource.data.diff(resource.data).changedKeys()) &&
+          !("boosts" in request.resource.data.diff(resource.data).changedKeys());
+      }
+      match /matches/{matchId} {
+        allow create: if request.auth != null && request.resource.data.users.hasAny([request.auth.uid]);
+        allow read, update, delete: if request.auth != null && resource.data.users.hasAny([request.auth.uid]);
+      }
+      match /chats/{chatId}/messages/{message} {
+        allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+      }
+      match /reports/{reportId} {
+        allow create: if request.auth != null;
+        allow read: if request.auth != null;
+      }
+      match /typing/{docId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+
+  STORAGE RULES:
+  rules_version = '2';
+  service firebase.storage {
+    match /b/{bucket}/o {
+      match /profile_photos/{userId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+-->
+</body>
+</html>
